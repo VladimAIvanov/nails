@@ -1,0 +1,72 @@
+/* Цвет. Тёплая глина + кремовые нейтралы + приглушённые семантические. */
+:root{
+  /* --- Глина / clay (основной акцент) --- */
+  --clay-50:#FCF3EE;--clay-100:#F7E4DA;--clay-200:#EFCCBB;--clay-300:#E3AC93;--clay-400:#D08A6B;
+  --clay-500:#B96C4C;--clay-600:#A0553C;--clay-700:#83432F;--clay-800:#653326;--clay-900:#47251C;
+
+  /* --- Слива / plum (глубокий вторичный акцент: hero, футер, admin-сайдбар) --- */
+  --plum-50:#F7F0F2;--plum-100:#EBDCE1;--plum-200:#D6BCC6;--plum-300:#B995A4;--plum-400:#96697D;
+  --plum-500:#754C60;--plum-600:#5C3A4B;--plum-700:#472C3A;--plum-800:#33202A;--plum-900:#23161D;
+
+  /* --- Песок / sand (тёплые нейтралы, фон + текст) --- */
+  --sand-0:#FFFFFF;--sand-25:#FDFAF8;--sand-50:#FAF5F1;--sand-100:#F4ECE5;--sand-200:#E8DCD2;
+  --sand-300:#D3C3B6;--sand-400:#A4948A;--sand-500:#7D6D62;--sand-600:#5E5049;--sand-700:#453B35;
+  --sand-800:#302925;--sand-900:#221D1A;
+
+  /* --- Семантические базовые --- */
+  --sage-50:#ECF2ED;--sage-200:#C6DBCD;--sage-600:#3F7355;--sage-700:#2F5A42;   /* успех */
+  --honey-50:#FBF2E2;--honey-200:#EDD9AE;--honey-600:#8F6115;--honey-700:#6F4B0F; /* ожидание / занято */
+  --berry-50:#F9ECEE;--berry-200:#E8C4CC;--berry-600:#9B2B44;--berry-700:#7C2036; /* отмена / ошибка */
+
+  /* --- Фоны и поверхности --- */
+  --bg-page:var(--sand-50);
+  --bg-page-alt:var(--sand-100);
+  --bg-inverse:var(--plum-800);
+  --surface-card:var(--sand-0);
+  --surface-sunken:var(--sand-100);
+  --surface-accent-soft:var(--clay-50);
+  --surface-overlay:rgba(34,29,26,.44);
+
+  /* --- Текст --- */
+  --text-primary:var(--sand-900);
+  --text-secondary:var(--sand-600);
+  --text-muted:var(--sand-500);
+  --text-disabled:var(--sand-400);
+  --text-inverse:var(--sand-0);
+  --text-accent:var(--clay-700);
+  --text-link:var(--clay-700);
+  --text-link-hover:var(--clay-800);
+
+  /* --- Границы --- */
+  --border-subtle:var(--sand-100);
+  --border-default:var(--sand-200);
+  --border-strong:var(--sand-300);
+  --border-accent:var(--clay-300);
+
+  /* --- Акцент (действия) --- */
+  --accent:var(--clay-600);
+  --accent-hover:var(--clay-700);
+  --accent-press:var(--clay-800);
+  --accent-soft:var(--clay-50);
+  --accent-soft-hover:var(--clay-100);
+  --on-accent:var(--sand-0);
+  --focus-ring:rgba(160,85,60,.38);
+
+  /* --- Статусы записи --- */
+  --status-confirmed-fg:var(--sage-700);--status-confirmed-bg:var(--sage-50);--status-confirmed-border:var(--sage-200);
+  --status-pending-fg:var(--honey-700);--status-pending-bg:var(--honey-50);--status-pending-border:var(--honey-200);
+  --status-cancelled-fg:var(--berry-700);--status-cancelled-bg:var(--berry-50);--status-cancelled-border:var(--berry-200);
+  --status-done-fg:var(--sand-600);--status-done-bg:var(--sand-100);--status-done-border:var(--sand-200);
+
+  /* --- Слоты времени --- */
+  --slot-free-bg:var(--sand-0);--slot-free-border:var(--sand-200);--slot-free-fg:var(--sand-900);
+  --slot-busy-bg:var(--sand-100);--slot-busy-border:transparent;--slot-busy-fg:var(--sand-400);
+  --slot-selected-bg:var(--accent);--slot-selected-border:var(--accent);--slot-selected-fg:var(--on-accent);
+
+  /* --- Заливки-градиенты (глянец nail-арта) --- */
+  --gradient-clay:linear-gradient(135deg,#C4785A 0%,#A0553C 55%,#83432F 100%); /* @kind color */
+  --gradient-plum:linear-gradient(160deg,#5C3A4B 0%,#33202A 100%); /* @kind color */
+  --gradient-cream:linear-gradient(180deg,#FDFAF8 0%,#F4ECE5 100%); /* @kind color */
+  --gradient-gloss:linear-gradient(180deg,rgba(255,255,255,.55) 0%,rgba(255,255,255,0) 58%); /* @kind color */
+  --gradient-nude:linear-gradient(140deg,#F7E4DA 0%,#E3AC93 48%,#D08A6B 100%); /* @kind color */
+}

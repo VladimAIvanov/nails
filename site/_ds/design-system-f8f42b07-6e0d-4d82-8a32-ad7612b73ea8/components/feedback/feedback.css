@@ -1,0 +1,23 @@
+/* Статусы записи, рейтинг, встроенные уведомления. */
+.v-status{display:inline-flex;align-items:center;gap:var(--space-2);height:26px;padding:0 var(--space-3);border-radius:var(--radius-pill);border:var(--border-width) solid transparent;font-size:var(--fs-caption);font-weight:var(--fw-semibold);letter-spacing:var(--ls-caption);white-space:nowrap}
+.v-status__dot{width:6px;height:6px;border-radius:var(--radius-circle);background:currentColor;flex:none}
+.v-status--confirmed{color:var(--status-confirmed-fg);background:var(--status-confirmed-bg);border-color:var(--status-confirmed-border)}
+.v-status--pending{color:var(--status-pending-fg);background:var(--status-pending-bg);border-color:var(--status-pending-border)}
+.v-status--cancelled{color:var(--status-cancelled-fg);background:var(--status-cancelled-bg);border-color:var(--status-cancelled-border)}
+.v-status--done{color:var(--status-done-fg);background:var(--status-done-bg);border-color:var(--status-done-border)}
+.v-status--lg{height:32px;font-size:var(--fs-body-sm);padding:0 var(--space-4)}
+
+.v-rating{display:inline-flex;align-items:center;gap:var(--space-2);font-size:var(--fs-body-sm);color:var(--text-secondary)}
+.v-rating__stars{display:inline-flex;gap:2px}
+.v-rating__star{font-size:14px;line-height:1;color:var(--sand-300);font-style:normal}
+.v-rating__star--on{color:var(--clay-500)}
+.v-rating__value{font-weight:var(--fw-semibold);color:var(--text-primary);font-variant-numeric:tabular-nums}
+.v-rating__count{color:var(--text-muted)}
+
+.v-notice{display:flex;gap:var(--space-3);padding:var(--space-4);border-radius:var(--radius-lg);border:var(--border-width) solid transparent;font-size:var(--fs-body-sm);line-height:var(--lh-snug)}
+.v-notice__icon{flex:none;width:18px;height:18px;margin-top:1px}
+.v-notice__title{font-weight:var(--fw-semibold);margin-bottom:var(--space-1)}
+.v-notice--info{background:var(--surface-accent-soft);border-color:var(--clay-100);color:var(--clay-800)}
+.v-notice--success{background:var(--status-confirmed-bg);border-color:var(--status-confirmed-border);color:var(--status-confirmed-fg)}
+.v-notice--warning{background:var(--status-pending-bg);border-color:var(--status-pending-border);color:var(--status-pending-fg)}
+.v-notice--danger{background:var(--status-cancelled-bg);border-color:var(--status-cancelled-border);color:var(--status-cancelled-fg)}

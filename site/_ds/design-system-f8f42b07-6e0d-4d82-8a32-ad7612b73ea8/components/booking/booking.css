@@ -1,0 +1,58 @@
+/* Домен записи: мастер, услуга, дата, слот, карточка записи. */
+.v-master-card{display:flex;gap:var(--space-4);align-items:center;width:100%;text-align:left}
+.v-master-card__photo{width:76px;height:76px;flex:none;border-radius:var(--radius-lg)}
+.v-master-card__body{flex:1;min-width:0;display:flex;flex-direction:column;gap:6px}
+.v-master-card__name{font-family:var(--font-display);font-size:var(--fs-h3);font-weight:var(--fw-semibold);line-height:1.15;color:var(--text-primary)}
+.v-master-card__role{font-size:var(--fs-body-sm);color:var(--text-muted)}
+.v-master-card__meta{display:flex;align-items:center;gap:var(--space-3);flex-wrap:wrap}
+.v-master-card__works{display:flex;gap:6px;margin-top:var(--space-1)}
+.v-master-card__work{width:40px;height:40px;border-radius:var(--radius-sm)}
+.v-master-card__chevron{font-size:18px;line-height:1;color:var(--sand-300);flex:none;font-style:normal}
+.v-master-card--stacked{flex-direction:column;align-items:stretch;gap:var(--space-3);text-align:center}
+.v-master-card--stacked .v-master-card__photo{width:100%;height:200px;border-radius:var(--radius-lg)}
+.v-master-card--stacked .v-master-card__meta{justify-content:center}
+
+.v-service-card{display:flex;gap:var(--space-4);align-items:flex-start;width:100%;text-align:left}
+.v-service-card__body{flex:1;min-width:0;display:flex;flex-direction:column;gap:var(--space-1)}
+.v-service-card__title{font-size:var(--fs-h4);font-weight:var(--fw-semibold);color:var(--text-primary);line-height:var(--lh-snug)}
+.v-service-card__desc{font-size:var(--fs-body-sm);color:var(--text-muted);line-height:var(--lh-snug)}
+.v-service-card__meta{display:flex;align-items:center;gap:var(--space-2);font-size:var(--fs-body-sm);color:var(--text-secondary);margin-top:var(--space-1)}
+.v-service-card__dot{width:3px;height:3px;border-radius:var(--radius-circle);background:var(--sand-300)}
+.v-service-card__side{display:flex;flex-direction:column;align-items:flex-end;gap:var(--space-2);flex:none}
+.v-service-card__price{font-family:var(--font-display);font-size:var(--fs-h3);font-weight:var(--fw-semibold);color:var(--text-primary);font-variant-numeric:tabular-nums;line-height:1}
+.v-service-card__from{font-size:var(--fs-caption);color:var(--text-muted)}
+
+.v-date-strip{display:flex;gap:var(--space-2);overflow-x:auto;padding-bottom:var(--space-2);scrollbar-width:none;-ms-overflow-style:none}
+.v-date-strip::-webkit-scrollbar{display:none}
+.v-date-day{flex:none;width:56px;padding:var(--space-3) 0;border-radius:var(--radius-lg);border:var(--border-width) solid var(--border-default);background:var(--surface-card);display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer;transition:background var(--dur-fast) var(--ease-standard),border-color var(--dur-fast) var(--ease-standard),color var(--dur-fast) var(--ease-standard),transform var(--dur-fast) var(--ease-standard)}
+.v-date-day:active:not(:disabled){transform:scale(var(--press-scale))}
+.v-date-day__dow{font-size:var(--fs-overline);font-weight:var(--fw-semibold);letter-spacing:.06em;text-transform:uppercase;color:var(--text-muted)}
+.v-date-day__num{font-family:var(--font-display);font-size:1.375rem;font-weight:var(--fw-semibold);color:var(--text-primary);line-height:1.1}
+.v-date-day__free{font-size:10px;color:var(--sage-600);font-weight:var(--fw-semibold)}
+.v-date-day--selected{background:var(--accent);border-color:var(--accent);box-shadow:var(--shadow-accent)}
+.v-date-day--selected .v-date-day__dow,.v-date-day--selected .v-date-day__num,.v-date-day--selected .v-date-day__free{color:var(--on-accent)}
+.v-date-day:disabled{background:var(--surface-sunken);border-color:transparent;cursor:not-allowed}
+.v-date-day:disabled .v-date-day__num,.v-date-day:disabled .v-date-day__dow{color:var(--text-disabled)}
+
+.v-slot-group{display:flex;flex-direction:column;gap:var(--space-3)}
+.v-slot-group__label{display:flex;align-items:center;gap:var(--space-2);font-size:var(--fs-overline);font-weight:var(--fw-semibold);letter-spacing:var(--ls-overline);text-transform:uppercase;color:var(--text-muted)}
+.v-slot-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(84px,1fr));gap:var(--space-2)}
+.v-slot{height:var(--slot-h);border-radius:var(--radius-sm);border:var(--border-width) solid var(--slot-free-border);background:var(--slot-free-bg);color:var(--slot-free-fg);font-size:var(--fs-body);font-weight:var(--fw-semibold);font-variant-numeric:tabular-nums;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background var(--dur-fast) var(--ease-standard),border-color var(--dur-fast) var(--ease-standard),color var(--dur-fast) var(--ease-standard),transform var(--dur-fast) var(--ease-standard),box-shadow var(--dur-base) var(--ease-standard)}
+.v-slot:hover:not(:disabled):not(.v-slot--selected){border-color:var(--border-accent);background:var(--clay-50)}
+.v-slot:active:not(:disabled){transform:scale(var(--press-scale))}
+.v-slot--selected{background:var(--slot-selected-bg);border-color:var(--slot-selected-border);color:var(--slot-selected-fg);box-shadow:var(--shadow-accent)}
+.v-slot--busy,.v-slot:disabled{background:var(--slot-busy-bg);border-color:var(--slot-busy-border);color:var(--slot-busy-fg);cursor:not-allowed;font-weight:var(--fw-medium)}
+.v-slot-legend{display:flex;gap:var(--space-4);flex-wrap:wrap;font-size:var(--fs-caption);color:var(--text-muted)}
+.v-slot-legend__item{display:flex;align-items:center;gap:var(--space-2)}
+.v-slot-legend__swatch{width:14px;height:14px;border-radius:5px;border:var(--border-width) solid var(--border-default);background:var(--slot-free-bg)}
+.v-slot-legend__swatch--busy{background:var(--slot-busy-bg);border-color:transparent}
+.v-slot-legend__swatch--selected{background:var(--accent);border-color:var(--accent)}
+
+.v-booking-card{display:flex;flex-direction:column;gap:var(--space-3)}
+.v-booking-card__head{display:flex;align-items:flex-start;justify-content:space-between;gap:var(--space-3)}
+.v-booking-card__when{font-family:var(--font-display);font-size:var(--fs-h3);font-weight:var(--fw-semibold);color:var(--text-primary);line-height:1.15}
+.v-booking-card__service{font-size:var(--fs-body);color:var(--text-secondary);margin-top:2px}
+.v-booking-card__row{display:flex;align-items:center;gap:var(--space-3);font-size:var(--fs-body-sm);color:var(--text-secondary)}
+.v-booking-card__foot{display:flex;gap:var(--space-2);padding-top:var(--space-3);border-top:var(--border-width) solid var(--border-subtle)}
+.v-booking-card--cancelled .v-booking-card__when,.v-booking-card--cancelled .v-booking-card__service{color:var(--text-muted)}
+.v-booking-card--cancelled .v-booking-card__when{text-decoration:line-through;text-decoration-color:var(--sand-300)}

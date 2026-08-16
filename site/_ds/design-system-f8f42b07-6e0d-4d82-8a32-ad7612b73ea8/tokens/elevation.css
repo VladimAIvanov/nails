@@ -1,0 +1,19 @@
+/* Форма и глубина. Скругления мягкие, тени тёплые (коричневый, не серый). */
+:root{
+  --radius-xs:8px;--radius-sm:12px;--radius-md:16px;--radius-lg:20px;--radius-xl:24px;
+  --radius-2xl:32px;--radius-3xl:40px;--radius-pill:999px;--radius-circle:50%;
+
+  --border-width:1px;
+  --border-width-strong:1.5px;
+
+  --shadow-xs:0 1px 2px rgba(58,38,28,.05);
+  --shadow-sm:0 2px 8px -2px rgba(58,38,28,.08);
+  --shadow-md:0 10px 24px -12px rgba(58,38,28,.18);
+  --shadow-lg:0 24px 48px -20px rgba(58,38,28,.22);
+  --shadow-accent:0 10px 22px -10px rgba(160,85,60,.55);
+  --shadow-nav:0 -8px 24px -16px rgba(58,38,28,.28);
+  --gloss-inset:inset 0 1px 0 rgba(255,255,255,.55);
+
+  --blur-sheet:blur(14px); /* @kind other */
+  --blur-bar:saturate(1.1) blur(10px); /* @kind other */
+}

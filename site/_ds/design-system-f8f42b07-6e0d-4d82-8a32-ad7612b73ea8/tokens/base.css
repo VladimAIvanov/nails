@@ -1,0 +1,23 @@
+/* Базовые стили элементов. */
+*,*::before,*::after{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg-page);color:var(--text-primary);font-family:var(--font-sans);font-size:var(--fs-body);line-height:var(--lh-body);font-weight:var(--fw-regular);-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+h1,h2,h3,h4,h5,h6{margin:0;font-family:var(--font-display);font-weight:var(--fw-semibold);line-height:var(--lh-heading);letter-spacing:var(--ls-heading);color:var(--text-primary);text-wrap:balance}
+h1{font-size:var(--fs-h1);line-height:var(--lh-tight);letter-spacing:var(--ls-display)}
+h2{font-size:var(--fs-h2)}
+h3{font-size:var(--fs-h3)}
+h4{font-size:var(--fs-h4);font-family:var(--font-sans)}
+p{margin:0;text-wrap:pretty}
+a{color:var(--text-link);text-decoration:none;border-bottom:1px solid var(--clay-200);transition:color var(--dur-fast) var(--ease-standard),border-color var(--dur-fast) var(--ease-standard)}
+a:hover{color:var(--text-link-hover);border-bottom-color:var(--clay-400)}
+a:active{color:var(--clay-800)}
+button,input,select,textarea{font:inherit;color:inherit}
+img{max-width:100%;display:block}
+hr{border:0;border-top:1px solid var(--border-default);margin:var(--space-6) 0}
+::selection{background:var(--clay-200);color:var(--sand-900)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:var(--radius-xs)}
+.v-container{max-width:var(--container-max);margin:0 auto;padding-inline:var(--gutter-mobile)}
+@media (min-width:768px){.v-container{padding-inline:var(--gutter-desktop)}}
+.v-stack{display:flex;flex-direction:column}
+.v-row{display:flex;align-items:center}
+.v-sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}

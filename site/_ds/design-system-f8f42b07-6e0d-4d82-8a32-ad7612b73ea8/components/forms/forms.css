@@ -1,0 +1,42 @@
+/* Поля ввода. Крупные зоны нажатия, мягкие скругления, тёплая обводка. */
+.v-field{display:flex;flex-direction:column;gap:var(--space-2);width:100%}
+.v-field__label{font-size:var(--fs-body-sm);font-weight:var(--fw-semibold);color:var(--text-secondary)}
+.v-field__label .v-field__req{color:var(--clay-600)}
+.v-field__hint{font-size:var(--fs-caption);color:var(--text-muted)}
+.v-field__error{font-size:var(--fs-caption);color:var(--berry-700);display:flex;align-items:center;gap:var(--space-1)}
+.v-input-wrap{position:relative;display:flex;align-items:center}
+.v-input-wrap__addon{position:absolute;display:flex;align-items:center;color:var(--text-muted);pointer-events:none}
+.v-input-wrap__addon--left{left:var(--space-4)}
+.v-input-wrap__addon--right{right:var(--space-4)}
+.v-input{width:100%;height:var(--control-lg);padding:0 var(--space-4);background:var(--surface-card);border:var(--border-width) solid var(--border-default);border-radius:var(--radius-md);color:var(--text-primary);font-size:var(--fs-body);transition:border-color var(--dur-fast) var(--ease-standard),box-shadow var(--dur-fast) var(--ease-standard),background var(--dur-fast) var(--ease-standard)}
+.v-input::placeholder{color:var(--text-disabled)}
+.v-input:hover:not(:disabled):not(:focus){border-color:var(--border-strong)}
+.v-input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--focus-ring)}
+.v-input:disabled{background:var(--surface-sunken);color:var(--text-disabled);cursor:not-allowed;border-color:transparent}
+.v-input--has-left{padding-left:44px}
+.v-input--has-right{padding-right:44px}
+.v-input--invalid{border-color:var(--berry-600)}
+.v-input--invalid:focus{border-color:var(--berry-600);box-shadow:0 0 0 3px rgba(155,43,68,.22)}
+.v-input--textarea{height:auto;min-height:104px;padding:var(--space-3) var(--space-4);line-height:var(--lh-body);resize:vertical}
+.v-select{appearance:none;cursor:pointer;padding-right:44px}
+.v-select-chevron{position:absolute;right:var(--space-4);font-size:16px;line-height:1;color:var(--text-muted);pointer-events:none;font-style:normal}
+
+.v-checkbox{display:flex;align-items:flex-start;gap:var(--space-3);cursor:pointer;min-height:var(--tap-min);padding-block:var(--space-2)}
+.v-checkbox input{position:absolute;opacity:0;width:0;height:0}
+.v-checkbox__box{flex:none;width:22px;height:22px;margin-top:1px;border:var(--border-width-strong) solid var(--border-strong);border-radius:var(--radius-xs);background:var(--surface-card);display:flex;align-items:center;justify-content:center;transition:background var(--dur-fast) var(--ease-standard),border-color var(--dur-fast) var(--ease-standard)}
+.v-checkbox__tick{font-size:13px;line-height:1;color:var(--on-accent);opacity:0;font-style:normal;transition:opacity var(--dur-fast) var(--ease-standard)}
+.v-checkbox input:checked+.v-checkbox__box{background:var(--accent);border-color:var(--accent)}
+.v-checkbox input:checked+.v-checkbox__box .v-checkbox__tick{opacity:1}
+.v-checkbox input:focus-visible+.v-checkbox__box{box-shadow:0 0 0 3px var(--focus-ring)}
+.v-checkbox__text{font-size:var(--fs-body);color:var(--text-secondary);line-height:var(--lh-snug)}
+.v-checkbox--disabled{opacity:.55;cursor:not-allowed}
+
+.v-switch{display:inline-flex;align-items:center;gap:var(--space-3);cursor:pointer;min-height:var(--tap-min)}
+.v-switch input{position:absolute;opacity:0;width:0;height:0}
+.v-switch__track{width:46px;height:28px;border-radius:var(--radius-pill);background:var(--sand-300);padding:3px;transition:background var(--dur-base) var(--ease-standard)}
+.v-switch__thumb{width:22px;height:22px;border-radius:var(--radius-circle);background:var(--sand-0);box-shadow:var(--shadow-sm);transition:transform var(--dur-base) var(--ease-out-soft)}
+.v-switch input:checked+.v-switch__track{background:var(--accent)}
+.v-switch input:checked+.v-switch__track .v-switch__thumb{transform:translateX(18px)}
+.v-switch input:focus-visible+.v-switch__track{box-shadow:0 0 0 3px var(--focus-ring)}
+.v-switch__text{font-size:var(--fs-body);color:var(--text-primary)}
+.v-switch--disabled{opacity:.55;cursor:not-allowed}

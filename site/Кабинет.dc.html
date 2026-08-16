@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+
+<!-- @template name="Личный кабинет клиента — сайт" description="Флоу клиента на сайте: мои записи (ближайшие и история) и профиль, десктопная версия" -->
+<helmet>
+<link rel="stylesheet" href="./_ds/design-system-f8f42b07-6e0d-4d82-8a32-ad7612b73ea8/styles.css">
+<script src="./_ds/design-system-f8f42b07-6e0d-4d82-8a32-ad7612b73ea8/_ds_bundle.js"></script>
+<script src="./assets/varvara-data.js"></script>
+<style>body{margin:0;background:#FAF5F1}</style>
+</helmet>
+<div style="display:flex;align-items:center;gap:24px;height:40px;padding:0 24px;background:#33202A;color:rgba(255,255,255,.7);font-family:'Manrope',sans-serif;font-size:12.5px">
+<span style="font-weight:600;color:#fff;letter-spacing:.08em;text-transform:uppercase;font-size:10px;margin-right:4px">Варвара сайт</span>
+<a href="./Варвара - Сайт.dc.html" style="color:inherit;border:0">Сайт</a>
+<span style="color:#fff;font-weight:600">Кабинет клиента</span>
+<a href="./Клиент.dc.html" style="color:inherit;border:0">Мини-апп клиента</a>
+<a href="./Админ-панель.dc.html" style="color:inherit;border:0">Админ-панель / мастер</a>
+<a href="./Варианты.dc.html" style="color:inherit;border:0">Варианты компонентов</a>
+<a href="./Вход.dc.html" style="color:inherit;border:0;margin-left:auto">Вход</a>
+</div>
+
+<div style="max-width:1000px;margin:0 auto;padding:0 40px 96px;font-family:'Manrope','Helvetica Neue',sans-serif;color:#221D1A;box-sizing:border-box">
+
+<header style="display:flex;align-items:center;gap:32px;height:76px;border-bottom:1px solid #F4ECE5">
+<a href="./Варвара - Сайт.dc.html" style="font-family:'Cormorant Garamond',Georgia,serif;font-size:26px;font-weight:500;letter-spacing:.02em;line-height:1;color:inherit;border:0">Варвара<span style="display:block;font-family:'Manrope',sans-serif;font-size:9px;font-weight:600;letter-spacing:.24em;text-transform:uppercase;color:#7D6D62;margin-top:3px">ногтевая студия</span></a>
+<a href="./Вход.dc.html" style="margin-left:auto;font-size:14px;color:#5E5049;border:0">Выйти</a>
+</header>
+
+<div style="display:flex;align-items:center;gap:16px;padding:32px 0 24px">
+<x-import component-from-global-scope="DesignSystem_f8f42b.Avatar" name="Марина" size="{{ 56 }}" ring="{{ true }}" hint-size="56px,56px"></x-import>
+<div>
+<div style="font-family:'Cormorant Garamond',Georgia,serif;font-size:28px;font-weight:600;line-height:1.1">Здравствуйте, Марина</div>
+<div style="font-size:14px;color:#7D6D62;margin-top:2px">+7 921 000-00-00</div>
+</div>
+</div>
+
+<div style="display:flex;gap:8px;margin-bottom:28px">
+<x-import component-from-global-scope="DesignSystem_f8f42b.Chip" selected="{{ isBookings }}" onClick="{{ showBookings }}" hint-size="auto,36px">Мои записи</x-import>
+<x-import component-from-global-scope="DesignSystem_f8f42b.Chip" selected="{{ isProfile }}" onClick="{{ showProfile }}" hint-size="auto,36px">Профиль</x-import>
+</div>
+
+<sc-if value="{{ isBookings }}" hint-placeholder-val="{{ true }}">
+<div>
+<div style="font-size:11px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:#B96C4C;margin-bottom:14px">Ближайшие</div>
+<div style="display:flex;flex-direction:column;gap:12px;margin-bottom:36px">
+<sc-for list="{{ upcoming }}" as="b" hint-placeholder-count="2">
+<x-import component-from-global-scope="DesignSystem_f8f42b.BookingCard" when="{{ b.when }}" service="{{ b.service }}" master="{{ b.master }}" price="{{ b.price }}" address="{{ b.address }}" status="{{ b.status }}" hint-size="100%,120px"></x-import>
+</sc-for>
+</div>
+<div style="font-size:11px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:#B96C4C;margin-bottom:14px">История</div>
+<div style="display:flex;flex-direction:column;gap:12px">
+<sc-for list="{{ past }}" as="b" hint-placeholder-count="2">
+<x-import component-from-global-scope="DesignSystem_f8f42b.BookingCard" when="{{ b.when }}" service="{{ b.service }}" master="{{ b.master }}" price="{{ b.price }}" status="{{ b.status }}" hint-size="100%,120px"></x-import>
+</sc-for>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ isProfile }}" hint-placeholder-val="{{ false }}">
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start">
+<x-import component-from-global-scope="DesignSystem_f8f42b.Card" hint-size="100%,220px">
+<div style="font-family:'Cormorant Garamond',Georgia,serif;font-size:20px;font-weight:600;margin-bottom:14px">Уведомления</div>
+<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid #F4ECE5"><span style="font-size:15px">Напоминать в Telegram</span><x-import component-from-global-scope="DesignSystem_f8f42b.Switch" defaultChecked="{{ true }}" hint-size="40px,24px"></x-import></div>
+<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid #F4ECE5"><span style="font-size:15px">Новые окна у Варвары</span><x-import component-from-global-scope="DesignSystem_f8f42b.Switch" hint-size="40px,24px"></x-import></div>
+<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0"><span style="font-size:15px">Акции и новинки</span><x-import component-from-global-scope="DesignSystem_f8f42b.Switch" hint-size="40px,24px"></x-import></div>
+</x-import>
+<x-import component-from-global-scope="DesignSystem_f8f42b.Card" variant="accent" hint-size="100%,220px">
+<div style="display:flex;gap:12px;align-items:flex-start">
+<x-import component-from-global-scope="DesignSystem_f8f42b.Icon" name="map-pin" size="{{ 18 }}" color="#A0553C" hint-size="18px,18px"></x-import>
+<div>
+<div style="font-family:'Cormorant Garamond',Georgia,serif;font-size:18px;font-weight:600">Санкт-Петербург, ул. Рубинштейна, 24</div>
+<p style="font-size:14px;color:#5E5049;margin:6px 0 0">Второй этаж, домофон 24. Ежедневно 10:00–21:00, воскресенье выходной.</p>
+</div>
+</div>
+</x-import>
+<div style="grid-column:1 / -1">
+<div style="font-size:11px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:#B96C4C;margin:12px 0 14px">Любимые мастера</div>
+<x-import component-from-global-scope="DesignSystem_f8f42b.MasterCard" name="Варвара" role="Маникюр, наращивание, дизайн" rating="{{ 4.9 }}" reviews="{{ 128 }}" hint-size="100%,108px"></x-import>
+</div>
+</div>
+</sc-if>
+
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1000,&quot;height&quot;:900}}">
+class Component extends DCLogic {
+  state = { tab: 'bookings' };
+  renderVals() {
+    const data = window.VARVARA_DATA;
+    return {
+      isBookings: this.state.tab === 'bookings',
+      isProfile: this.state.tab === 'profile',
+      showBookings: () => this.setState({ tab: 'bookings' }),
+      showProfile: () => this.setState({ tab: 'profile' }),
+      upcoming: data.bookings.filter((b) => b.status === 'confirmed' || b.status === 'pending'),
+      past: data.bookings.filter((b) => b.status === 'done' || b.status === 'cancelled')
+    };
+  }
+}
+
+</script>
+</body>
+</html>

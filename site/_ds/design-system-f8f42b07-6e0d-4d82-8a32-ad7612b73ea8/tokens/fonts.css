@@ -1,0 +1,7 @@
+/* Шрифты. Бинарники брендовых шрифтов не предоставлены — используются веб-шрифты Google Fonts
+   (полная поддержка кириллицы). См. readme.md → Типографика для заметки о подстановке.
+   Cormorant Garamond — акцентный serif (заголовки, цены, имена мастеров).
+   Manrope — основной текстовый sans (интерфейс, body, подписи). */
+@import url("https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Manrope:wght@400;500;600;700&display=swap");
+/* Иконочный шрифт Lucide: классы icon-<name>, глиф наследует color и font-size. */
+@import url("https://unpkg.com/lucide-static@latest/font/lucide.css");

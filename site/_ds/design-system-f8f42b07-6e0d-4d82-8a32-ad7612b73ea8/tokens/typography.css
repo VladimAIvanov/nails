@@ -1,0 +1,59 @@
+/* Типографика. Cormorant Garamond (акцент) + Manrope (текст). Mobile-first: значения
+   fluid — левая граница = телефон 390px, правая = десктоп 1440px. */
+:root{
+  --font-display:"Cormorant Garamond","Georgia","Times New Roman",serif;
+  --font-sans:"Manrope","Helvetica Neue",-apple-system,"Segoe UI",system-ui,sans-serif;
+  --font-body:var(--font-sans);
+
+  /* Размеры. Слева мобильный размер, справа десктопный: display 44→72, h1 34→52,
+     h2 26→38, h3 20→26, h4 17, body-lg 17, body 15, body-sm 13, caption 12, overline 11. */
+  --fs-display:2.75rem;
+  --fs-h1:2.125rem;
+  --fs-h2:1.625rem;
+  --fs-h3:1.25rem;
+  --fs-h4:1.0625rem;
+  --fs-body-lg:1.0625rem;
+  --fs-body:0.9375rem;
+  --fs-body-sm:0.8125rem;
+  --fs-caption:0.75rem;
+  --fs-overline:0.6875rem;
+
+  /* Интерлиньяж */
+  --lh-tight:1.12; /* @kind other */
+  --lh-heading:1.22; /* @kind other */
+  --lh-snug:1.35; /* @kind other */
+  --lh-body:1.6; /* @kind other */
+  --lh-relaxed:1.7; /* @kind other */
+
+  /* Насыщенность */
+  --fw-regular:400; /* @kind other */
+  --fw-medium:500; /* @kind other */
+  --fw-semibold:600; /* @kind other */
+  --fw-bold:700; /* @kind other */
+
+  /* Трекинг */
+  --ls-display:-0.015em; /* @kind other */
+  --ls-heading:-0.005em; /* @kind other */
+  --ls-body:0; /* @kind other */
+  --ls-caption:0.01em; /* @kind other */
+  --ls-overline:0.14em; /* @kind other */
+}
+
+/* Десктопная ступень шкалы: с 900px заголовки крупнее. */
+@media (min-width:900px){
+  :root{--fs-display:4.5rem;--fs-h1:3.25rem;--fs-h2:2.375rem;--fs-h3:1.625rem}
+}
+
+/* Утилитарные классы — используются в кит-экранах и карточках спецификаций */
+.v-display{font-family:var(--font-display);font-weight:var(--fw-medium);font-size:var(--fs-display);line-height:var(--lh-tight);letter-spacing:var(--ls-display);color:var(--text-primary);margin:0}
+.v-h1{font-family:var(--font-display);font-weight:var(--fw-semibold);font-size:var(--fs-h1);line-height:var(--lh-tight);letter-spacing:var(--ls-display);color:var(--text-primary);margin:0}
+.v-h2{font-family:var(--font-display);font-weight:var(--fw-semibold);font-size:var(--fs-h2);line-height:var(--lh-heading);letter-spacing:var(--ls-heading);color:var(--text-primary);margin:0}
+.v-h3{font-family:var(--font-display);font-weight:var(--fw-semibold);font-size:var(--fs-h3);line-height:var(--lh-heading);letter-spacing:var(--ls-heading);color:var(--text-primary);margin:0}
+.v-h4{font-family:var(--font-sans);font-weight:var(--fw-semibold);font-size:var(--fs-h4);line-height:var(--lh-snug);color:var(--text-primary);margin:0}
+.v-body-lg{font-family:var(--font-sans);font-size:var(--fs-body-lg);line-height:var(--lh-body);color:var(--text-secondary);margin:0}
+.v-body{font-family:var(--font-sans);font-size:var(--fs-body);line-height:var(--lh-body);color:var(--text-secondary);margin:0}
+.v-body-sm{font-family:var(--font-sans);font-size:var(--fs-body-sm);line-height:var(--lh-snug);color:var(--text-secondary);margin:0}
+.v-caption{font-family:var(--font-sans);font-size:var(--fs-caption);font-weight:var(--fw-medium);line-height:var(--lh-snug);letter-spacing:var(--ls-caption);color:var(--text-muted);margin:0}
+.v-overline{font-family:var(--font-sans);font-size:var(--fs-overline);font-weight:var(--fw-semibold);line-height:1.3;letter-spacing:var(--ls-overline);text-transform:uppercase;color:var(--text-muted);margin:0}
+.v-price{font-family:var(--font-display);font-weight:var(--fw-semibold);font-size:var(--fs-h4);line-height:1.2;color:var(--text-primary);font-variant-numeric:tabular-nums}
+.v-num{font-variant-numeric:tabular-nums}
