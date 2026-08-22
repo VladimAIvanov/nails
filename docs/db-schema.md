@@ -4,7 +4,20 @@
 
 **Основание:** карта связей прототипа (`Карта связей.dc.html`) и исходники семи страниц — `Варвара - Сайт.dc.html`, `Вход.dc.html`, `Кабинет.dc.html`, `Клиент.dc.html`, `Админ-панель.dc.html`, `Варианты.dc.html`, а также данные-заглушки `assets/varvara-data.js` и `assets/varvara-admin-data.js`.
 
-**СУБД:** PostgreSQL 16. Выбор не косметический — на нём держится главное ограничение схемы (запрет пересечения записей у одного мастера), см. раздел «Спорные решения».
+**СУБД:** SQLite — через встроенный в Node 24 модуль `node:sqlite`, без внешних зависимостей и отдельной службы. База лежит одним файлом в папке проекта.
+
+Соглашения, вынужденные тем, что в SQLite мало типов:
+
+| В документе | В базе |
+|---|---|
+| Момент времени | `TEXT` в ISO-8601 UTC: `2026-08-15T15:00:00Z` |
+| Дата, время суток | `TEXT`: `2026-08-15`, `10:00` |
+| Деньги | `INTEGER`, копейки |
+| Флаг | `INTEGER` 0/1 с проверкой `CHECK` |
+| Набор значений | `TEXT` с проверкой `CHECK (… IN (…))` вместо типа-перечисления |
+| Идентификатор | `INTEGER PRIMARY KEY` |
+
+Главное следствие выбора описано в разделе 8, пункт 11: запрет двух записей внахлёст держится не на ограничении `EXCLUDE`, которого в SQLite нет, а на триггерах.
 
 **Статус:** проект схемы. Миграций и кода на этом этапе нет.
 
@@ -95,7 +108,7 @@
 | 20 | `schedule_exceptions` | График на конкретную дату: праздник, разовая смена, нерабочий день |
 | 21 | `appointment_status_labels` | Как показывать статусы: подпись, цвет, порядок в фильтрах |
 
-Плюс четыре перечисления: `user_role`, `appointment_status`, `booking_source`, `notification_kind`. И одно материализованное представление — `master_ratings`; это не таблица, а сохранённый результат запроса, см. конец раздела 4.
+Наборы значений — `role`, `status`, `source`, `kind` — заданы проверками `CHECK` прямо в колонках: типов-перечислений в SQLite нет. И одно материализованное представление — `master_ratings`; это не таблица, а сохранённый результат запроса, см. конец раздела 4.
 
 ---
 
@@ -142,19 +155,19 @@ erDiagram
 
 | Поле | Тип | Обяз. | Ключ | Описание |
 |---|---|---|---|---|
-| `id` | `bigint identity` | да | PK | |
-| `role` | `user_role` | да | | `client` · `master` · `admin` |
-| `full_name` | `text` | да | | «Марина», «Варвара» |
-| `photo_url` | `text` | нет | | Аватар. Пустой — интерфейс рисует кружок с инициалом, как в прототипе |
-| `phone` | `text` | нет | U | В формате E.164: `+79210000000` |
-| `email` | `citext` | нет | U | Логин мастера и админа |
-| `password_hash` | `text` | нет | | **Только хеш** (Argon2id). Пустой у клиентов, записавшихся без регистрации |
-| `password_changed_at` | `timestamptz` | нет | | Когда пароль задали или сменили. Сеансы, открытые раньше этого момента, считаются недействительными |
-| `telegram_user_id` | `bigint` | нет | U | Кому бот шлёт подтверждения |
-| `telegram_username` | `text` | нет | | Для поиска в админке |
-| `is_active` | `boolean` | да | | `false` — доступ закрыт, данные сохранены |
-| `created_at` | `timestamptz` | да | | |
-| `updated_at` | `timestamptz` | да | | |
+| `id` | `INTEGER` PK | да | PK | |
+| `role` | `TEXT` + CHECK | да | | `client` · `master` · `admin` |
+| `full_name` | `TEXT` | да | | «Марина», «Варвара» |
+| `photo_url` | `TEXT` | нет | | Аватар. Пустой — интерфейс рисует кружок с инициалом, как в прототипе |
+| `phone` | `TEXT` | нет | U | В формате E.164: `+79210000000` |
+| `email` | `TEXT` NOCASE | нет | U | Логин мастера и админа |
+| `password_hash` | `TEXT` | нет | | **Только хеш** (Argon2id). Пустой у клиентов, записавшихся без регистрации |
+| `password_changed_at` | `TEXT` ISO-8601 UTC | нет | | Когда пароль задали или сменили. Сеансы, открытые раньше этого момента, считаются недействительными |
+| `telegram_user_id` | `INTEGER` | нет | U | Кому бот шлёт подтверждения |
+| `telegram_username` | `TEXT` | нет | | Для поиска в админке |
+| `is_active` | `INTEGER` 0/1 | да | | `false` — доступ закрыт, данные сохранены |
+| `created_at` | `TEXT` ISO-8601 UTC | да | | |
+| `updated_at` | `TEXT` ISO-8601 UTC | да | | |
 
 Проверки на уровне таблицы:
 
@@ -162,7 +175,7 @@ erDiagram
 - `CHECK (role = 'client' OR (email IS NOT NULL AND password_hash IS NOT NULL))` — мастер и админ обязаны иметь логин и пароль, вход по телефону им экран «Вход» не предлагает.
 - `CHECK (phone IS NULL OR phone ~ '^\+[1-9][0-9]{7,14}$')` — телефон хранится в одном виде, иначе поиск в админке не найдёт клиентку по номеру.
 
-Плюс дополнительное ограничение `UNIQUE (id, role)`. Само по себе оно ничего не запрещает — `id` и так первичный ключ. Оно существует ради того, чтобы на пару «пользователь + роль» могли ссылаться внешние ключи других таблиц: без такого ограничения PostgreSQL не позволит сослаться на два столбца сразу. Как это используется — в `master_profiles`.
+Плюс дополнительное ограничение `UNIQUE (id, role)`. Само по себе оно ничего не запрещает — `id` и так первичный ключ. Оно существует ради того, чтобы на пару «пользователь + роль» могли ссылаться внешние ключи других таблиц: без уникального индекса по этой паре сослаться на два столбца сразу нельзя. Как это используется — в `master_profiles`.
 
 Пароль в открытом виде не хранится нигде и ни в каком поле. При входе сравнивается хеш от введённого пароля с `password_hash`.
 
@@ -174,15 +187,15 @@ erDiagram
 
 | Поле | Тип | Обяз. | Ключ | Описание |
 |---|---|---|---|---|
-| `user_id` | `bigint` | да | PK, FK → `users(id, role)` | Один профиль на одного пользователя |
-| `role` | `user_role` | да | FK → `users(id, role)` | Всегда `master`. `CHECK (role = 'master')`, значение по умолчанию `'master'` |
-| `bio` | `text` | нет | | |
-| `photo_url` | `text` | нет | | |
-| `accepts_online_booking` | `boolean` | да | | `false` — мастер не появляется в онлайн-записи, но продолжает работать в панели |
-| `uses_studio_hours` | `boolean` | да | | `true` — мастер работает по часам студии, своих строк в `working_hours` нет. `false` — график только свой, и день без строки означает выходной |
-| `sort_order` | `integer` | да | | Порядок карточек на лендинге |
-| `created_at` | `timestamptz` | да | | |
-| `updated_at` | `timestamptz` | да | | |
+| `user_id` | `INTEGER` | да | PK, FK → `users(id, role)` | Один профиль на одного пользователя |
+| `role` | `TEXT` + CHECK | да | FK → `users(id, role)` | Всегда `master`. `CHECK (role = 'master')`, значение по умолчанию `'master'` |
+| `bio` | `TEXT` | нет | | |
+| `photo_url` | `TEXT` | нет | | |
+| `accepts_online_booking` | `INTEGER` 0/1 | да | | `false` — мастер не появляется в онлайн-записи, но продолжает работать в панели |
+| `uses_studio_hours` | `INTEGER` 0/1 | да | | `true` — мастер работает по часам студии, своих строк в `working_hours` нет. `false` — график только свой, и день без строки означает выходной |
+| `sort_order` | `INTEGER` | да | | Порядок карточек на лендинге |
+| `created_at` | `TEXT` ISO-8601 UTC | да | | |
+| `updated_at` | `TEXT` ISO-8601 UTC | да | | |
 
 Внешний ключ здесь составной — `(user_id, role) → users(id, role)`, — и в этом весь смысл столбца `role`. Обычная ссылка на `users.id` пропустила бы в профили мастеров кого угодно, включая клиентку: тип у `id` один и тот же. Составная ссылка вместе с `CHECK (role = 'master')` делает это невозможным на уровне базы: строка в `master_profiles` существует только для пользователя, у которого роль действительно `master`. А поскольку `appointments.master_id` ссылается на `master_profiles`, а не на `users`, запись «к клиентке» тоже становится невозможной — гарантия распространяется дальше по цепочке.
 
@@ -196,32 +209,32 @@ erDiagram
 
 | Поле | Тип | Обяз. | Ключ | Описание |
 |---|---|---|---|---|
-| `id` | `smallint identity` | да | PK | |
-| `slug` | `text` | да | U | `manicure`, `pedicure` — для ссылок и фильтра |
-| `title` | `text` | да | | «Маникюр» |
-| `sort_order` | `smallint` | да | | |
-| `created_at` | `timestamptz` | да | | |
+| `id` | `INTEGER` PK | да | PK | |
+| `slug` | `TEXT` | да | U | `manicure`, `pedicure` — для ссылок и фильтра |
+| `title` | `TEXT` | да | | «Маникюр» |
+| `sort_order` | `INTEGER` | да | | |
+| `created_at` | `TEXT` ISO-8601 UTC | да | | |
 
 ### 4.4 `services` — прайс
 
 | Поле | Тип | Обяз. | Ключ | Описание |
 |---|---|---|---|---|
-| `id` | `bigint identity` | да | PK | |
-| `category_id` | `smallint` | да | FK → `service_categories.id` | |
-| `slug` | `text` | да | U | `man-cover`, `ext` |
-| `title` | `text` | да | | «Маникюр с покрытием» |
-| `description` | `text` | нет | | «Аппаратный, гель-лак» |
-| `duration_min` | `integer` | да | | Длительность в минутах: `90`. `CHECK (duration_min > 0 AND duration_min % 5 = 0)` |
-| `duration_is_from` | `boolean` | да | | `true` — на карточке «от 20 мин», как у дизайна ногтей. Отдельный флаг от `price_is_from`: у наращивания цена «от», а длительность точная |
-| `buffer_after_min` | `integer` | нет | | Время на уборку после услуги. Пусто — берётся `studio_settings.default_buffer_min`. В расчёте окон занимает место наравне с самой услугой, но клиентке не показывается. `CHECK (buffer_after_min >= 0)` |
-| `price_kopecks` | `integer` | да | | Цена в копейках: `320000` = 3 200 ₽. `CHECK (price_kopecks >= 0)` |
-| `price_is_from` | `boolean` | да | | `true` — на карточке пишем «от 5 500 ₽» |
-| `badge` | `text` | нет | | «хит» |
-| `is_active` | `boolean` | да | | Переключатель в разделе «Услуги» |
-| `is_online_bookable` | `boolean` | да | | Чекбокс «Показывать в онлайн-записи» |
-| `sort_order` | `integer` | да | | |
-| `created_at` | `timestamptz` | да | | |
-| `updated_at` | `timestamptz` | да | | |
+| `id` | `INTEGER` PK | да | PK | |
+| `category_id` | `INTEGER` | да | FK → `service_categories.id` | |
+| `slug` | `TEXT` | да | U | `man-cover`, `ext` |
+| `title` | `TEXT` | да | | «Маникюр с покрытием» |
+| `description` | `TEXT` | нет | | «Аппаратный, гель-лак» |
+| `duration_min` | `INTEGER` | да | | Длительность в минутах: `90`. `CHECK (duration_min > 0 AND duration_min % 5 = 0)` |
+| `duration_is_from` | `INTEGER` 0/1 | да | | `true` — на карточке «от 20 мин», как у дизайна ногтей. Отдельный флаг от `price_is_from`: у наращивания цена «от», а длительность точная |
+| `buffer_after_min` | `INTEGER` | нет | | Время на уборку после услуги. Пусто — берётся `studio_settings.default_buffer_min`. В расчёте окон занимает место наравне с самой услугой, но клиентке не показывается. `CHECK (buffer_after_min >= 0)` |
+| `price_kopecks` | `INTEGER` | да | | Цена в копейках: `320000` = 3 200 ₽. `CHECK (price_kopecks >= 0)` |
+| `price_is_from` | `INTEGER` 0/1 | да | | `true` — на карточке пишем «от 5 500 ₽» |
+| `badge` | `TEXT` | нет | | «хит» |
+| `is_active` | `INTEGER` 0/1 | да | | Переключатель в разделе «Услуги» |
+| `is_online_bookable` | `INTEGER` 0/1 | да | | Чекбокс «Показывать в онлайн-записи» |
+| `sort_order` | `INTEGER` | да | | |
+| `created_at` | `TEXT` ISO-8601 UTC | да | | |
+| `updated_at` | `TEXT` ISO-8601 UTC | да | | |
 
 Два флага, а не один: услугу «Ремонт ногтя» мастер делает и пробивает вручную, но в онлайн-запись её не пускают. `is_active = false` убирает услугу отовсюду.
 
@@ -231,12 +244,12 @@ erDiagram
 
 | Поле | Тип | Обяз. | Ключ | Описание |
 |---|---|---|---|---|
-| `master_id` | `bigint` | да | PK, FK → `master_profiles.user_id` | |
-| `service_id` | `bigint` | да | PK, FK → `services.id` | |
-| `duration_min_override` | `integer` | нет | | Своя длительность: у новенькой наращивание идёт 3.5 часа |
-| `price_kopecks_override` | `integer` | нет | | Своя цена |
-| `is_active` | `boolean` | да | | Временно не берёт эту услугу |
-| `created_at` | `timestamptz` | да | | |
+| `master_id` | `INTEGER` | да | PK, FK → `master_profiles.user_id` | |
+| `service_id` | `INTEGER` | да | PK, FK → `services.id` | |
+| `duration_min_override` | `INTEGER` | нет | | Своя длительность: у новенькой наращивание идёт 3.5 часа |
+| `price_kopecks_override` | `INTEGER` | нет | | Своя цена |
+| `is_active` | `INTEGER` 0/1 | да | | Временно не берёт эту услугу |
+| `created_at` | `TEXT` ISO-8601 UTC | да | | |
 
 Первичный ключ составной — пара «мастер + услуга».
 
@@ -246,30 +259,30 @@ erDiagram
 
 | Поле | Тип | Обяз. | Ключ | Описание |
 |---|---|---|---|---|
-| `id` | `smallint` | да | PK | `CHECK (id = 1)` — вторую строку создать нельзя |
-| `title` | `text` | да | | «Варвара» |
-| `city` | `text` | да | | «Санкт-Петербург» |
-| `address_line` | `text` | да | | «ул. Рубинштейна, 24» |
-| `address_note` | `text` | нет | | «Второй этаж, домофон 24» |
-| `timezone` | `text` | да | | `Europe/Moscow` — см. раздел 6 |
-| `phone` | `text` | да | | |
-| `email` | `text` | нет | | |
-| `telegram_bot_username` | `text` | нет | | `varvara_nails_bot` |
-| `bot_status` | `text` | да | | `connected` · `disconnected` · `error`. Карточка «Бот записи» показывает «подключён» — это состояние нужно откуда-то брать |
-| `bot_connected_at` | `timestamptz` | нет | | Когда бота подключили |
-| `owner_user_id` | `bigint` | нет | FK → `users.id` | Кому слать «Уведомлять о новых записях». Без этого поля адресат уведомления не определён |
-| `online_booking_enabled` | `boolean` | да | | «Онлайн-запись включена» |
-| `manual_confirmation_required` | `boolean` | да | | «Подтверждать записи вручную»: новая запись приходит со статусом `pending` |
-| `reminder_lead_min` | `integer` | да | | «Напоминание за 2 часа» = `120` |
-| `notify_owner_on_new_booking` | `boolean` | да | | Сообщение владелице в Telegram |
-| `free_cancellation_lead_min` | `integer` | да | | «Отмена и перенос бесплатны за 4 часа» = `240` |
-| `booking_horizon_days` | `integer` | да | | На сколько дней вперёд открыта запись — верхняя граница расчёта окон |
-| `min_lead_time_min` | `integer` | да | | Нижняя граница: за сколько минут до начала ещё можно записаться. Без неё «сегодня 17:58» остаётся доступным окном на 18:00 |
-| `pending_ttl_min` | `integer` | да | | Сколько минут неподтверждённая запись держит время. По истечении переходит в `cancelled`, и окно возвращается в расчёт |
-| `default_buffer_min` | `integer` | да | | Уборка после услуги по умолчанию. Услуга может назначить своё значение в `services.buffer_after_min` |
-| `guest_booking_mode` | `text` | да | | `open` · `verify_by_code` · `require_account` — как поступать с записью без входа. Разбор в разделе 11 |
-| `slot_step_min` | `integer` | да | | Шаг сетки времени: `30` |
-| `updated_at` | `timestamptz` | да | | |
+| `id` | `INTEGER` | да | PK | `CHECK (id = 1)` — вторую строку создать нельзя |
+| `title` | `TEXT` | да | | «Варвара» |
+| `city` | `TEXT` | да | | «Санкт-Петербург» |
+| `address_line` | `TEXT` | да | | «ул. Рубинштейна, 24» |
+| `address_note` | `TEXT` | нет | | «Второй этаж, домофон 24» |
+| `timezone` | `TEXT` | да | | `Europe/Moscow` — см. раздел 6 |
+| `phone` | `TEXT` | да | | |
+| `email` | `TEXT` | нет | | |
+| `telegram_bot_username` | `TEXT` | нет | | `varvara_nails_bot` |
+| `bot_status` | `TEXT` | да | | `connected` · `disconnected` · `error`. Карточка «Бот записи» показывает «подключён» — это состояние нужно откуда-то брать |
+| `bot_connected_at` | `TEXT` ISO-8601 UTC | нет | | Когда бота подключили |
+| `owner_user_id` | `INTEGER` | нет | FK → `users.id` | Кому слать «Уведомлять о новых записях». Без этого поля адресат уведомления не определён |
+| `online_booking_enabled` | `INTEGER` 0/1 | да | | «Онлайн-запись включена» |
+| `manual_confirmation_required` | `INTEGER` 0/1 | да | | «Подтверждать записи вручную»: новая запись приходит со статусом `pending` |
+| `reminder_lead_min` | `INTEGER` | да | | «Напоминание за 2 часа» = `120` |
+| `notify_owner_on_new_booking` | `INTEGER` 0/1 | да | | Сообщение владелице в Telegram |
+| `free_cancellation_lead_min` | `INTEGER` | да | | «Отмена и перенос бесплатны за 4 часа» = `240` |
+| `booking_horizon_days` | `INTEGER` | да | | На сколько дней вперёд открыта запись — верхняя граница расчёта окон |
+| `min_lead_time_min` | `INTEGER` | да | | Нижняя граница: за сколько минут до начала ещё можно записаться. Без неё «сегодня 17:58» остаётся доступным окном на 18:00 |
+| `pending_ttl_min` | `INTEGER` | да | | Сколько минут неподтверждённая запись держит время. По истечении переходит в `cancelled`, и окно возвращается в расчёт |
+| `default_buffer_min` | `INTEGER` | да | | Уборка после услуги по умолчанию. Услуга может назначить своё значение в `services.buffer_after_min` |
+| `guest_booking_mode` | `TEXT` | да | | `open` · `verify_by_code` · `require_account` — как поступать с записью без входа. Разбор в разделе 11 |
+| `slot_step_min` | `INTEGER` | да | | Шаг сетки времени: `30` |
+| `updated_at` | `TEXT` ISO-8601 UTC | да | | |
 
 ### 4.7 `working_hours` — регулярный график
 
@@ -277,14 +290,14 @@ erDiagram
 
 | Поле | Тип | Обяз. | Ключ | Описание |
 |---|---|---|---|---|
-| `id` | `bigint identity` | да | PK | |
-| `master_id` | `bigint` | нет | FK → `master_profiles.user_id` | `NULL` — график всей студии |
-| `weekday` | `smallint` | да | | `1` = понедельник … `7` = воскресенье (ISO-8601). `CHECK (weekday BETWEEN 1 AND 7)` |
-| `starts_at_local` | `time` | да | | `10:00` — по часам студии, без часового пояса |
-| `ends_at_local` | `time` | да | | `21:00`. `CHECK (ends_at_local > starts_at_local)` |
-| `valid_from` | `date` | да | | С какой даты действует правило |
-| `valid_to` | `date` | нет | | `NULL` — бессрочно. `CHECK (valid_to IS NULL OR valid_to >= valid_from)` |
-| `created_at` | `timestamptz` | да | | |
+| `id` | `INTEGER` PK | да | PK | |
+| `master_id` | `INTEGER` | нет | FK → `master_profiles.user_id` | `NULL` — график всей студии |
+| `weekday` | `INTEGER` | да | | `1` = понедельник … `7` = воскресенье (ISO-8601). `CHECK (weekday BETWEEN 1 AND 7)` |
+| `starts_at_local` | `TEXT` ЧЧ:ММ | да | | `10:00` — по часам студии, без часового пояса |
+| `ends_at_local` | `TEXT` ЧЧ:ММ | да | | `21:00`. `CHECK (ends_at_local > starts_at_local)` |
+| `valid_from` | `TEXT` ГГГГ-ММ-ДД | да | | С какой даты действует правило |
+| `valid_to` | `TEXT` ГГГГ-ММ-ДД | нет | | `NULL` — бессрочно. `CHECK (valid_to IS NULL OR valid_to >= valid_from)` |
+| `created_at` | `TEXT` ISO-8601 UTC | да | | |
 
 Выходной — это отсутствие строки на нужный день недели, а не строка с нулевой длительностью. `valid_from` / `valid_to` позволяют поменять график с первого числа, не ломая расчёт свободного времени в уже прошедших датах.
 
@@ -296,14 +309,14 @@ erDiagram
 
 | Поле | Тип | Обяз. | Ключ | Описание |
 |---|---|---|---|---|
-| `id` | `bigint identity` | да | PK | |
-| `master_id` | `bigint` | нет | FK → `master_profiles.user_id` | `NULL` — студия закрыта целиком (праздник) |
-| `starts_at` | `timestamptz` | да | | |
-| `ends_at` | `timestamptz` | да | | `CHECK (ends_at > starts_at)` |
-| `kind` | `text` | да | | `vacation` · `break` · `sick` · `holiday` · `other` |
-| `reason` | `text` | нет | | Комментарий для панели |
-| `created_by_id` | `bigint` | нет | FK → `users.id` | Кто поставил блокировку |
-| `created_at` | `timestamptz` | да | | |
+| `id` | `INTEGER` PK | да | PK | |
+| `master_id` | `INTEGER` | нет | FK → `master_profiles.user_id` | `NULL` — студия закрыта целиком (праздник) |
+| `starts_at` | `TEXT` ISO-8601 UTC | да | | |
+| `ends_at` | `TEXT` ISO-8601 UTC | да | | `CHECK (ends_at > starts_at)` |
+| `kind` | `TEXT` | да | | `vacation` · `break` · `sick` · `holiday` · `other` |
+| `reason` | `TEXT` | нет | | Комментарий для панели |
+| `created_by_id` | `INTEGER` | нет | FK → `users.id` | Кто поставил блокировку |
+| `created_at` | `TEXT` ISO-8601 UTC | да | | |
 
 ### 4.9 `appointments` — записи
 
@@ -311,23 +324,23 @@ erDiagram
 
 | Поле | Тип | Обяз. | Ключ | Описание |
 |---|---|---|---|---|
-| `id` | `bigint identity` | да | PK | Внутренний ключ |
-| `public_number` | `bigint` | да | U | Номер для человека: «Запись №1042». Отдельная последовательность |
-| `client_id` | `bigint` | да | FK → `users.id` | |
-| `master_id` | `bigint` | да | FK → `master_profiles.user_id` | «Любой свободный» превращается в конкретного мастера при создании |
-| `master_auto_assigned` | `boolean` | да | | `true` — мастера подобрал сервис, клиентке было всё равно. Студия может переставить такую запись на другого мастера, не спрашивая |
-| `service_id` | `bigint` | да | FK → `services.id` | |
-| `starts_at` | `timestamptz` | да | | Начало визита |
-| `duration_min` | `integer` | да | | **Снимок** длительности на момент записи |
-| `ends_at` | `timestamptz` | да | | Вычисляемое поле: `starts_at + duration_min * interval '1 minute'` |
-| `price_kopecks` | `integer` | да | | **Снимок** цены на момент записи |
-| `status` | `appointment_status` | да | | `pending` · `confirmed` · `done` · `cancelled` · `no_show` |
-| `source` | `booking_source` | да | | `site` · `telegram` · `admin` — колонка «Источник» в таблице записей |
-| `client_comment` | `text` | нет | | «Пожелания к дизайну, аллергии, всё важное» |
-| `master_note` | `text` | нет | | Внутренняя заметка, клиентке не видна |
-| `rescheduled_from_id` | `bigint` | нет | FK → `appointments.id` | Ссылка на перенесённую запись |
-| `created_at` | `timestamptz` | да | | |
-| `updated_at` | `timestamptz` | да | | |
+| `id` | `INTEGER` PK | да | PK | Внутренний ключ |
+| `public_number` | `INTEGER` | да | U | Номер для человека: «Запись №1042». Отдельная последовательность |
+| `client_id` | `INTEGER` | да | FK → `users.id` | |
+| `master_id` | `INTEGER` | да | FK → `master_profiles.user_id` | «Любой свободный» превращается в конкретного мастера при создании |
+| `master_auto_assigned` | `INTEGER` 0/1 | да | | `true` — мастера подобрал сервис, клиентке было всё равно. Студия может переставить такую запись на другого мастера, не спрашивая |
+| `service_id` | `INTEGER` | да | FK → `services.id` | |
+| `starts_at` | `TEXT` ISO-8601 UTC | да | | Начало визита |
+| `duration_min` | `INTEGER` | да | | **Снимок** длительности на момент записи |
+| `ends_at` | `TEXT` ISO-8601 UTC | да | | Вычисляемое поле: `starts_at + duration_min * interval '1 minute'` |
+| `price_kopecks` | `INTEGER` | да | | **Снимок** цены на момент записи |
+| `status` | `TEXT` + CHECK | да | | `pending` · `confirmed` · `done` · `cancelled` · `no_show` |
+| `source` | `TEXT` + CHECK | да | | `site` · `telegram` · `admin` — колонка «Источник» в таблице записей |
+| `client_comment` | `TEXT` | нет | | «Пожелания к дизайну, аллергии, всё важное» |
+| `master_note` | `TEXT` | нет | | Внутренняя заметка, клиентке не видна |
+| `rescheduled_from_id` | `INTEGER` | нет | FK → `appointments.id` | Ссылка на перенесённую запись |
+| `created_at` | `TEXT` ISO-8601 UTC | да | | |
+| `updated_at` | `TEXT` ISO-8601 UTC | да | | |
 
 Проверки:
 
@@ -343,13 +356,13 @@ erDiagram
 
 | Поле | Тип | Обяз. | Ключ | Описание |
 |---|---|---|---|---|
-| `id` | `bigint identity` | да | PK | |
-| `appointment_id` | `bigint` | да | FK → `appointments.id` | |
-| `from_status` | `appointment_status` | нет | | `NULL` при создании записи |
-| `to_status` | `appointment_status` | да | | |
-| `changed_by_id` | `bigint` | нет | FK → `users.id` | `NULL` — сменил автомат (например, `confirmed` → `done` по прошествии визита) |
-| `comment` | `text` | нет | | |
-| `changed_at` | `timestamptz` | да | | |
+| `id` | `INTEGER` PK | да | PK | |
+| `appointment_id` | `INTEGER` | да | FK → `appointments.id` | |
+| `from_status` | `TEXT` + CHECK | нет | | `NULL` при создании записи |
+| `to_status` | `TEXT` + CHECK | да | | |
+| `changed_by_id` | `INTEGER` | нет | FK → `users.id` | `NULL` — сменил автомат (например, `confirmed` → `done` по прошествии визита) |
+| `comment` | `TEXT` | нет | | |
+| `changed_at` | `TEXT` ISO-8601 UTC | да | | |
 
 ### 4.11 `consents` — согласия
 
@@ -357,13 +370,13 @@ erDiagram
 
 | Поле | Тип | Обяз. | Ключ | Описание |
 |---|---|---|---|---|
-| `id` | `bigint identity` | да | PK | |
-| `user_id` | `bigint` | да | FK → `users.id` | |
-| `kind` | `text` | да | | `personal_data` · `marketing` |
-| `is_granted` | `boolean` | да | | `false` — отзыв согласия |
-| `document_version` | `text` | нет | | Версия текста политики |
-| `source` | `booking_source` | нет | | Где нажали галочку |
-| `changed_at` | `timestamptz` | да | | |
+| `id` | `INTEGER` PK | да | PK | |
+| `user_id` | `INTEGER` | да | FK → `users.id` | |
+| `kind` | `TEXT` | да | | `personal_data` · `marketing` |
+| `is_granted` | `INTEGER` 0/1 | да | | `false` — отзыв согласия |
+| `document_version` | `TEXT` | нет | | Версия текста политики |
+| `source` | `TEXT` + CHECK | нет | | Где нажали галочку |
+| `changed_at` | `TEXT` ISO-8601 UTC | да | | |
 
 ### 4.12 `notification_prefs` — переключатели уведомлений
 
@@ -371,10 +384,10 @@ erDiagram
 
 | Поле | Тип | Обяз. | Ключ | Описание |
 |---|---|---|---|---|
-| `user_id` | `bigint` | да | PK, FK → `users.id` | |
-| `telegram_reminders` | `boolean` | да | | «Напоминать в Telegram» |
-| `marketing` | `boolean` | да | | «Акции и новинки» |
-| `updated_at` | `timestamptz` | да | | |
+| `user_id` | `INTEGER` | да | PK, FK → `users.id` | |
+| `telegram_reminders` | `INTEGER` 0/1 | да | | «Напоминать в Telegram» |
+| `marketing` | `INTEGER` 0/1 | да | | «Акции и новинки» |
+| `updated_at` | `TEXT` ISO-8601 UTC | да | | |
 
 Третий переключатель профиля — «Новые окна у Варвары» — здесь отсутствует намеренно: его состояние это наличие активной строки в `slot_subscriptions`. Флаг рядом с подпиской был бы вторым выключателем той же лампы, и при расхождении неясно, какой из них главный.
 
@@ -384,16 +397,16 @@ erDiagram
 
 | Поле | Тип | Обяз. | Ключ | Описание |
 |---|---|---|---|---|
-| `id` | `bigint identity` | да | PK | |
-| `user_id` | `bigint` | да | FK → `users.id` | Получатель |
-| `appointment_id` | `bigint` | нет | FK → `appointments.id` | `NULL` у рассылок |
-| `kind` | `notification_kind` | да | | `booking_created` · `booking_confirmed` · `reminder` · `cancelled` · `new_slot` · `marketing` |
-| `channel` | `text` | да | | `telegram` · `sms` · `email` |
-| `scheduled_at` | `timestamptz` | да | | Когда отправить |
-| `sent_at` | `timestamptz` | нет | | Когда отправлено фактически |
-| `status` | `text` | да | | `scheduled` · `sent` · `failed` · `cancelled` |
-| `error` | `text` | нет | | Текст ошибки доставки |
-| `created_at` | `timestamptz` | да | | |
+| `id` | `INTEGER` PK | да | PK | |
+| `user_id` | `INTEGER` | да | FK → `users.id` | Получатель |
+| `appointment_id` | `INTEGER` | нет | FK → `appointments.id` | `NULL` у рассылок |
+| `kind` | `TEXT` + CHECK | да | | `booking_created` · `booking_confirmed` · `reminder` · `cancelled` · `new_slot` · `marketing` |
+| `channel` | `TEXT` | да | | `telegram` · `sms` · `email` |
+| `scheduled_at` | `TEXT` ISO-8601 UTC | да | | Когда отправить |
+| `sent_at` | `TEXT` ISO-8601 UTC | нет | | Когда отправлено фактически |
+| `status` | `TEXT` | да | | `scheduled` · `sent` · `failed` · `cancelled` |
+| `error` | `TEXT` | нет | | Текст ошибки доставки |
+| `created_at` | `TEXT` ISO-8601 UTC | да | | |
 
 ### 4.14 `reviews` — оценки и отзывы
 
@@ -401,12 +414,12 @@ erDiagram
 
 | Поле | Тип | Обяз. | Ключ | Описание |
 |---|---|---|---|---|
-| `id` | `bigint identity` | да | PK | |
-| `appointment_id` | `bigint` | да | U, FK → `appointments.id` | Единственная связь: и автор, и мастер берутся из самой записи |
-| `rating` | `smallint` | да | | `CHECK (rating BETWEEN 1 AND 5)` |
-| `text` | `text` | нет | | |
-| `is_published` | `boolean` | да | | Модерация перед показом на лендинге |
-| `created_at` | `timestamptz` | да | | |
+| `id` | `INTEGER` PK | да | PK | |
+| `appointment_id` | `INTEGER` | да | U, FK → `appointments.id` | Единственная связь: и автор, и мастер берутся из самой записи |
+| `rating` | `INTEGER` | да | | `CHECK (rating BETWEEN 1 AND 5)` |
+| `text` | `TEXT` | нет | | |
+| `is_published` | `INTEGER` 0/1 | да | | Модерация перед показом на лендинге |
+| `created_at` | `TEXT` ISO-8601 UTC | да | | |
 
 Кто оставил отзыв и о ком он — определяется записью: `appointments.client_id` и `appointments.master_id`. Своих копий этих полей у отзыва нет. Иначе перенос визита к другому мастеру оставил бы отзыв висеть на прежнем, и рейтинг посчитался бы не тому человеку.
 
@@ -416,9 +429,9 @@ erDiagram
 
 | Поле | Тип | Обяз. | Ключ | Описание |
 |---|---|---|---|---|
-| `client_id` | `bigint` | да | PK, FK → `users.id` | |
-| `master_id` | `bigint` | да | PK, FK → `master_profiles.user_id` | |
-| `created_at` | `timestamptz` | да | | |
+| `client_id` | `INTEGER` | да | PK, FK → `users.id` | |
+| `master_id` | `INTEGER` | да | PK, FK → `master_profiles.user_id` | |
+| `created_at` | `TEXT` ISO-8601 UTC | да | | |
 
 ### 4.16 `portfolio_works` — галерея работ
 
@@ -426,14 +439,14 @@ erDiagram
 
 | Поле | Тип | Обяз. | Ключ | Описание |
 |---|---|---|---|---|
-| `id` | `bigint identity` | да | PK | |
-| `master_id` | `bigint` | нет | FK → `master_profiles.user_id` | Чья работа |
-| `service_id` | `bigint` | нет | FK → `services.id` | Что делали |
-| `image_url` | `text` | да | | |
-| `title` | `text` | нет | | Подпись под фото |
-| `sort_order` | `integer` | да | | |
-| `is_published` | `boolean` | да | | |
-| `created_at` | `timestamptz` | да | | |
+| `id` | `INTEGER` PK | да | PK | |
+| `master_id` | `INTEGER` | нет | FK → `master_profiles.user_id` | Чья работа |
+| `service_id` | `INTEGER` | нет | FK → `services.id` | Что делали |
+| `image_url` | `TEXT` | да | | |
+| `title` | `TEXT` | нет | | Подпись под фото |
+| `sort_order` | `INTEGER` | да | | |
+| `is_published` | `INTEGER` 0/1 | да | | |
+| `created_at` | `TEXT` ISO-8601 UTC | да | | |
 
 ### 4.17 `sessions` — сеансы входа
 
@@ -441,14 +454,14 @@ erDiagram
 
 | Поле | Тип | Обяз. | Ключ | Описание |
 |---|---|---|---|---|
-| `id` | `bigint identity` | да | PK | |
-| `user_id` | `bigint` | да | FK → `users.id` | |
-| `token_hash` | `text` | да | U | **Только хеш** токена, как и с паролем. Утечка базы не даёт войти под чужим сеансом |
-| `issued_at` | `timestamptz` | да | | |
-| `expires_at` | `timestamptz` | да | | `CHECK (expires_at > issued_at)` |
-| `revoked_at` | `timestamptz` | нет | | Заполняется при нажатии «Выйти» |
-| `user_agent` | `text` | нет | | Устройство — чтобы человек узнал свой сеанс в списке |
-| `ip` | `inet` | нет | | |
+| `id` | `INTEGER` PK | да | PK | |
+| `user_id` | `INTEGER` | да | FK → `users.id` | |
+| `token_hash` | `TEXT` | да | U | **Только хеш** токена, как и с паролем. Утечка базы не даёт войти под чужим сеансом |
+| `issued_at` | `TEXT` ISO-8601 UTC | да | | |
+| `expires_at` | `TEXT` ISO-8601 UTC | да | | `CHECK (expires_at > issued_at)` |
+| `revoked_at` | `TEXT` ISO-8601 UTC | нет | | Заполняется при нажатии «Выйти» |
+| `user_agent` | `TEXT` | нет | | Устройство — чтобы человек узнал свой сеанс в списке |
+| `ip` | `TEXT` | нет | | |
 
 Сеанс из мини-аппа Telegram живёт по тем же правилам: бот подтверждает личность, сервис открывает сеанс.
 
@@ -460,15 +473,15 @@ erDiagram
 
 | Поле | Тип | Обяз. | Ключ | Описание |
 |---|---|---|---|---|
-| `id` | `bigint identity` | да | PK | |
-| `client_id` | `bigint` | да | FK → `users.id` | |
-| `master_id` | `bigint` | да | FK → `master_profiles.user_id` | Чьи окна ждём |
-| `service_id` | `bigint` | нет | FK → `services.id` | `NULL` — любая услуга этого мастера |
-| `date_from` | `date` | нет | | Интересующий диапазон дат |
-| `date_to` | `date` | нет | | `CHECK (date_to IS NULL OR date_from IS NULL OR date_to >= date_from)` |
-| `is_active` | `boolean` | да | | Переключатель в профиле |
-| `notified_at` | `timestamptz` | нет | | Когда в последний раз сообщили об окне — чтобы не слать по десять раз в день |
-| `created_at` | `timestamptz` | да | | |
+| `id` | `INTEGER` PK | да | PK | |
+| `client_id` | `INTEGER` | да | FK → `users.id` | |
+| `master_id` | `INTEGER` | да | FK → `master_profiles.user_id` | Чьи окна ждём |
+| `service_id` | `INTEGER` | нет | FK → `services.id` | `NULL` — любая услуга этого мастера |
+| `date_from` | `TEXT` ГГГГ-ММ-ДД | нет | | Интересующий диапазон дат |
+| `date_to` | `TEXT` ГГГГ-ММ-ДД | нет | | `CHECK (date_to IS NULL OR date_from IS NULL OR date_to >= date_from)` |
+| `is_active` | `INTEGER` 0/1 | да | | Переключатель в профиле |
+| `notified_at` | `TEXT` ISO-8601 UTC | нет | | Когда в последний раз сообщили об окне — чтобы не слать по десять раз в день |
+| `created_at` | `TEXT` ISO-8601 UTC | да | | |
 
 Когда запись отменяют, освободившееся время сверяется с активными подписками, и подходящим клиентам ставится сообщение `new_slot` в `notifications`.
 
@@ -478,16 +491,16 @@ erDiagram
 
 | Поле | Тип | Обяз. | Ключ | Описание |
 |---|---|---|---|---|
-| `id` | `bigint identity` | да | PK | |
-| `slug` | `text` | да | U | `hero_photo`, `highlight_sterility` |
-| `section` | `text` | да | | `hero` · `highlights` · `about` |
-| `icon` | `text` | нет | | Имя иконки: `shield-check`, `clock` |
-| `title` | `text` | нет | | «Стерильность» |
-| `body` | `text` | нет | | «Автоклав, одноразовые файлы, всё вскрываем при вас» |
-| `image_url` | `text` | нет | | Фото студии на первом экране |
-| `sort_order` | `integer` | да | | |
-| `is_published` | `boolean` | да | | |
-| `updated_at` | `timestamptz` | да | | |
+| `id` | `INTEGER` PK | да | PK | |
+| `slug` | `TEXT` | да | U | `hero_photo`, `highlight_sterility` |
+| `section` | `TEXT` | да | | `hero` · `highlights` · `about` |
+| `icon` | `TEXT` | нет | | Имя иконки: `shield-check`, `clock` |
+| `title` | `TEXT` | нет | | «Стерильность» |
+| `body` | `TEXT` | нет | | «Автоклав, одноразовые файлы, всё вскрываем при вас» |
+| `image_url` | `TEXT` | нет | | Фото студии на первом экране |
+| `sort_order` | `INTEGER` | да | | |
+| `is_published` | `INTEGER` 0/1 | да | | |
+| `updated_at` | `TEXT` ISO-8601 UTC | да | | |
 
 ### 4.20 `schedule_exceptions` — график на конкретную дату
 
@@ -495,15 +508,15 @@ erDiagram
 
 | Поле | Тип | Обяз. | Ключ | Описание |
 |---|---|---|---|---|
-| `id` | `bigint identity` | да | PK | |
-| `master_id` | `bigint` | нет | FK → `master_profiles.user_id` | `NULL` — исключение для всей студии |
-| `exception_date` | `date` | да | | Дата по календарю студии |
-| `is_working` | `boolean` | да | | `false` — в этот день не работаем вовсе |
-| `starts_at_local` | `time` | нет | | Заполняется при `is_working = true`: «в эту субботу с 12:00» |
-| `ends_at_local` | `time` | нет | | `CHECK (ends_at_local > starts_at_local)` |
-| `reason` | `text` | нет | | «Праздник», «Выездной день», «Разовая смена» |
-| `created_by_id` | `bigint` | нет | FK → `users.id` | |
-| `created_at` | `timestamptz` | да | | |
+| `id` | `INTEGER` PK | да | PK | |
+| `master_id` | `INTEGER` | нет | FK → `master_profiles.user_id` | `NULL` — исключение для всей студии |
+| `exception_date` | `TEXT` ГГГГ-ММ-ДД | да | | Дата по календарю студии |
+| `is_working` | `INTEGER` 0/1 | да | | `false` — в этот день не работаем вовсе |
+| `starts_at_local` | `TEXT` ЧЧ:ММ | нет | | Заполняется при `is_working = true`: «в эту субботу с 12:00» |
+| `ends_at_local` | `TEXT` ЧЧ:ММ | нет | | `CHECK (ends_at_local > starts_at_local)` |
+| `reason` | `TEXT` | нет | | «Праздник», «Выездной день», «Разовая смена» |
+| `created_by_id` | `INTEGER` | нет | FK → `users.id` | |
+| `created_at` | `TEXT` ISO-8601 UTC | да | | |
 
 Проверка: `CHECK (is_working = false OR (starts_at_local IS NOT NULL AND ends_at_local IS NOT NULL))` — рабочий день-исключение обязан назвать часы, иначе непонятно, что именно открылось.
 
@@ -515,13 +528,13 @@ erDiagram
 
 | Поле | Тип | Обяз. | Ключ | Описание |
 |---|---|---|---|---|
-| `status` | `appointment_status` | да | PK | Само значение — первичный ключ, одна строка на статус |
-| `title` | `text` | да | | «Ожидает подтверждения» |
-| `title_short` | `text` | да | | «Ожидает» — для узкого бейджа в таблице записей |
-| `color_token` | `text` | да | | Имя токена дизайн-системы, не цвет: `--honey-500`. Прототип различает статусы глиняным, медовым и песочным |
-| `sort_order` | `smallint` | да | | Порядок чипов-фильтров в панели |
-| `show_in_filters` | `boolean` | да | | В прототипе фильтров четыре: «Все», «Ждут подтверждения», «Подтверждённые», «Отменённые» — `done` в чипы не попадает |
-| `updated_at` | `timestamptz` | да | | |
+| `status` | `TEXT` + CHECK | да | PK | Само значение — первичный ключ, одна строка на статус |
+| `title` | `TEXT` | да | | «Ожидает подтверждения» |
+| `title_short` | `TEXT` | да | | «Ожидает» — для узкого бейджа в таблице записей |
+| `color_token` | `TEXT` | да | | Имя токена дизайн-системы, не цвет: `--honey-500`. Прототип различает статусы глиняным, медовым и песочным |
+| `sort_order` | `INTEGER` | да | | Порядок чипов-фильтров в панели |
+| `show_in_filters` | `INTEGER` 0/1 | да | | В прототипе фильтров четыре: «Все», «Ждут подтверждения», «Подтверждённые», «Отменённые» — `done` в чипы не попадает |
+| `updated_at` | `TEXT` ISO-8601 UTC | да | | |
 
 **Что эта таблица не делает.** Она не решает, какие статусы существуют, — только как их показывать. Удаление строки не отменяет статус, а оставляет его без подписи. Поэтому строки заводятся вместе со значением типа, при миграции, и проверяются при выкатке: значение без подписи выдаст себя пустым бейджем.
 
@@ -531,25 +544,23 @@ erDiagram
 
 Кроме таблиц в схеме есть один сохранённый запрос.
 
-**`master_ratings`** — материализованное представление с рейтингом мастера: `master_id`, `rating_avg`, `reviews_count`, `last_review_at`. Собирается соединением `reviews` с `appointments` по опубликованным отзывам:
+**`master_ratings`** — представление с рейтингом мастера: `master_id`, `rating_avg`, `reviews_count`, `last_review_at`. Собирается соединением `reviews` с `appointments` по опубликованным отзывам:
 
 ```sql
-CREATE MATERIALIZED VIEW master_ratings AS
-SELECT a.master_id,
-       round(avg(r.rating)::numeric, 1) AS rating_avg,
-       count(*)                         AS reviews_count,
-       max(r.created_at)                AS last_review_at
+CREATE VIEW master_ratings AS
+SELECT a.master_id            AS master_id,
+       ROUND(AVG(r.rating), 1) AS rating_avg,
+       COUNT(*)                AS reviews_count,
+       MAX(r.created_at)       AS last_review_at
 FROM reviews r
 JOIN appointments a ON a.id = r.appointment_id
-WHERE r.is_published
+WHERE r.is_published = 1
 GROUP BY a.master_id;
-
-CREATE UNIQUE INDEX ON master_ratings (master_id);
 ```
 
-Уникальный индекс обязателен: без него `REFRESH MATERIALIZED VIEW CONCURRENTLY` работать не будет, а обычный `REFRESH` блокирует чтение — то есть карточки мастеров на лендинге на время обновления встанут.
+Это **не** хранимое поле рейтинга: источник истины остаётся в `reviews`. Материализованных представлений в SQLite нет, поэтому запрос выполняется при каждом обращении — зато и устареть значение не может.
 
-Это **не** хранимое поле рейтинга: источник истины остаётся в `reviews`, представление лишь кеширует результат. Пока отзывов немного, лендинг может считать агрегат напрямую и не трогать представление вовсе — переключение между этими режимами не меняет данные. Обновлять достаточно по расписанию и после публикации или снятия отзыва с публикации; отставание в несколько минут для рейтинга «4.9» роли не играет.
+Когда отзывов станет достаточно, чтобы это начало сказываться, кеширование добавляется без изменения схемы: либо кеш в приложении, либо обычная таблица-снимок, обновляемая по расписанию. Данные при этом не переезжают, меняется только способ чтения.
 
 ---
 
@@ -599,25 +610,29 @@ CREATE UNIQUE INDEX ON master_ratings (master_id);
 
 ## 6. Формат дат и времени
 
-В схеме используются **три разных типа**, и это не небрежность — они отвечают на разные вопросы.
+Отдельных типов для даты и времени в SQLite нет вовсе — всё хранится строками. Именно поэтому формат приходится задавать соглашением и держаться его без исключений: база сама неправильную дату не отвергнет.
 
-| Тип | Где | Что означает |
-|---|---|---|
-| `timestamptz` | `starts_at`, `created_at`, `sent_at`, `time_off` | Момент на оси времени |
-| `time` | `working_hours.starts_at_local` | Показание настенных часов |
-| `date` | `working_hours.valid_from` | Календарный день |
+**Единый формат — одна строка на все три случая**, различаются только длиной:
 
-**Моменты — в `timestamptz`, значение хранится в UTC.** PostgreSQL переводит входящее значение в UTC при записи и обратно в зону клиента при чтении. Наружу отдаём ISO 8601 с зоной: `2026-08-15T18:00:00+03:00`. Причины:
+| Что | Формат | Пример | Где |
+|---|---|---|---|
+| Момент на оси времени | `ГГГГ-ММ-ДДTЧЧ:ММ:ССZ` | `2026-08-15T15:00:00Z` | `starts_at`, `created_at`, `sent_at`, `time_off` |
+| Показание настенных часов | `ЧЧ:ММ` | `10:00` | `working_hours.starts_at_local` |
+| Календарный день | `ГГГГ-ММ-ДД` | `2026-08-15` | `working_hours.valid_from` |
 
-- Сайт, Telegram-бот и админка — три разных клиента. Если хранить «18:00» без зоны, каждый из них додумает пояс по-своему, и запись расползётся по времени.
-- Сравнение моментов, сортировка и проверка пересечений работают корректно только когда все значения приведены к одной шкале.
-- В базе один способ хранения — не нужно помнить, в какой колонке «местное», а в какой «серверное».
+**Моменты хранятся в UTC, с обязательным суффиксом `Z`.** Причины:
 
-**График работы — в `time`, без пояса.** «Студия работает с 10:00» — это правило по настенным часам, а не конкретный момент. Если записать его как момент, то при смене часового пояса города или переносе сервера график поедет. Поэтому `working_hours` хранит местное время, а часовой пояс лежит рядом, в `studio_settings.timezone` (`Europe/Moscow`), и применяется при расчёте свободных окон.
+- Сайт, Telegram-бот и админка — три разных клиента. Если хранить «18:00» без зоны, каждый додумает пояс по-своему, и запись расползётся по времени.
+- Формат ISO-8601 с фиксированной шириной полей **сортируется и сравнивается как обычный текст**. Для SQLite это не мелочь, а условие работоспособности: на строковом сравнении держатся индексы, проверка пересечений в триггере и весь расчёт свободных окон. Формат вроде `15.08.2026 18:00` сравнивать было бы нечем.
+- Суффикс `Z` не украшение: он делает строку однозначной и не даёт случайно записать местное время под видом UTC.
 
-**Что это даёт на практике.** Клиентка в отпуске во Владивостоке открывает мини-апп: сервер отдаёт `+03:00`, приложение показывает время студии, а не местное владивостокское. Мастер в панели видит те же 18:00. В базе лежит одно значение `2026-08-15T15:00:00Z`.
+Наружу, в API, отдаём то же значение — клиент сам переводит его в нужный пояс для показа.
 
-Отдельно: все `created_at` / `updated_at` — тоже `timestamptz`, заполняются сервером через `now()`, а не приложением. Часы на клиенте могут врать, и тогда запись «создана» раньше, чем оформлена.
+**График работы — без пояса, `ЧЧ:ММ`.** «Студия работает с 10:00» — это правило по настенным часам, а не момент. Записанное моментом, оно поедет при смене часового пояса города или переносе сервера. Поэтому `working_hours` хранит местное время, а пояс лежит рядом, в `studio_settings.timezone` (`Europe/Moscow`), и применяется при расчёте свободных окон.
+
+**Что это даёт на практике.** Клиентка в отпуске во Владивостоке открывает мини-апп: сервер отдаёт `2026-08-15T15:00:00Z`, приложение показывает 18:00 по студии, а не местное владивостокское. Мастер в панели видит те же 18:00.
+
+Отдельно: все `created_at` и `updated_at` заполняются базой значением по умолчанию `strftime('%Y-%m-%dT%H:%M:%SZ', 'now')`, а не приложением. Часы на клиенте могут врать, и тогда запись «создана» раньше, чем оформлена.
 
 ---
 
@@ -636,8 +651,8 @@ CREATE UNIQUE INDEX ON master_ratings (master_id);
 | `reviews.appointment_id` UNIQUE | Один визит — один отзыв | Клиентка ставит пять единиц подряд и топит рейтинг мастера |
 | `favorite_masters (client_id, master_id)` PK | Мастер в избранном один раз | Список «Любимые мастера» с повторами |
 | `notifications (appointment_id, kind, channel)` UNIQUE | Одно сообщение одного типа на запись | Клиентке приходит пять одинаковых напоминаний — жалобы и отписка от бота |
-| `working_hours (master_id, weekday, starts_at_local, valid_from)` UNIQUE NULLS NOT DISTINCT | Одно правило на интервал | Дубликат строки удваивает интервал, а «свободных окон» становится вдвое больше, чем есть |
-| `schedule_exceptions (master_id, exception_date)` UNIQUE NULLS NOT DISTINCT | Одно исключение на дату | Два исключения на 8 марта — «работаем с 12:00» и «не работаем»; расчёт выберет случайное |
+| `working_hours (COALESCE(master_id, 0), weekday, starts_at_local, valid_from)` UNIQUE | Одно правило на интервал | Дубликат строки удваивает интервал, а «свободных окон» становится вдвое больше, чем есть |
+| `schedule_exceptions (COALESCE(master_id, 0), exception_date)` UNIQUE | Одно исключение на дату | Два исключения на 8 марта — «работаем с 12:00» и «не работаем»; расчёт выберет случайное |
 | `sessions.token_hash` UNIQUE | Один токен — один сеанс | Два сеанса с одним токеном: выход на одном устройстве не закрывает второе |
 | `slot_subscriptions (client_id, master_id, service_id)` UNIQUE | Одна подписка на пару «клиент + мастер» | Переключатель в профиле дёрнули дважды — клиентке приходит два сообщения об одном и том же окне |
 | `content_blocks.slug` UNIQUE | Блок лендинга адресуется по имени | Вёрстка тянет блок по `slug` и получает случайный из двух |
@@ -645,19 +660,34 @@ CREATE UNIQUE INDEX ON master_ratings (master_id);
 
 ### Главное ограничение: запрет двойной записи
 
+Ограничения `EXCLUDE`, которым эта задача решается в PostgreSQL одной строкой, в SQLite нет. Поэтому проверка живёт в двух триггерах — на вставке и на изменении времени, мастера или статуса:
+
 ```sql
-ALTER TABLE appointments ADD CONSTRAINT appointments_no_overlap
-  EXCLUDE USING gist (
-    master_id WITH =,
-    tstzrange(starts_at, ends_at) WITH &&
-  ) WHERE (status IN ('pending', 'confirmed'));
+CREATE TRIGGER appointments_no_overlap_insert BEFORE INSERT ON appointments
+WHEN NEW.status IN ('pending', 'confirmed')
+BEGIN
+  SELECT RAISE(ABORT, 'appointments_no_overlap: время у мастера уже занято')
+  WHERE EXISTS (
+    SELECT 1 FROM appointments x
+    WHERE x.master_id = NEW.master_id
+      AND x.status IN ('pending', 'confirmed')
+      AND x.starts_at < strftime('%Y-%m-%dT%H:%M:%SZ', NEW.starts_at, '+' || NEW.duration_min || ' minutes')
+      AND x.ends_at   > NEW.starts_at
+  );
+END;
 ```
 
-Запрещает существование двух активных записей у одного мастера с пересекающимся временем. Отменённые записи из проверки исключены — освобождённое время должно снова стать доступным.
+Условие пересечения — строгие неравенства с обеих сторон. Это важнее, чем кажется: запись, начинающаяся ровно в момент окончания предыдущей, пересечением **не** считается, и встык записываться можно. Ошибка на единицу здесь дала бы либо дыры в расписании, либо ложные отказы.
 
-**Зачем.** Проверка «свободно ли окно» на стороне приложения ненадёжна: две клиентки, нажавшие «Записаться» на одно и то же окно в одну секунду, обе получат «свободно» и обе создадут запись. Ограничение в базе — единственное место, где эту гонку можно поймать гарантированно: вторая транзакция просто не пройдёт.
+Отменённые записи из проверки исключены — освобождённое время должно снова стать доступным. Завершённые и неявки в проверку попадают, но они всегда в прошлом.
 
-**Что сломается без него.** В расписании два клиента в одном кресле в 18:00. Разбирать это придётся мастеру, лицом к лицу с клиенткой.
+**Зачем это вообще.** Проверка «свободно ли окно» на стороне приложения ненадёжна: две клиентки, нажавшие «Записаться» на одно окно в одну секунду, обе получат «свободно» и обе создадут запись.
+
+**Почему триггер надёжен, хотя это не ограничение.** В SQLite писатель всегда один: базу нельзя изменять из двух транзакций одновременно. Транзакции приложение открывает через `BEGIN IMMEDIATE` — блокировка записи берётся сразу, а не при первой записи. Пока одна транзакция идёт, вторая ждёт. Поэтому последовательность «триггер проверил — строка вставилась» неразрывна, и гонки, ради которой в PostgreSQL нужен `EXCLUDE`, здесь не возникает.
+
+**Чем всё же хуже.** Ограничение декларативно и работает при любом способе записи, а триггер можно обойти, отключив триггеры или загрузив данные в обход (`.import`, `PRAGMA ignore_check_constraints`). Дисциплина доступа к базе становится частью защиты.
+
+**Что сломается без этого.** В расписании два клиента в одном кресле в 18:00. Разбирать это придётся мастеру, лицом к лицу с клиенткой.
 
 ### Поведение внешних ключей при удалении
 
@@ -691,10 +721,10 @@ ALTER TABLE appointments ADD CONSTRAINT appointments_no_overlap
 | `appointments (starts_at) WHERE status IN ('pending','confirmed')` частичный | Расчёт свободных окон (шаг 3 раздела 5) | Календарь открывается всё медленнее по мере роста истории — а он открывается на каждом выборе даты |
 | `appointments (status) WHERE status = 'pending'` частичный | KPI «2 ждут подтверждения» и фильтр в таблице | Счётчик на каждой загрузке панели считает по всей таблице |
 | `appointments (created_at DESC)` | Лента последних записей в админке | Сортировка таблицы записей идёт по всему объёму |
-| `time_off USING gist (master_id, tstzrange(starts_at, ends_at))` | Вычитание блокировок при расчёте окон | Пересечения интервалов ищутся перебором |
+| `time_off (master_id, starts_at)` | Вычитание блокировок при расчёте окон | Пересечения интервалов ищутся перебором. Индексов по диапазонам, как gist в PostgreSQL, в SQLite нет: отбор идёт по началу интервала, конец отсекает сам запрос |
 | `services (category_id) WHERE is_active` частичный | Фильтр категорий на лендинге | Мелочь на шести услугах, заметно на сотне |
 | `reviews (appointment_id) WHERE is_published` частичный | Рейтинг мастера «4.9 · 128» — соединение отзывов с записями, где и лежит мастер | Агрегат перебирает все отзывы студии на каждой отрисовке карточки |
-| `users USING gin (full_name gin_trgm_ops)` | Поиск «по имени или телефону» в админке | Поиск по подстроке идёт перебором; на паре сотен клиенток ещё терпимо, дальше — нет |
+| `users (full_name)` | Поиск «по имени или телефону» в админке | Поиска по подстроке через триграммы, как `pg_trgm` в PostgreSQL, в SQLite нет. Индекс покрывает сортировку и поиск по началу строки; поиск по середине идёт перебором. На объёмах студии терпимо, при росте — полнотекстовый индекс FTS5 |
 | `users (phone)` | Тот же поиск по номеру | Уникальный индекс на `phone` эту задачу уже закрывает — отдельный не нужен |
 | `notifications (scheduled_at) WHERE status = 'scheduled'` частичный | Отправка напоминаний по расписанию | Фоновая задача каждую минуту перечитывает весь журнал сообщений |
 | `portfolio_works (sort_order) WHERE is_published` частичный | Галерея на лендинге | Сортировка по всей таблице, включая скрытые работы |
@@ -706,7 +736,7 @@ ALTER TABLE appointments ADD CONSTRAINT appointments_no_overlap
 
 Частичные индексы (`WHERE …`) выбраны намеренно: они меньше и быстрее обычных, потому что не хранят строки, которые в запросах всё равно не участвуют — например, отменённые записи в расчёте занятости.
 
-Оговорка про `NULLS NOT DISTINCT` в двух ограничениях выше: по умолчанию PostgreSQL считает два `NULL` разными значениями, поэтому обычный `UNIQUE` не помешал бы завести два студийных правила на один и тот же день недели — в обоих `master_id` пуст. Строки с пустым мастером здесь как раз самые важные: это график всей студии.
+Оговорка про `COALESCE` в двух ограничениях выше. SQLite, как и большинство баз, считает два `NULL` разными значениями, поэтому обычный `UNIQUE (master_id, weekday, …)` не помешал бы завести два студийных правила на один день недели — в обоих `master_id` пуст. В PostgreSQL это лечится оговоркой `NULLS NOT DISTINCT`, которой в SQLite нет, поэтому пустой мастер заменяется нулём прямо в индексе: `COALESCE(master_id, 0)`. Строки с пустым мастером здесь как раз самые важные — это график всей студии.
 
 ---
 
@@ -740,19 +770,39 @@ ALTER TABLE appointments ADD CONSTRAINT appointments_no_overlap
 Автоматически `no_show` не проставляется: «не пришла» — суждение человека, а не следствие того, что запись осталась в `confirmed` после конца визита. Клиентка могла прийти, а мастер — забыть нажать кнопку.
 
 **8. Статусы: тип-перечисление для набора, справочник для оформления.**
-Чистый `ENUM` даёт проверку на уровне базы, но не позволяет владелице поменять подпись бейджа. Чистый справочник гибче, но платить за него пришлось бы соединением в каждом запросе к записям — самом частом запросе сервиса, — и набор значений перестал бы быть защищённым. Взято по половине от каждого: набор задаёт тип `appointment_status`, оформление живёт в `appointment_status_labels`. Соединение нужно только там, где статус показывают человеку, а не там, где по нему фильтруют.
+Типов-перечислений в SQLite нет, но проверка `CHECK (status IN (…))` даёт то же самое: значение вне набора база не примет. Чего она не даёт — так это подписей и цветов, которые владелица могла бы поменять. Чистый справочник дал бы гибкость, но платить пришлось бы соединением в каждом запросе к записям — самом частом запросе сервиса, — и набор значений перестал бы быть защищённым.
+
+Взято по половине от каждого: набор задаёт `CHECK` в самой колонке, оформление живёт в `appointment_status_labels`. Соединение нужно только там, где статус показывают человеку, а не там, где по нему фильтруют.
 
 **9. Рейтинг мастера не хранится, но кешируется представлением.**
-`4.9` и `128 отзывов` выводятся из `reviews`. Хранимая колонка потребовала бы пересчёта в трёх местах — при новом отзыве, при снятии с публикации, при удалении — и в каждом можно разойтись с реальностью. Вместо неё заведено материализованное представление `master_ratings`: источник истины остаётся один, а представление лишь сохраняет результат запроса. Пока отзывов мало, его можно не использовать вовсе и считать агрегат напрямую — данные от этого не меняются.
+`4.9` и `128 отзывов` выводятся из `reviews`. Хранимая колонка потребовала бы пересчёта в трёх местах — при новом отзыве, при снятии с публикации, при удалении — и в каждом можно разойтись с реальностью. Вместо неё заведено представление `master_ratings`: источник истины остаётся один. Материализованных представлений в SQLite нет, поэтому запрос выполняется при каждом обращении; на объёмах студии это дешевле, чем поддерживать копию.
 
 **10. График студии — строки с `master_id IS NULL` в общей таблице.**
 Альтернатива — отдельная таблица `studio_hours`. Но правила у них одинаковые (день недели, интервал, срок действия), и расчёт свободного времени вычитал бы одно и то же из двух источников по двум разным веткам кода. Цена решения: `master_id` стал необязательным, и запрос «график Лены» обязан явно учитывать наследование от студии.
 
-**11. PostgreSQL, а не SQLite или MySQL.**
-Решающий довод — `EXCLUDE USING gist` для запрета пересечения записей. В MySQL и SQLite такого ограничения нет: защиту от двойной записи пришлось бы собирать на блокировках в приложении, а это ровно тот класс ошибок, который проявляется в пятницу вечером на пике записей. Дополнительно нужны `citext` для регистронезависимой почты, частичные индексы и `gin_trgm_ops` для поиска по имени — всё это в PostgreSQL есть из коробки.
+**11. SQLite, а не PostgreSQL.**
+Изначально в схеме стоял PostgreSQL, и довод был весомый: `EXCLUDE USING gist` запрещает пересечение записей одной строкой, декларативно и без единой строчки кода. Выбор пересмотрен в пользу SQLite — база живёт одним файлом в папке проекта, ставить и администрировать нечего, а движок уже встроен в Node 24 модулем `node:sqlite`, так что у сервера нет ни одной внешней зависимости.
+
+Что пришлось заменить и чем:
+
+| Возможность PostgreSQL | Замена в SQLite |
+|---|---|
+| `EXCLUDE USING gist` | Два триггера с `RAISE(ABORT)` — см. раздел 7 |
+| Типы-перечисления | `TEXT` с проверкой `CHECK (… IN (…))` |
+| `timestamptz` | Строка ISO-8601 UTC — см. раздел 6 |
+| `UNIQUE NULLS NOT DISTINCT` | Уникальный индекс по `COALESCE(master_id, 0)` |
+| `citext` | `TEXT COLLATE NOCASE` |
+| Материализованное представление | Обычное представление |
+| `gin_trgm_ops` для поиска по подстроке | `LIKE` и обычный индекс, при росте — FTS5 |
+
+**Что реально потеряно.** Декларативность защиты от двойной записи: она переехала из ограничения в триггеры, а триггер можно отключить или обойти при массовой загрузке. И масштаб: SQLite рассчитан на одного пишущего, поэтому несколько филиалов с общей базой на нём не построить.
+
+**Что не потеряно.** Сама гарантия. Писатель в SQLite один, транзакции открываются через `BEGIN IMMEDIATE`, и проверка пересечения внутри такой транзакции атомарна — гонки «две клиентки заняли одно окно» не возникает. Проверено: попытка записи внахлёст и попытка переноса на занятое время отклоняются, а запись встык проходит.
+
+**Когда стоит вернуться к PostgreSQL.** Если появится второй филиал, понадобится несколько одновременно пишущих процессов или полнотекстовый поиск по клиентской базе. Обратный переход несложен: логика схемы от движка не зависит, меняются DDL и три механизма из таблицы выше.
 
 **12. `ends_at` — вычисляемое поле, а не расчёт на лету.**
-Хранится как generated column `starts_at + duration_min`. Так конец визита участвует в ограничении на пересечение и в индексах, что при расчёте на лету невозможно. Плата — лишние 8 байт на запись.
+Хранится как generated column: `strftime('%Y-%m-%dT%H:%M:%SZ', starts_at, '+' || duration_min || ' minutes')`. Так конец визита участвует в проверке пересечения и в индексах, что при расчёте на лету невозможно. Плата — несколько лишних байт на запись.
 
 **13. Согласия вынесены в отдельную таблицу.**
 Проще было бы поставить `consent_given boolean` в `users`. Но согласие — событие с датой и версией документа: важно, на какую редакцию политики человек согласился и когда, и что согласие можно отозвать. Флаг в профиле этого не покажет и в спорной ситуации ничего не докажет.
@@ -812,11 +862,11 @@ ALTER TABLE appointments ADD CONSTRAINT appointments_no_overlap
 | График мастера | `working_hours` с недельным правилом и сроком действия | Двух вещей. Первая: правило «чей график брать» опиралось на наличие строк и читалось двояко — день без строки мог означать и выходной, и «как у студии». Добавлен флаг `master_profiles.uses_studio_hours`. Вторая: недельное правило нечем перекрыть на одну дату — `time_off` умеет только вычитать, а «в это воскресенье работаем» требует добавить время. Добавлена таблица `schedule_exceptions` |
 | Длительность услуги | `services.duration_min` и `master_services.duration_min_override` | Времени на уборку между клиентками. Без него записи стыкуются вплотную и мастер уходит в минус по времени с первой же пары визитов. Добавлено `services.buffer_after_min` |
 | Записи с началом и окончанием | `appointments.starts_at`, `ends_at`, `status` | Ничего. `ends_at` — вычисляемое поле, статусы разделяют занятое и освобождённое время |
-| Блокировки времени | `time_off` с диапазоном и gist-индексом | Ничего. Личные и общестудийные блокировки покрыты одной таблицей |
+| Блокировки времени | `time_off` с диапазоном и индексом по началу интервала | Ничего. Личные и общестудийные блокировки покрыты одной таблицей |
 | Границы расчёта | `booking_horizon_days`, `slot_step_min`, `timezone` | Нижней границы. Верхняя граница была, а «не ближе чем за N минут» — нет, и окно на 18:00 оставалось доступным в 17:58. Добавлено `studio_settings.min_lead_time_min` |
 | Срок жизни заявки | статусы `pending` и `confirmed` одинаково занимали время | Ограничения по времени. Неподтверждённая запись держала окно бессрочно: заявка, до которой у владелицы не дошли руки, вычёркивала время у всех остальных навсегда. Добавлено `studio_settings.pending_ttl_min` — по истечении заявка отменяется автоматически и окно возвращается |
 
-Попутно уточнены два места, где расчёт мог разойтись с ожиданием: день недели берётся по календарю студии, а не по UTC (иначе поздний вечерний визит попадает в соседний день), и ограничения уникальности на график получили `NULLS NOT DISTINCT` — без этого два студийных правила на один день недели не считались бы дубликатами, потому что в обоих `master_id` пуст.
+Попутно уточнены два места, где расчёт мог разойтись с ожиданием: день недели берётся по календарю студии, а не по UTC (иначе поздний вечерний визит попадает в соседний день), и уникальность графика проверяется по `COALESCE(master_id, 0)` — без этого два студийных правила на один день недели не считались бы дубликатами, потому что в обоих `master_id` пуст.
 
 Уточнены и два правила разрешения конфликтов, которых в алгоритме недоставало. Студийное исключение по дате сильнее личного: если студия закрыта на праздник, «разовая смена» мастера день не открывает. И граница между физикой расписания и витриной — шаги 2–5 обязательны всегда, а отсечение по `min_lead_time_min` и шаг сетки касаются только онлайн-записи: администратор в панели сажает клиентку «прямо сейчас» мимо этих правил.
 
@@ -943,20 +993,20 @@ ALTER TABLE appointments ADD CONSTRAINT appointments_no_overlap
 | Модель | Когда включать | Свежесть |
 |---|---|---|
 | Расчёт на лету | до нескольких тысяч отзывов | мгновенная |
-| Материализованное представление с обновлением по расписанию | десятки тысяч | отстаёт на период обновления |
+| Таблица-снимок, обновляемая по расписанию | десятки тысяч | отстаёт на период обновления |
 | Кеш в приложении поверх представления | если лендинг станет узким местом | отстаёт на время жизни кеша |
 
 Переход между ними не меняет схему и не требует миграции данных — это замена одного запроса другим. А вот четвёртый вариант, денормализованная колонка `rating` в `master_profiles`, которую правит приложение, отвергнут: он превращает производную величину в хранимый факт с тремя местами пересчёта.
 
-**Что сделано.** Представление `master_ratings` описано в конце раздела 4 вместе с запросом, обязательным уникальным индексом под `REFRESH CONCURRENTLY` и правилом обновления. Включать его сразу не нужно: пока отзывов немного, лендинг считает агрегат напрямую, и это тот же самый ответ.
+**Что сделано.** Представление `master_ratings` описано в конце раздела 4 вместе с запросом. Материализованных представлений в SQLite нет, поэтому оно считается при каждом обращении и устареть не может; кеш добавляется позже и без изменения схемы.
 
 ### Развилка 6. Статусы: тип-перечисление или справочник
 
-**Что выбрано.** `ENUM` на уровне базы.
+**Что выбрано.** Набор значений закреплён проверкой `CHECK` в самой колонке.
 
 **Чем плохо.** Добавление значения — миграция. Названия и цвета бейджей в базе не лежат, и владелица не может их поменять.
 
-**Здесь две модели совмещаются без конфликта, и это не компромисс, а лучший вариант.** Набор допустимых значений остаётся `ENUM` — база продолжает физически запрещать «статус из пальца», и запросы к записям обходятся без соединений. А оформление — подпись, цвет, порядок в фильтрах — переезжает в маленькую справочную таблицу `appointment_status_view`, где строк ровно столько же, сколько значений в типе.
+**Здесь две модели совмещаются без конфликта, и это не компромисс, а лучший вариант.** Набор допустимых значений остаётся в `CHECK` — база продолжает физически запрещать «статус из пальца», и запросы к записям обходятся без соединений. А оформление — подпись, цвет, порядок в фильтрах — переезжает в маленькую справочную таблицу `appointment_status_labels`, где строк ровно столько же, сколько значений в наборе.
 
 Ключевое условие: справочник описывает **как показывать** значения, но не решает, какие значения существуют. Как только он начнёт определять набор, снова появятся два источника истины и вопрос, какому верить.
 

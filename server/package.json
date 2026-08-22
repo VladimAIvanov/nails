@@ -8,10 +8,8 @@
   },
   "scripts": {
     "migrate": "node src/migrate.js",
-    "seed": "node src/seed.js",
-    "smoke": "node src/smoke.js",
-    "dev": "node --watch src/index.js",
-    "start": "node src/index.js"
+    "seed": "node src/seed.js"
   }
 }
+
 
