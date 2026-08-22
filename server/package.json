@@ -8,7 +8,8 @@
   },
   "scripts": {
     "migrate": "node --env-file-if-exists=../.env src/migrate.js",
-    "seed": "node --env-file-if-exists=../.env src/seed.js"
+    "seed": "node --env-file-if-exists=../.env src/seed.js",
+    "reset": "node --env-file-if-exists=../.env src/reset.js"
   }
 }
 
