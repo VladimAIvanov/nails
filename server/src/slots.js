@@ -211,3 +211,33 @@ export function freeSlots({ masterId, date, serviceIds }) {
 
   return { ...empty, slots, free_count: slots.length };
 }
+
+/* Ближайшие свободные окна — для подсказки в ответе 409, когда выбранное
+   время только что заняли. Сканируем вперёд по дням, пока не наберём
+   нужное количество или не упрёмся в горизонт записи. */
+export function nearestFreeSlots({ masterId, serviceIds, fromIso, limit = 5, maxDays = 14 }) {
+  const settings = getSettings();
+  const tz = settings.timezone;
+  const found = [];
+  const start = new Date(fromIso ?? Date.now());
+
+  for (let offset = 0; offset < maxDays && found.length < limit; offset++) {
+    const day = new Date(start.getTime() + offset * 86_400_000);
+    const date = utcToLocal(day, tz).date;
+
+    let result;
+    try {
+      result = freeSlots({ masterId, date, serviceIds });
+    } catch {
+      break; // услуга или мастер стали недоступны — подсказывать нечего
+    }
+
+    for (const slot of result.slots) {
+      if (fromIso && slot.starts_at <= fromIso && offset === 0) continue;
+      found.push({ date, starts_at: slot.starts_at, local_time: slot.local_time });
+      if (found.length >= limit) break;
+    }
+  }
+
+  return found;
+}

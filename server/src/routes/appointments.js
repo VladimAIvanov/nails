@@ -3,7 +3,7 @@ import { all, get, run, transaction } from '../db.js';
 import { conflict, forbidden, notFound, badRequest } from '../http.js';
 import * as v from '../validate.js';
 import { requireUser, requireRole } from '../auth.js';
-import { getSettings, requiredDuration, purgeExpiredHolds } from '../slots.js';
+import { getSettings, requiredDuration, purgeExpiredHolds, nearestFreeSlots } from '../slots.js';
 import { nowIso, addMinutes, utcToLocal } from '../time.js';
 
 /* Что видно в карточке записи. Телефон клиентки показывается только студии:
@@ -29,6 +29,8 @@ function present(row, tz, { withClient = false } = {}) {
   };
   if (withClient) {
     view.client = { id: row.client_id, name: row.client_name, phone: row.client_phone };
+    // наложение — служебный признак студии, клиентке он ничего не говорит
+    view.allow_overlap = row.allow_overlap === 1;
   }
   return view;
 }
@@ -56,6 +58,11 @@ export default function register(router) {
     const startsAt = v.isoUtc(body.starts_at);
     const comment = v.optionalStr(body.comment, 'comment', { max: 1000 });
     const holdToken = body.hold_token ? v.str(body.hold_token, 'hold_token', { max: 64 }) : null;
+
+    /* Признак осознанного наложения здесь не читается вовсе. Если клиентка
+       пришлёт allow_overlap: true, поле просто не дойдёт до SQL — в INSERT
+       ниже его нет, и столбец получит значение по умолчанию 0. Наложение
+       доступно только через POST /api/admin/appointments. */
 
     const settings = getSettings();
     if (settings.online_booking_enabled !== 1) throw conflict('Онлайн-запись отключена');
@@ -113,8 +120,13 @@ export default function register(router) {
         return ids;
       });
     } catch (err) {
+      /* Сообщение триггера наружу не уходит: пользователю нужен понятный
+         текст и что делать дальше, а не текст ошибки базы. */
       if (/appointments_no_overlap/.test(err.message)) {
-        throw conflict('Это время только что заняли, выберите другое окно');
+        throw conflict('Это время только что заняли. Выберите другое окно', {
+          starts_at: startsAt,
+          available: nearestFreeSlots({ masterId, serviceIds, fromIso: startsAt })
+        });
       }
       throw err;
     }
@@ -214,7 +226,12 @@ export default function register(router) {
       });
     } catch (err) {
       if (/appointments_no_overlap/.test(err.message)) {
-        throw conflict('На это время уже есть запись у мастера');
+        throw conflict('На это время у мастера уже есть запись', {
+          starts_at: startsAt,
+          available: nearestFreeSlots({
+            masterId: row.master_id, serviceIds: [row.service_id], fromIso: startsAt
+          })
+        });
       }
       throw err;
     }

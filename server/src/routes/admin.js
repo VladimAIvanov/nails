@@ -3,8 +3,8 @@ import { all, get, run, transaction } from '../db.js';
 import { badRequest, conflict, notFound } from '../http.js';
 import * as v from '../validate.js';
 import { requireRole, hashPassword } from '../auth.js';
-import { getSettings } from '../slots.js';
-import { nowIso, utcToLocal } from '../time.js';
+import { getSettings, requiredDuration, nearestFreeSlots } from '../slots.js';
+import { nowIso, utcToLocal, addMinutes } from '../time.js';
 
 const STATUSES = ['pending', 'confirmed', 'done', 'cancelled', 'no_show'];
 
@@ -73,6 +73,82 @@ export default function register(router) {
           master: { id: r.master_id, name: r.master_name },
           client: { id: r.client_id, name: r.client_name, phone: r.client_phone }
         }))
+      }
+    };
+  });
+
+  /* Создание записи администратором.
+     Единственное место, где разрешено наложение поверх занятого времени:
+     клиентка пришла без записи, мастер согласилась принять. Признак
+     allow_overlap читается ТОЛЬКО здесь, и попасть сюда может лишь admin —
+     проверка ролью в первой строке обработчика. */
+  router.post('/api/admin/appointments', async ({ body, req }) => {
+    const admin = requireRole(req, 'admin');
+
+    const clientId = v.idParam(body.client_id, 'client_id');
+    const masterId = v.idParam(body.master_id, 'master_id');
+    const serviceIds = v.idList(body.service_ids, 'service_ids');
+    const startsAt = v.isoUtc(body.starts_at);
+    const comment = v.optionalStr(body.comment, 'comment', { max: 1000 });
+    const allowOverlap = v.bool(body.allow_overlap, 'allow_overlap') ?? 0;
+
+    const client = get('SELECT id, role FROM users WHERE id = $id', { id: clientId });
+    if (!client) throw notFound('Клиент не найден');
+    if (!get('SELECT user_id FROM master_profiles WHERE user_id = $id', { id: masterId })) {
+      throw notFound('Мастер не найден');
+    }
+
+    const settings = getSettings();
+    const need = requiredDuration(masterId, serviceIds, settings);
+    const status = body.status ? v.oneOf(body.status, 'status', ['pending', 'confirmed']) : 'confirmed';
+
+    let ids;
+    try {
+      ids = transaction(() => {
+        const created = [];
+        let cursor = startsAt;
+        for (const svc of need.services) {
+          run(
+            `INSERT INTO appointments (client_id, master_id, service_id, starts_at, duration_min,
+                                       price_kopecks, status, source, client_comment, allow_overlap)
+             VALUES ($client, $master, $service, $starts, $duration, $price, $status, 'admin', $comment, $overlap)`,
+            {
+              client: clientId, master: masterId, service: svc.id, starts: cursor,
+              duration: svc.duration_min, price: svc.price_kopecks, status,
+              comment, overlap: allowOverlap
+            }
+          );
+          const id = get('SELECT last_insert_rowid() AS id').id;
+          run(
+            `INSERT INTO appointment_status_log (appointment_id, from_status, to_status, changed_by_id, comment)
+             VALUES ($id, NULL, $status, $by, $note)`,
+            {
+              id, status, by: admin.id,
+              note: allowOverlap ? 'создано администратором поверх занятого времени' : 'создано администратором'
+            }
+          );
+          created.push(id);
+          cursor = addMinutes(cursor, svc.duration_min);
+        }
+        return created;
+      });
+    } catch (err) {
+      if (/appointments_no_overlap/.test(err.message)) {
+        throw conflict('Время занято. Чтобы записать поверх, передайте allow_overlap: true', {
+          starts_at: startsAt,
+          available: nearestFreeSlots({ masterId, serviceIds, fromIso: startsAt })
+        });
+      }
+      throw err;
+    }
+
+    return {
+      status: 201,
+      body: {
+        appointment_ids: ids,
+        allow_overlap: allowOverlap === 1,
+        starts_at: startsAt,
+        local: utcToLocal(new Date(startsAt), settings.timezone)
       }
     };
   });
@@ -329,3 +405,4 @@ export default function register(router) {
     return { body: { ok: true, deleted: id } };
   });
 }
+
