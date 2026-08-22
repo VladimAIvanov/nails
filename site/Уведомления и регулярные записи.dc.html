@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+
+<!-- @template name="Уведомления, регулярные записи и календарь" description="Новые возможности сервиса: выбор каналов уведомлений, повторяющиеся визиты, добавление в календарь и отмена по ссылке" -->
+<helmet>
+<link rel="stylesheet" href="./_ds/design-system-f8f42b07-6e0d-4d82-8a32-ad7612b73ea8/styles.css">
+<script src="./_ds/design-system-f8f42b07-6e0d-4d82-8a32-ad7612b73ea8/_ds_bundle.js"></script>
+<style>body{margin:0;background:var(--bg-page)}</style>
+</helmet>
+
+<div style="display:flex;align-items:center;gap:24px;height:40px;padding:0 24px;background:var(--plum-800);color:rgba(255,255,255,.7);font-family:'Manrope',sans-serif;font-size:12.5px;flex-wrap:wrap">
+<span style="font-weight:600;color:var(--text-inverse);letter-spacing:.08em;text-transform:uppercase;font-size:10px;margin-right:4px">Варвара сайт</span>
+<a href="./Варвара - Сайт.dc.html" style="color:inherit;border:0">Сайт</a>
+<a href="./Кабинет.dc.html" style="color:inherit;border:0">Кабинет клиента</a>
+<a href="./Клиент.dc.html" style="color:inherit;border:0">Мини-апп клиента</a>
+<a href="./Админ-панель.dc.html" style="color:inherit;border:0">Админ-панель / мастер</a>
+<a href="./Варианты.dc.html" style="color:inherit;border:0">Варианты компонентов</a>
+<a href="./Карта связей.dc.html" style="color:inherit;border:0">Карта связей</a>
+<span style="color:var(--text-inverse);font-weight:600">Уведомления и регулярность</span>
+<a href="./Вход.dc.html" style="color:inherit;border:0;margin-left:auto">Вход</a>
+</div>
+
+<div style="max-width:1200px;margin:0 auto;padding:0 40px 96px;box-sizing:border-box;font-family:'Manrope','Helvetica Neue',sans-serif;color:var(--text-primary)">
+
+<header style="padding:56px 0 8px">
+<x-import component-from-global-scope="DesignSystem_f8f42b.SectionHeader" eyebrow="Новое" title="Уведомления, регулярные записи и календарь" subtitle="Четыре возможности, добавленные после первого прототипа. Экраны показывают, как они выглядят для клиентки и для студии." hint-size="100%,120px"></x-import>
+</header>
+
+<!-- ── 1. Каналы уведомлений ─────────────────────────────────────────── -->
+<section style="padding:40px 0;border-top:1px solid var(--border-default)">
+<x-import component-from-global-scope="DesignSystem_f8f42b.SectionHeader" eyebrow="Профиль клиента" title="Каналы уведомлений" subtitle="Раньше переключателей было три и все про Telegram. Теперь клиентка выбирает, куда именно ей писать." hint-size="100%,100px"></x-import>
+
+<div style="display:grid;grid-template-columns:380px 1fr;gap:32px;align-items:start;margin-top:24px">
+
+<x-import component-from-global-scope="DesignSystem_f8f42b.Card" hint-size="100%,420px">
+<div style="font-family:'Cormorant Garamond',Georgia,serif;font-size:20px;font-weight:600;margin-bottom:16px">Как со мной связаться</div>
+
+<sc-for list="{{ channels }}" as="c" hint-placeholder-count="4">
+<div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--border-subtle)">
+<div>
+<div style="font-size:15px">{{ c.title }}</div>
+<div style="font-size:12.5px;color:var(--text-muted);margin-top:2px">{{ c.note }}</div>
+</div>
+<x-import component-from-global-scope="DesignSystem_f8f42b.Switch" defaultChecked="{{ c.on }}" hint-size="40px,24px"></x-import>
+</div>
+</sc-for>
+
+<div style="margin-top:16px">
+<x-import component-from-global-scope="DesignSystem_f8f42b.Notice" tone="info" hint-size="100%,64px">Напоминание о визите придёт в любом случае — хотя бы SMS. От него не отписываются.</x-import>
+</div>
+</x-import>
+
+<div>
+<div style="font-size:12px;font-weight:600;color:var(--text-muted);margin-bottom:14px">Что и когда отправляется</div>
+<div style="display:flex;flex-direction:column;gap:10px">
+<sc-for list="{{ timeline }}" as="t" hint-placeholder-count="4">
+<x-import component-from-global-scope="DesignSystem_f8f42b.Card" variant="tight" hint-size="100%,72px">
+<div style="display:flex;align-items:center;gap:16px">
+<div style="min-width:132px;font-size:12.5px;color:var(--text-muted)">{{ t.when }}</div>
+<div style="flex:1">
+<div style="font-size:14.5px;font-weight:600">{{ t.title }}</div>
+<div style="font-size:12.5px;color:var(--text-muted);margin-top:2px">{{ t.text }}</div>
+</div>
+</div>
+</x-import>
+</sc-for>
+</div>
+</div>
+
+</div>
+</section>
+
+<!-- ── 2. Регулярная запись ──────────────────────────────────────────── -->
+<section style="padding:40px 0;border-top:1px solid var(--border-default)">
+<x-import component-from-global-scope="DesignSystem_f8f42b.SectionHeader" eyebrow="Запись" title="Регулярный визит" subtitle="Для тех, кто ходит к одному мастеру постоянно: правило вместо десяти отдельных оформлений." hint-size="100%,100px"></x-import>
+
+<div style="display:grid;grid-template-columns:400px 1fr;gap:32px;align-items:start;margin-top:24px">
+
+<x-import component-from-global-scope="DesignSystem_f8f42b.Card" hint-size="100%,400px">
+<div style="font-family:'Cormorant Garamond',Georgia,serif;font-size:20px;font-weight:600;margin-bottom:14px">Повторять визит</div>
+<div style="display:flex;flex-direction:column;gap:14px">
+<x-import component-from-global-scope="DesignSystem_f8f42b.Select" label="Как часто" options="{{ intervals }}" hint-size="100%,64px"></x-import>
+<x-import component-from-global-scope="DesignSystem_f8f42b.Select" label="День недели" options="{{ weekdays }}" hint-size="100%,64px"></x-import>
+<x-import component-from-global-scope="DesignSystem_f8f42b.Input" label="Время" defaultValue="18:00" iconLeft="clock" hint-size="100%,64px"></x-import>
+<x-import component-from-global-scope="DesignSystem_f8f42b.Input" label="Сколько повторов" defaultValue="6" hint-size="100%,64px"></x-import>
+<x-import component-from-global-scope="DesignSystem_f8f42b.Button" block="{{ true }}" hint-size="100%,44px">Создать серию</x-import>
+</div>
+</x-import>
+
+<div>
+<div style="font-size:12px;font-weight:600;color:var(--text-muted);margin-bottom:14px">Что получится</div>
+<div style="display:flex;flex-direction:column;gap:10px">
+<sc-for list="{{ series }}" as="s" hint-placeholder-count="5">
+<x-import component-from-global-scope="DesignSystem_f8f42b.Card" variant="tight" hint-size="100%,64px">
+<div style="display:flex;align-items:center;gap:16px">
+<div style="min-width:150px;font-size:14.5px;font-weight:600">{{ s.date }}</div>
+<div style="flex:1;font-size:13px;color:var(--text-muted)">{{ s.note }}</div>
+<x-import component-from-global-scope="DesignSystem_f8f42b.StatusBadge" status="{{ s.status }}" short="{{ true }}" hint-size="120px,26px"></x-import>
+</div>
+</x-import>
+</sc-for>
+</div>
+<div style="margin-top:14px">
+<x-import component-from-global-scope="DesignSystem_f8f42b.Notice" tone="warning" hint-size="100%,64px">Занятый повтор пропускается и подсвечивается — вся серия из-за него не срывается. Такой визит можно перенести отдельно.</x-import>
+</div>
+</div>
+
+</div>
+</section>
+
+<!-- ── 3. Календарь и отмена по ссылке ───────────────────────────────── -->
+<section style="padding:40px 0;border-top:1px solid var(--border-default)">
+<x-import component-from-global-scope="DesignSystem_f8f42b.SectionHeader" eyebrow="После записи" title="Календарь и отмена по ссылке" subtitle="Две вещи, которые клиентка делает уже после оформления — и обе не должны требовать входа в кабинет." hint-size="100%,100px"></x-import>
+
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-top:24px">
+
+<x-import component-from-global-scope="DesignSystem_f8f42b.Card" hint-size="100%,300px">
+<div style="font-family:'Cormorant Garamond',Georgia,serif;font-size:20px;font-weight:600;margin-bottom:6px">В календарь</div>
+<p style="font-size:14px;color:var(--text-secondary);margin:0 0 18px">Разово — файлом для одного визита. Или подпиской: календарь сам подхватит перенос и отмену.</p>
+<div style="display:flex;gap:10px;flex-wrap:wrap">
+<x-import component-from-global-scope="DesignSystem_f8f42b.Button" variant="secondary" hint-size="200px,44px">Добавить этот визит</x-import>
+<x-import component-from-global-scope="DesignSystem_f8f42b.Button" variant="ghost" hint-size="180px,44px">Подписаться на все</x-import>
+</div>
+<div style="margin-top:18px">
+<x-import component-from-global-scope="DesignSystem_f8f42b.Notice" tone="info" hint-size="100%,72px">В событие вложено напоминание за два часа. Оно сработает, даже если сообщение до вас не дойдёт.</x-import>
+</div>
+</x-import>
+
+<x-import component-from-global-scope="DesignSystem_f8f42b.Card" hint-size="100%,300px">
+<div style="font-family:'Cormorant Garamond',Georgia,serif;font-size:20px;font-weight:600;margin-bottom:6px">Отмена по ссылке</div>
+<p style="font-size:14px;color:var(--text-secondary);margin:0 0 18px">Ссылка приходит вместе с напоминанием. Вход не нужен: она сначала показывает визит и спрашивает подтверждение.</p>
+<x-import component-from-global-scope="DesignSystem_f8f42b.BookingCard" when="{{ cancel.when }}" service="{{ cancel.service }}" master="{{ cancel.master }}" price="{{ cancel.price }}" status="confirmed" hint-size="100%,120px"></x-import>
+<div style="display:flex;gap:10px;margin-top:14px">
+<x-import component-from-global-scope="DesignSystem_f8f42b.Button" variant="secondary" hint-size="150px,44px">Отменить визит</x-import>
+<x-import component-from-global-scope="DesignSystem_f8f42b.Button" variant="ghost" hint-size="150px,44px">Оставить</x-import>
+</div>
+</x-import>
+
+</div>
+</section>
+
+<!-- ── 4. Очередь уведомлений в панели ───────────────────────────────── -->
+<section style="padding:40px 0;border-top:1px solid var(--border-default)">
+<x-import component-from-global-scope="DesignSystem_f8f42b.SectionHeader" eyebrow="Админ-панель" title="Очередь сообщений" subtitle="Студия видит, что поставлено, что ушло и что не дошло — прежде чем звонить клиентке лично." hint-size="100%,100px"></x-import>
+
+<div style="margin-top:20px;overflow-x:auto">
+<table style="width:100%;border-collapse:collapse;font-size:13.5px">
+<thead>
+<tr style="text-align:left;color:var(--text-muted);font-size:12px">
+<th style="padding:10px 12px;border-bottom:1px solid var(--border-default)">Когда</th>
+<th style="padding:10px 12px;border-bottom:1px solid var(--border-default)">Кому</th>
+<th style="padding:10px 12px;border-bottom:1px solid var(--border-default)">Повод</th>
+<th style="padding:10px 12px;border-bottom:1px solid var(--border-default)">Канал</th>
+<th style="padding:10px 12px;border-bottom:1px solid var(--border-default)">Состояние</th>
+</tr>
+</thead>
+<tbody>
+<sc-for list="{{ queue }}" as="q" hint-placeholder-count="5">
+<tr>
+<td style="padding:12px;border-bottom:1px solid var(--border-subtle);color:var(--text-secondary)">{{ q.when }}</td>
+<td style="padding:12px;border-bottom:1px solid var(--border-subtle)">{{ q.who }}</td>
+<td style="padding:12px;border-bottom:1px solid var(--border-subtle)">{{ q.kind }}</td>
+<td style="padding:12px;border-bottom:1px solid var(--border-subtle)">{{ q.channel }}</td>
+<td style="padding:12px;border-bottom:1px solid var(--border-subtle)">{{ q.state }}</td>
+</tr>
+</sc-for>
+</tbody>
+</table>
+</div>
+</section>
+
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1200,&quot;height&quot;:1600}}">
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      channels: [
+        { title: 'Пуш в приложении', note: 'Быстрее всего, если приложение установлено', on: true },
+        { title: 'Telegram', note: 'Бот @varvara_nails_bot', on: true },
+        { title: 'Письмо на почту', note: 'Со ссылкой на отмену и файлом для календаря', on: false },
+        { title: 'SMS', note: 'Запасной канал, работает всегда', on: false }
+      ],
+      timeline: [
+        { when: 'Сразу', title: 'Запись подтверждена', text: 'Номер визита, мастер, адрес и ссылка на отмену' },
+        { when: 'За сутки', title: 'Напоминание', text: 'Чтобы успеть перенести, если планы поменялись' },
+        { when: 'За 2 часа', title: 'Напоминание', text: 'Короткое: время, мастер, как добраться' },
+        { when: 'После визита', title: 'Просьба оценить', text: 'Одна кнопка, без анкеты' }
+      ],
+      intervals: ['Каждую неделю', 'Раз в две недели', 'Раз в три недели', 'Раз в месяц'],
+      weekdays: ['Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота'],
+      series: [
+        { date: '2 сентября, вт', note: '18:00 · Маникюр с покрытием · Варвара', status: 'confirmed' },
+        { date: '16 сентября, вт', note: '18:00 · Маникюр с покрытием · Варвара', status: 'confirmed' },
+        { date: '30 сентября, вт', note: '18:00 — время занято, нужен перенос', status: 'cancelled' },
+        { date: '14 октября, вт', note: '18:00 · Маникюр с покрытием · Варвара', status: 'confirmed' },
+        { date: '28 октября, вт', note: '18:00 · Маникюр с покрытием · Варвара', status: 'pending' }
+      ],
+      cancel: {
+        when: '24 августа · 18:00',
+        service: 'Маникюр с покрытием',
+        master: 'Варвара',
+        price: '3 200 ₽'
+      },
+      queue: [
+        { when: 'сегодня 10:24', who: 'Марина К.', kind: 'Запись подтверждена', channel: 'Пуш', state: 'Отправлено' },
+        { when: 'сегодня 10:24', who: 'Варвара', kind: 'Новая запись', channel: 'Telegram', state: 'Отправлено' },
+        { when: '23 авг 16:00', who: 'Марина К.', kind: 'Напоминание за сутки', channel: 'Пуш', state: 'Запланировано' },
+        { when: '24 авг 16:00', who: 'Марина К.', kind: 'Напоминание за 2 часа', channel: 'Telegram', state: 'Запланировано' },
+        { when: 'вчера 19:02', who: 'Ольга П.', kind: 'Напоминание за 2 часа', channel: 'SMS', state: 'Не доставлено' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

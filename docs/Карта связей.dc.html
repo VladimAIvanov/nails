@@ -22,6 +22,7 @@
 <a href="../site/Админ-панель.dc.html" style="color:inherit;border:0">Админ-панель / мастер</a>
 <a href="../site/Варианты.dc.html" style="color:inherit;border:0">Варианты компонентов</a>
 <span style="color:var(--text-inverse);font-weight:600">Карта связей</span>
+<a href="../site/Уведомления и регулярные записи.dc.html" style="color:inherit;border:0">Уведомления</a>
 <a href="../site/Вход.dc.html" style="color:inherit;border:0;margin-left:auto">Вход</a>
 </div>
 
@@ -219,11 +220,37 @@
 
 <section style="padding:40px 0;border-top:1px solid var(--border-default)">
 <x-import component-from-global-scope="DesignSystem_f8f42b.SectionHeader" eyebrow="Справочная страница" title="Варианты компонентов" subtitle="Вне флоу: мобильный экран выбора времени в рамке телефона и состояния карточек, статусов и кнопок — чтобы сверять экраны с дизайн-системой." hint-size="100%,120px"></x-import>
-<div style="width:236px;margin-top:24px">
-<x-import component-from-global-scope="DesignSystem_f8f42b.Card" variant="tight" interactive="{{ true }}" as="a" href="../site/Варианты.dc.html" style="text-align:left;display:block;text-decoration:none" hint-size="100%,88px">
+<div style="display:flex;gap:14px;flex-wrap:wrap;margin-top:24px">
+<div style="width:236px">
+<x-import component-from-global-scope="DesignSystem_f8f42b.Card" variant="tight" interactive="{{ true }}" as="a" href="../site/Варианты.dc.html" style="text-align:left;display:block;text-decoration:none;height:100%" hint-size="100%,88px">
 <div style="font-family:'Cormorant Garamond',Georgia,serif;font-size:18px;font-weight:600;color:var(--text-primary)">Варианты компонентов</div>
 <div style="font-size:12.5px;color:var(--text-muted);margin-top:4px">экран времени, карточки, статусы, кнопки</div>
 </x-import>
+</div>
+<div style="width:236px">
+<x-import component-from-global-scope="DesignSystem_f8f42b.Card" variant="tight" interactive="{{ true }}" as="a" href="../site/Уведомления и регулярные записи.dc.html" style="text-align:left;display:block;text-decoration:none;height:100%" hint-size="100%,88px">
+<div style="font-family:'Cormorant Garamond',Georgia,serif;font-size:18px;font-weight:600;color:var(--text-primary)">Уведомления и регулярность</div>
+<div style="font-size:12.5px;color:var(--text-muted);margin-top:4px">каналы, повторяющиеся визиты, календарь, отмена по ссылке</div>
+</x-import>
+</div>
+</div>
+</section>
+
+<section style="padding:40px 0;border-top:1px solid var(--border-default)">
+<x-import component-from-global-scope="DesignSystem_f8f42b.SectionHeader" eyebrow="Что добавилось" title="Действия после записи" subtitle="Эти переходы начинаются не с экрана, а с сообщения: клиентка получает напоминание и оттуда попадает в сервис." hint-size="100%,120px"></x-import>
+<div style="display:flex;align-items:stretch;gap:12px;flex-wrap:wrap;margin-top:24px">
+<div style="width:200px"><x-import component-from-global-scope="DesignSystem_f8f42b.Card" variant="sunken" style="height:100%" hint-size="100%,88px"><div style="font-size:14.5px;font-weight:600">Напоминание</div><div style="font-size:12.5px;color:var(--text-muted);margin-top:4px">пуш, Telegram, почта или SMS</div></x-import></div>
+<div style="display:flex;align-items:center;gap:12px">
+<span style="font-size:20px;color:var(--sand-300)">→</span>
+<div style="width:200px"><x-import component-from-global-scope="DesignSystem_f8f42b.Card" variant="sunken" style="height:100%" hint-size="100%,88px"><div style="font-size:14.5px;font-weight:600">Отмена по ссылке</div><div style="font-size:12.5px;color:var(--text-muted);margin-top:4px">без входа: сначала показ визита, потом подтверждение</div></x-import></div>
+</div>
+<div style="display:flex;align-items:center;gap:12px">
+<span style="font-size:20px;color:var(--sand-300)">→</span>
+<div style="width:200px"><x-import component-from-global-scope="DesignSystem_f8f42b.Card" variant="sunken" style="height:100%" hint-size="100%,88px"><div style="font-size:14.5px;font-weight:600">Календарь</div><div style="font-size:12.5px;color:var(--text-muted);margin-top:4px">разовый файл или подписка на ленту</div></x-import></div>
+</div>
+</div>
+<div style="display:flex;align-items:center;gap:10px;margin-top:14px;font-size:13px;color:var(--text-muted)">
+<span style="color:var(--sand-300)">↳</span> регулярная запись создаётся из кабинета и мини-аппа: правило вместо отдельного оформления каждого визита
 </div>
 </section>
 
