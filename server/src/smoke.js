@@ -1,6 +1,6 @@
 /* Проверка, что база держит обещания схемы, а не только описывает их.
-   Все проверки выполняются в транзакции и откатываются — данные не меняются. */
-import { pool } from './db.js';
+   Всё выполняется в транзакции и откатывается — данные не меняются. */
+import { db } from './db.js';
 
 let passed = 0;
 let failed = 0;
@@ -14,121 +14,113 @@ function bad(name, detail) {
   console.log(`  [!!] ${name} — ${detail}`);
 }
 
-/* Ожидаем, что запрос упадёт с определённым кодом ошибки PostgreSQL. */
-async function expectFail(client, name, sql, params, expectedCode) {
-  await client.query('SAVEPOINT sp');
+/* Ожидаем, что запрос будет отклонён, и что в тексте отказа есть нужный признак. */
+function expectFail(name, sql, params, marker) {
   try {
-    await client.query(sql, params);
-    await client.query('ROLLBACK TO SAVEPOINT sp');
+    db.prepare(sql).run(...params);
     bad(name, 'запрос прошёл, хотя должен был быть отклонён');
   } catch (err) {
-    await client.query('ROLLBACK TO SAVEPOINT sp');
-    if (err.code === expectedCode) ok(name, `отклонено, код ${err.code}`);
-    else bad(name, `ожидался код ${expectedCode}, получен ${err.code}: ${err.message}`);
+    if (new RegExp(marker, 'i').test(err.message)) ok(name, 'отклонено');
+    else bad(name, `ожидался отказ по «${marker}», получено: ${err.message}`);
   }
 }
 
-const client = await pool.connect();
+db.exec('BEGIN IMMEDIATE');
 try {
-  await client.query('BEGIN');
-
   console.log('\nСостав схемы');
-  const counts = await client.query(`
-    SELECT (SELECT count(*) FROM information_schema.tables
-              WHERE table_schema = 'public' AND table_type = 'BASE TABLE') AS tables,
-           (SELECT count(*) FROM pg_type t JOIN pg_namespace n ON n.oid = t.typnamespace
-              WHERE t.typtype = 'e' AND n.nspname = 'public')              AS enums,
-           (SELECT count(*) FROM pg_indexes WHERE schemaname = 'public')   AS indexes,
-           (SELECT count(*) FROM pg_constraint c JOIN pg_namespace n ON n.oid = c.connamespace
-              WHERE n.nspname = 'public' AND c.contype = 'f')              AS fkeys,
-           (SELECT count(*) FROM pg_matviews WHERE schemaname = 'public')  AS matviews
-  `);
-  const c = counts.rows[0];
-  // schema_migrations — служебная, поэтому таблиц на одну больше, чем в документе
-  ok('таблиц', `${c.tables} (21 из схемы + schema_migrations)`);
-  ok('перечислений', String(c.enums));
-  ok('индексов', String(c.indexes));
-  ok('внешних ключей', String(c.fkeys));
-  ok('материализованных представлений', String(c.matviews));
+  const counts = db.prepare(`
+    SELECT (SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%') AS tables,
+           (SELECT COUNT(*) FROM sqlite_master WHERE type = 'index' AND sql IS NOT NULL)          AS indexes,
+           (SELECT COUNT(*) FROM sqlite_master WHERE type = 'trigger')                            AS triggers,
+           (SELECT COUNT(*) FROM sqlite_master WHERE type = 'view')                               AS views
+  `).get();
+  ok('таблиц', `${counts.tables} (21 из схемы + schema_migrations)`);
+  ok('индексов', String(counts.indexes));
+  ok('триггеров', String(counts.triggers));
+  ok('представлений', String(counts.views));
+  ok('внешние ключи включены', String(db.prepare('PRAGMA foreign_keys').get().foreign_keys));
 
   console.log('\nПервичные ключи');
-  const noPk = await client.query(`
-    SELECT t.table_name FROM information_schema.tables t
-    WHERE t.table_schema = 'public' AND t.table_type = 'BASE TABLE'
-      AND NOT EXISTS (
-        SELECT 1 FROM information_schema.table_constraints tc
-        WHERE tc.table_schema = 'public' AND tc.table_name = t.table_name
-          AND tc.constraint_type = 'PRIMARY KEY')
-  `);
-  if (noPk.rows.length === 0) ok('первичный ключ есть у каждой таблицы');
-  else bad('первичные ключи', 'без ключа: ' + noPk.rows.map((r) => r.table_name).join(', '));
+  const tables = db.prepare(
+    `SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' ORDER BY name`
+  ).all().map((r) => r.name);
+  const noPk = tables.filter(
+    (t) => db.prepare(`SELECT COUNT(*) n FROM pragma_table_info(?) WHERE pk > 0`).get(t).n === 0
+  );
+  if (noPk.length === 0) ok('первичный ключ есть у каждой таблицы', `проверено ${tables.length}`);
+  else bad('первичные ключи', 'без ключа: ' + noPk.join(', '));
 
   console.log('\nГлавные гарантии');
 
-  const master = (await client.query(
-    `SELECT user_id FROM master_profiles ORDER BY sort_order LIMIT 1`)).rows[0].user_id;
-  const service = (await client.query(
-    `SELECT id, duration_min, price_kopecks FROM services WHERE slug = 'man-cover'`)).rows[0];
-  const clientRow = (await client.query(
-    `INSERT INTO users (role, full_name, phone) VALUES ('client', 'Тест Клиентка', '+79995550000')
-     RETURNING id`)).rows[0];
+  const master = db.prepare('SELECT user_id FROM master_profiles ORDER BY sort_order LIMIT 1').get().user_id;
+  const service = db.prepare(`SELECT id, duration_min, price_kopecks FROM services WHERE slug = 'man-cover'`).get();
+  db.prepare(`INSERT INTO users (role, full_name, phone) VALUES ('client', 'Тест Клиентка', '+79995550000')`).run();
+  const clientId = db.prepare(`SELECT id FROM users WHERE phone = '+79995550000'`).get().id;
 
-  const base = "date_trunc('hour', now() + interval '3 days') + interval '10 hours'";
-  await client.query(
-    `INSERT INTO appointments (client_id, master_id, service_id, starts_at, duration_min, price_kopecks, source)
-     VALUES ($1, $2, $3, ${base}, $4, $5, 'site')`,
-    [clientRow.id, master, service.id, service.duration_min, service.price_kopecks]
-  );
+  const start = '2026-09-01T10:00:00Z';
+  const insertAppt = `INSERT INTO appointments (client_id, master_id, service_id, starts_at, duration_min, price_kopecks, source)
+                      VALUES (?, ?, ?, ?, ?, ?, 'site')`;
+  db.prepare(insertAppt).run(clientId, master, service.id, start, service.duration_min, service.price_kopecks);
   ok('запись создаётся');
 
-  // то же время у того же мастера — должно упасть на EXCLUDE (23P01)
-  await expectFail(client, 'двойная запись к одному мастеру запрещена',
-    `INSERT INTO appointments (client_id, master_id, service_id, starts_at, duration_min, price_kopecks, source)
-     VALUES ($1, $2, $3, ${base} + interval '30 minutes', $4, $5, 'site')`,
-    [clientRow.id, master, service.id, service.duration_min, service.price_kopecks], '23P01');
+  expectFail('двойная запись к одному мастеру запрещена', insertAppt,
+    [clientId, master, service.id, '2026-09-01T10:30:00Z', service.duration_min, service.price_kopecks],
+    'appointments_no_overlap');
 
-  // клиент в профилях мастеров — должно упасть на составном внешнем ключе (23503)
-  await expectFail(client, 'клиента нельзя записать в мастера',
-    `INSERT INTO master_profiles (user_id) VALUES ($1)`, [clientRow.id], '23503');
+  // встык, без пересечения — должно пройти
+  db.prepare(insertAppt).run(clientId, master, service.id, '2026-09-01T11:30:00Z',
+    service.duration_min, service.price_kopecks);
+  ok('запись встык разрешена', '11:30 после визита до 11:30');
 
-  // клиент без телефона — CHECK (23514)
-  await expectFail(client, 'клиент без телефона не создаётся',
-    `INSERT INTO users (role, full_name) VALUES ('client', 'Без телефона')`, [], '23514');
+  expectFail('перенос на занятое время запрещён',
+    `UPDATE appointments SET starts_at = ? WHERE starts_at = ?`,
+    ['2026-09-01T10:30:00Z', '2026-09-01T11:30:00Z'], 'appointments_no_overlap');
 
-  // мастер без пароля — CHECK (23514)
-  await expectFail(client, 'мастер без логина и пароля не создаётся',
-    `INSERT INTO users (role, full_name, phone) VALUES ('master', 'Без пароля', '+79995550001')`, [], '23514');
+  expectFail('клиента нельзя записать в мастера',
+    'INSERT INTO master_profiles (user_id) VALUES (?)', [clientId], 'FOREIGN KEY');
 
-  // статус вне набора — ошибка типа (22P02)
-  await expectFail(client, 'статус вне набора не принимается',
-    `UPDATE appointments SET status = 'придумал_сам' WHERE client_id = $1`, [clientRow.id], '22P02');
+  expectFail('клиент без телефона не создаётся',
+    `INSERT INTO users (role, full_name) VALUES ('client', 'Без телефона')`, [], 'users_client_needs_phone');
 
-  // два студийных правила на один день недели — UNIQUE NULLS NOT DISTINCT (23505)
-  await expectFail(client, 'дубль студийного графика запрещён',
+  expectFail('мастер без логина и пароля не создаётся',
+    `INSERT INTO users (role, full_name, phone) VALUES ('master', 'Без пароля', '+79995550001')`, [],
+    'users_staff_needs_login');
+
+  expectFail('статус вне набора не принимается',
+    `UPDATE appointments SET status = 'придумал_сам' WHERE client_id = ?`, [clientId], 'CHECK');
+
+  expectFail('дубль студийного графика запрещён',
     `INSERT INTO working_hours (master_id, weekday, starts_at_local, ends_at_local, valid_from)
-     VALUES (NULL, 1, '10:00', '21:00', date '2026-01-01')`, [], '23505');
+     VALUES (NULL, 1, '10:00', '21:00', '2026-01-01')`, [], 'UNIQUE');
 
   console.log('\nВычисляемое поле и снимки');
-  const appt = (await client.query(
-    `SELECT starts_at, ends_at, duration_min, price_kopecks, public_number
-     FROM appointments WHERE client_id = $1`, [clientRow.id])).rows[0];
-  const minutes = (new Date(appt.ends_at) - new Date(appt.starts_at)) / 60000;
-  if (minutes === appt.duration_min) ok('ends_at считается базой', `${minutes} мин`);
+  const appt = db.prepare(
+    'SELECT starts_at, ends_at, duration_min, public_number FROM appointments WHERE starts_at = ?'
+  ).get(start);
+  const minutes = (Date.parse(appt.ends_at) - Date.parse(appt.starts_at)) / 60000;
+  if (minutes === appt.duration_min) ok('ends_at считается базой', `${minutes} мин, ${appt.ends_at}`);
   else bad('ends_at', `ожидалось ${appt.duration_min} мин, получено ${minutes}`);
   ok('номер записи для человека', `№${appt.public_number}`);
 
-  console.log('\nПароли');
-  const plain = await client.query(`
-    SELECT column_name FROM information_schema.columns
-    WHERE table_schema = 'public' AND column_name IN ('password', 'passwd', 'token', 'secret')
-  `);
-  if (plain.rows.length === 0) ok('полей с открытым паролем или токеном нет');
-  else bad('пароли', 'найдены поля: ' + plain.rows.map((r) => r.column_name).join(', '));
+  console.log('\nФормат времени');
+  const badTime = db.prepare(`
+    SELECT COUNT(*) n FROM appointments
+    WHERE starts_at NOT GLOB '[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]T[0-9][0-9]:[0-9][0-9]:[0-9][0-9]Z'
+  `).get().n;
+  if (badTime === 0) ok('все отметки времени в ISO-8601 UTC');
+  else bad('формат времени', `${badTime} значений вне формата`);
 
-  await client.query('ROLLBACK');
+  console.log('\nПароли');
+  const plain = db.prepare(`
+    SELECT COUNT(*) n FROM pragma_table_list() t
+    JOIN pragma_table_info(t.name) c
+    WHERE t.schema = 'main' AND c.name IN ('password', 'passwd', 'token', 'secret')
+  `).get().n;
+  if (plain === 0) ok('полей с открытым паролем или токеном нет');
+  else bad('пароли', `найдено полей: ${plain}`);
 } finally {
-  client.release();
-  await pool.end();
+  db.exec('ROLLBACK');
+  db.close();
 }
 
 console.log(`\nИтог: успешно ${passed}, провалено ${failed}`);
