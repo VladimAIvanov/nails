@@ -11,9 +11,23 @@ db.close();
 
 for (const suffix of ['', '-wal', '-shm']) {
   const path = dbFile + suffix;
-  if (existsSync(path)) {
+  if (!existsSync(path)) continue;
+  try {
     rmSync(path);
     console.log(`удалён ${path}`);
+  } catch (err) {
+    /* Windows не даёт удалить файл, открытый другим процессом.
+       Почти всегда это работающий сервер: npm start в соседнем окне. */
+    if (err.code === 'EPERM' || err.code === 'EBUSY') {
+      console.error(
+        `\nНе удалось удалить ${path}: файл занят другим процессом.\n` +
+        '  Скорее всего запущен сервер (npm start). Остановите его и повторите.\n' +
+        '  Пересоздавать базу под работающим сервером нельзя: он продолжит писать\n' +
+        '  в старый файл, и данные разойдутся.\n'
+      );
+      process.exit(1);
+    }
+    throw err;
   }
 }
 

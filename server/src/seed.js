@@ -3,20 +3,12 @@
 
    Пароли здесь демонстрационные и заданы одной константой: это локальный
    стенд, а не рабочая установка. */
-import { scryptSync, randomBytes } from 'node:crypto';
-import { db, transaction, nowIso, toIso } from './db.js';
+import { db, transaction } from './db.js';
+import { nowIso, toIso } from './time.js';
+import { hashPassword } from './auth.js';
 
 const DEMO_PASSWORD = 'varvara-demo';
 
-/* Соль генерируется на каждый вызов, поэтому одинаковый пароль даёт разные
-   хеши. Вызывать функцию нужно отдельно для каждой учётной записи: общий
-   результат на всех сводит смысл соли к нулю — по совпадающим хешам сразу
-   видно, что пароль у этих людей один и тот же. */
-function hashPassword(plain) {
-  const salt = randomBytes(16);
-  const key = scryptSync(plain, salt, 64);
-  return `scrypt$${salt.toString('base64')}$${key.toString('base64')}`;
-}
 
 const CATEGORIES = [
   { slug: 'manicure', title: 'Маникюр', sort: 10 },
@@ -232,5 +224,6 @@ console.log(`  записей ${c.appts}, блоков лендинга ${c.bloc
 console.log(`\n  Демо-пароль для всех учётных записей: ${DEMO_PASSWORD}`);
 
 db.close();
+
 
 

@@ -73,12 +73,5 @@ export function transaction(fn) {
   }
 }
 
-/* Единый формат времени в базе: строка ISO-8601 в UTC с суффиксом Z.
-   Такие строки сравниваются и сортируются как обычный текст. */
-export function toIso(date) {
-  return date.toISOString().replace(/\.\d{3}Z$/, 'Z');
-}
+export { toIso, nowIso } from './time.js';
 
-export function nowIso() {
-  return toIso(new Date());
-}
