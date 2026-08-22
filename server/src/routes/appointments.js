@@ -1,10 +1,17 @@
-/* Записи: создание, свои записи, детали, перенос, отмена. */
-import { all, get, run, transaction } from '../db.js';
-import { conflict, forbidden, notFound, badRequest } from '../http.js';
+/* Записи: создание, свои записи, детали, перенос, отмена.
+
+   Обработчики здесь только разбирают вход и решают, какие поля вообще
+   принимаются от этой роли. Сохранение в базу — в services/appointments.js,
+   одной функцией на все три роли. */
+import { all, get } from '../db.js';
+import { forbidden, notFound, badRequest } from '../http.js';
 import * as v from '../validate.js';
 import { requireUser, requireRole } from '../auth.js';
-import { getSettings, requiredDuration, purgeExpiredHolds, nearestFreeSlots } from '../slots.js';
-import { nowIso, addMinutes, utcToLocal } from '../time.js';
+import { getSettings } from '../slots.js';
+import { nowIso, utcToLocal } from '../time.js';
+import {
+  createAppointment, rescheduleAppointment, cancelAppointment, confirmAppointment
+} from '../services/appointments.js';
 
 /* Что видно в карточке записи. Телефон клиентки показывается только студии:
    клиентке он и так известен, а чужих персональных данных в ответе быть не должно. */
@@ -35,7 +42,7 @@ function present(row, tz, { withClient = false } = {}) {
   return view;
 }
 
-const SELECT_APPOINTMENT = `
+export const SELECT_APPOINTMENT = `
   SELECT a.*, s.title AS service_title,
          mu.full_name AS master_name,
          cu.full_name AS client_name, cu.phone AS client_phone,
@@ -47,100 +54,83 @@ const SELECT_APPOINTMENT = `
     JOIN appointment_status_labels l ON l.status = a.status
 `;
 
+export const presentAppointment = present;
+
 export default function register(router) {
-  /* Создание записи. Услуг может быть несколько: схема хранит одну услугу
-     на запись (раздел 4.9), поэтому визит из нескольких услуг становится
-     цепочкой записей подряд, созданной в одной транзакции. */
+  /* Создание записи клиентом.
+     Поля master_id, service_ids, starts_at, comment, hold_token — и всё.
+     client_id не принимается: клиент записывает только себя. allow_overlap
+     не читается вовсе, поэтому передать его невозможно. */
   router.post('/api/appointments', async ({ body, req }) => {
-    const user = requireRole(req, 'client');
-    const masterId = v.idParam(body.master_id, 'master_id');
-    const serviceIds = v.idList(body.service_ids, 'service_ids');
-    const startsAt = v.isoUtc(body.starts_at);
-    const comment = v.optionalStr(body.comment, 'comment', { max: 1000 });
-    const holdToken = body.hold_token ? v.str(body.hold_token, 'hold_token', { max: 64 }) : null;
-
-    /* Признак осознанного наложения здесь не читается вовсе. Если клиентка
-       пришлёт allow_overlap: true, поле просто не дойдёт до SQL — в INSERT
-       ниже его нет, и столбец получит значение по умолчанию 0. Наложение
-       доступно только через POST /api/admin/appointments. */
-
+    const actor = requireRole(req, 'client');
     const settings = getSettings();
-    if (settings.online_booking_enabled !== 1) throw conflict('Онлайн-запись отключена');
 
-    const need = requiredDuration(masterId, serviceIds, settings);
-    const endsAt = addMinutes(startsAt, need.total);
-
-    if (Date.parse(startsAt) - Date.now() < settings.min_lead_time_min * 60_000) {
-      throw conflict(`Записаться можно не позднее чем за ${settings.min_lead_time_min} мин`);
-    }
-
-    const status = settings.manual_confirmation_required === 1 ? 'pending' : 'confirmed';
-
-    let created;
-    try {
-      created = transaction(() => {
-        purgeExpiredHolds();
-
-        /* Чужое удержание на это время блокирует запись — ради этого оно и есть.
-           Своё удержание снимается и уступает место записи. */
-        const overlapping = all(
-          `SELECT token FROM slot_holds
-            WHERE master_id = $master AND expires_at > $now
-              AND starts_at < $ends AND ends_at > $starts`,
-          { master: masterId, now: nowIso(), starts: startsAt, ends: endsAt }
-        );
-        const foreign = overlapping.filter((h) => h.token !== holdToken);
-        if (foreign.length > 0) {
-          throw conflict('Это время удерживает другой клиент, попробуйте другое окно');
-        }
-        if (holdToken) run('DELETE FROM slot_holds WHERE token = $t', { t: holdToken });
-
-        const ids = [];
-        let cursor = startsAt;
-        for (const svc of need.services) {
-          run(
-            `INSERT INTO appointments (client_id, master_id, service_id, starts_at,
-                                       duration_min, price_kopecks, status, source, client_comment)
-             VALUES ($client, $master, $service, $starts, $duration, $price, $status, $source, $comment)`,
-            {
-              client: user.id, master: masterId, service: svc.id, starts: cursor,
-              duration: svc.duration_min, price: svc.price_kopecks,
-              status, source: 'site', comment
-            }
-          );
-          const id = get('SELECT last_insert_rowid() AS id').id;
-          run(
-            `INSERT INTO appointment_status_log (appointment_id, from_status, to_status, changed_by_id, comment)
-             VALUES ($id, NULL, $status, $by, 'запись создана')`,
-            { id, status, by: user.id }
-          );
-          ids.push(id);
-          cursor = addMinutes(cursor, svc.duration_min);
-        }
-        return ids;
-      });
-    } catch (err) {
-      /* Сообщение триггера наружу не уходит: пользователю нужен понятный
-         текст и что делать дальше, а не текст ошибки базы. */
-      if (/appointments_no_overlap/.test(err.message)) {
-        throw conflict('Это время только что заняли. Выберите другое окно', {
-          starts_at: startsAt,
-          available: nearestFreeSlots({ masterId, serviceIds, fromIso: startsAt })
-        });
+    const result = createAppointment({
+      actor,
+      input: {
+        masterId: v.idParam(body.master_id, 'master_id'),
+        serviceIds: v.idList(body.service_ids, 'service_ids'),
+        startsAt: v.isoUtc(body.starts_at),
+        comment: v.optionalStr(body.comment, 'comment', { max: 1000 }),
+        holdToken: body.hold_token ? v.str(body.hold_token, 'hold_token', { max: 64 }) : null
       }
-      throw err;
-    }
+    });
 
-    const rows = created.map((id) => get(`${SELECT_APPOINTMENT} WHERE a.id = $id`, { id }));
+    const rows = result.ids.map((id) => get(`${SELECT_APPOINTMENT} WHERE a.id = $id`, { id }));
+    return { status: 201, body: { appointments: rows.map((r) => present(r, settings.timezone)) } };
+  });
+
+  /* Создание записи мастером — вручную из своего расписания.
+     master_id не принимается: мастер оформляет визит только к себе. */
+  router.post('/api/master/appointments', async ({ body, req }) => {
+    const actor = requireRole(req, 'master');
+    const settings = getSettings();
+
+    const result = createAppointment({
+      actor,
+      input: {
+        clientId: v.idParam(body.client_id, 'client_id'),
+        serviceIds: v.idList(body.service_ids, 'service_ids'),
+        startsAt: v.isoUtc(body.starts_at),
+        comment: v.optionalStr(body.comment, 'comment', { max: 1000 })
+      }
+    });
+
+    const rows = result.ids.map((id) => get(`${SELECT_APPOINTMENT} WHERE a.id = $id`, { id }));
     return {
       status: 201,
-      body: { appointments: rows.map((r) => present(r, settings.timezone)) }
+      body: { appointments: rows.map((r) => present(r, settings.timezone, { withClient: true })) }
+    };
+  });
+
+  /* Подтверждение записи мастером — та же функция, что и в панели. */
+  router.post('/api/master/appointments/:id/confirm', async ({ params, req }) => {
+    const actor = requireRole(req, 'master');
+    return { body: confirmAppointment({ actor, id: v.idParam(params.id) }) };
+  });
+
+  /* Записи мастера на день — экран «Моё расписание». */
+  router.get('/api/master/appointments', async ({ req, query }) => {
+    const actor = requireRole(req, 'master');
+    const settings = getSettings();
+    const date = query.get('date') ? v.date(query.get('date')) : null;
+
+    const rows = all(
+      `${SELECT_APPOINTMENT}
+        WHERE a.master_id = $master
+          AND ($date IS NULL OR substr(a.starts_at, 1, 10) = $date)
+        ORDER BY a.starts_at`,
+      { master: actor.id, date }
+    );
+
+    return {
+      body: { appointments: rows.map((r) => present(r, settings.timezone, { withClient: true })) }
     };
   });
 
   /* Свои записи: ближайшие и история, как на экране «Мои записи». */
   router.get('/api/appointments/my', async ({ req, query }) => {
-    const user = requireRole(req, 'client');
+    const actor = requireRole(req, 'client');
     const settings = getSettings();
     const scope = query.get('scope') ?? 'all';
     if (!['all', 'upcoming', 'past'].includes(scope)) {
@@ -154,14 +144,15 @@ export default function register(router) {
                OR ($scope = 'upcoming' AND a.status IN ('pending','confirmed') AND a.starts_at >= $now)
                OR ($scope = 'past' AND (a.status IN ('done','cancelled','no_show') OR a.starts_at < $now)))
         ORDER BY a.starts_at DESC`,
-      { client: user.id, scope, now: nowIso() }
+      { client: actor.id, scope, now: nowIso() }
     );
 
     const items = rows.map((r) => present(r, settings.timezone));
+    const isUpcoming = (i) => ['pending', 'confirmed'].includes(i.status) && i.starts_at >= nowIso();
     return {
       body: {
-        upcoming: items.filter((i) => ['pending', 'confirmed'].includes(i.status) && i.starts_at >= nowIso()),
-        past: items.filter((i) => !(['pending', 'confirmed'].includes(i.status) && i.starts_at >= nowIso())),
+        upcoming: items.filter(isUpcoming),
+        past: items.filter((i) => !isUpcoming(i)),
         address: settings.address_line
       }
     };
@@ -169,16 +160,16 @@ export default function register(router) {
 
   /* Детали записи. Клиентка видит свою, мастер — свою, администратор — любую. */
   router.get('/api/appointments/:id', async ({ params, req }) => {
-    const user = requireUser(req);
+    const actor = requireUser(req);
     const id = v.idParam(params.id);
     const settings = getSettings();
 
     const row = get(`${SELECT_APPOINTMENT} WHERE a.id = $id`, { id });
     if (!row) throw notFound('Запись не найдена');
 
-    const isOwner = row.client_id === user.id;
-    const isMaster = row.master_id === user.id;
-    const isAdmin = user.role === 'admin';
+    const isOwner = row.client_id === actor.id;
+    const isMaster = row.master_id === actor.id;
+    const isAdmin = actor.role === 'admin';
     if (!isOwner && !isMaster && !isAdmin) throw forbidden('Это чужая запись');
 
     const view = present(row, settings.timezone, { withClient: isMaster || isAdmin });
@@ -193,95 +184,37 @@ export default function register(router) {
     return { body: view };
   });
 
-  /* Перенос. Доступен владелице записи и администратору. */
+  /* Перенос. Права проверяются внутри общей функции. */
   router.patch('/api/appointments/:id', async ({ params, body, req }) => {
-    const user = requireUser(req);
-    const id = v.idParam(params.id);
-    const startsAt = v.isoUtc(body.starts_at);
+    const actor = requireUser(req);
     const settings = getSettings();
 
-    const row = get('SELECT * FROM appointments WHERE id = $id', { id });
-    if (!row) throw notFound('Запись не найдена');
+    rescheduleAppointment({
+      actor,
+      id: v.idParam(params.id),
+      startsAt: v.isoUtc(body.starts_at)
+    });
 
-    const isOwner = row.client_id === user.id;
-    const isAdmin = user.role === 'admin';
-    if (!isOwner && !isAdmin) throw forbidden('Переносить запись может владелец записи или администратор');
-
-    if (!['pending', 'confirmed'].includes(row.status)) {
-      throw conflict(`Запись в статусе «${row.status}» переносить нельзя`);
-    }
-    if (!isAdmin && Date.parse(startsAt) - Date.now() < settings.min_lead_time_min * 60_000) {
-      throw conflict(`Перенести можно не позднее чем за ${settings.min_lead_time_min} мин`);
-    }
-
-    try {
-      transaction(() => {
-        run('UPDATE appointments SET starts_at = $starts, updated_at = $now WHERE id = $id',
-          { starts: startsAt, now: nowIso(), id });
-        run(
-          `INSERT INTO appointment_status_log (appointment_id, from_status, to_status, changed_by_id, comment)
-           VALUES ($id, $status, $status, $by, $comment)`,
-          { id, status: row.status, by: user.id, comment: `перенос с ${row.starts_at} на ${startsAt}` }
-        );
-      });
-    } catch (err) {
-      if (/appointments_no_overlap/.test(err.message)) {
-        throw conflict('На это время у мастера уже есть запись', {
-          starts_at: startsAt,
-          available: nearestFreeSlots({
-            masterId: row.master_id, serviceIds: [row.service_id], fromIso: startsAt
-          })
-        });
-      }
-      throw err;
-    }
-
-    const updated = get(`${SELECT_APPOINTMENT} WHERE a.id = $id`, { id });
-    return { body: present(updated, settings.timezone, { withClient: isAdmin }) };
+    const updated = get(`${SELECT_APPOINTMENT} WHERE a.id = $id`, { id: v.idParam(params.id) });
+    return {
+      body: present(updated, settings.timezone, { withClient: actor.role !== 'client' })
+    };
   });
 
-  /* Отмена. Доступна владелице записи, её мастеру и администратору. */
+  /* Отмена. Права проверяются внутри общей функции. */
   router.post('/api/appointments/:id/cancel', async ({ params, body, req }) => {
-    const user = requireUser(req);
-    const id = v.idParam(params.id);
-    const reason = v.optionalStr(body.reason, 'reason', { max: 500 });
+    const actor = requireUser(req);
     const settings = getSettings();
 
-    const row = get('SELECT * FROM appointments WHERE id = $id', { id });
-    if (!row) throw notFound('Запись не найдена');
-
-    const isOwner = row.client_id === user.id;
-    const isMaster = row.master_id === user.id;
-    const isAdmin = user.role === 'admin';
-    if (!isOwner && !isMaster && !isAdmin) throw forbidden('Это чужая запись');
-
-    if (row.status === 'cancelled') throw conflict('Запись уже отменена');
-    if (['done', 'no_show'].includes(row.status)) {
-      throw conflict('Состоявшийся визит отменить нельзя');
-    }
-
-    /* Правило студии: отмена бесплатна за N часов. Позже отменить всё равно
-       можно — иначе клиентка просто не придёт, а время останется занятым. */
-    const lateMs = settings.free_cancellation_lead_min * 60_000;
-    const isLate = Date.parse(row.starts_at) - Date.now() < lateMs;
-
-    transaction(() => {
-      run('UPDATE appointments SET status = $s, updated_at = $now WHERE id = $id',
-        { s: 'cancelled', now: nowIso(), id });
-      run(
-        `INSERT INTO appointment_status_log (appointment_id, from_status, to_status, changed_by_id, comment)
-         VALUES ($id, $from, 'cancelled', $by, $comment)`,
-        { id, from: row.status, by: user.id, comment: reason ?? (isLate ? 'поздняя отмена' : 'отмена') }
-      );
+    const result = cancelAppointment({
+      actor,
+      id: v.idParam(params.id),
+      reason: v.optionalStr(body.reason, 'reason', { max: 500 })
     });
 
     return {
-      body: {
-        id,
-        status: 'cancelled',
-        late_cancellation: isLate,
-        free_cancellation_lead_min: settings.free_cancellation_lead_min
-      }
+      body: { ...result, free_cancellation_lead_min: settings.free_cancellation_lead_min }
     };
   });
 }
+
