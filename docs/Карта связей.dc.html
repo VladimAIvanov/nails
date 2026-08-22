@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="../site/support.js"></script>
+</head>
+<body>
+<x-dc>
+
+<!-- @template name="Карта связей прототипа" description="Все экраны проекта и переходы между ними: вход, флоу клиента, мастера и администратора" -->
+<helmet>
+<link rel="stylesheet" href="../site/_ds/design-system-f8f42b07-6e0d-4d82-8a32-ad7612b73ea8/styles.css">
+<script src="../site/_ds/design-system-f8f42b07-6e0d-4d82-8a32-ad7612b73ea8/_ds_bundle.js"></script>
+<style>body{margin:0;background:var(--bg-page)}a{color:var(--text-link)}a:hover{color:var(--text-link-hover)}</style>
+</helmet>
+<div style="display:flex;align-items:center;gap:24px;height:40px;padding:0 24px;background:var(--plum-800);color:rgba(255,255,255,.7);font-family:'Manrope',sans-serif;font-size:12.5px">
+<span style="font-weight:600;color:var(--text-inverse);letter-spacing:.08em;text-transform:uppercase;font-size:10px;margin-right:4px">Варвара сайт</span>
+<a href="../site/Варвара - Сайт.dc.html" style="color:inherit;border:0">Сайт</a>
+<a href="../site/Кабинет.dc.html" style="color:inherit;border:0">Кабинет клиента</a>
+<a href="../site/Клиент.dc.html" style="color:inherit;border:0">Мини-апп клиента</a>
+<a href="../site/Админ-панель.dc.html" style="color:inherit;border:0">Админ-панель / мастер</a>
+<a href="../site/Варианты.dc.html" style="color:inherit;border:0">Варианты компонентов</a>
+<span style="color:var(--text-inverse);font-weight:600">Карта связей</span>
+<a href="../site/Вход.dc.html" style="color:inherit;border:0;margin-left:auto">Вход</a>
+</div>
+
+<div style="max-width:1200px;margin:0 auto;padding:0 40px 96px;box-sizing:border-box;font-family:'Manrope','Helvetica Neue',sans-serif;color:var(--text-primary)">
+
+<header style="padding:56px 0 32px">
+<x-import component-from-global-scope="DesignSystem_f8f42b.SectionHeader" eyebrow="Прототип" title="Карта связей" subtitle="Семь страниц прототипа и все переходы между ними. Кликабельная карточка — отдельная страница проекта, углублённая — состояние внутри страницы." hint-size="100%,120px"></x-import>
+</header>
+
+<div style="display:flex;gap:24px;flex-wrap:wrap;padding-bottom:36px;border-bottom:1px solid var(--border-default)">
+<div style="display:flex;align-items:center;gap:10px;font-size:13px;color:var(--text-secondary)"><span style="width:26px;height:18px;border-radius:8px;background:var(--surface-card);border:1px solid var(--border-default)"></span>страница проекта</div>
+<div style="display:flex;align-items:center;gap:10px;font-size:13px;color:var(--text-secondary)"><span style="width:26px;height:18px;border-radius:8px;background:var(--surface-sunken)"></span>состояние внутри страницы</div>
+<div style="display:flex;align-items:center;gap:10px;font-size:13px;color:var(--text-secondary)"><span style="width:26px;height:18px;border-radius:8px;background:var(--gradient-plum)"></span>точка входа в роль</div>
+</div>
+
+<section style="padding:40px 0">
+<x-import component-from-global-scope="DesignSystem_f8f42b.SectionHeader" eyebrow="Общий вход" title="Откуда начинается любой сценарий" hint-size="100%,80px"></x-import>
+<div style="display:flex;align-items:stretch;gap:14px;flex-wrap:wrap;margin-top:20px">
+<div style="width:236px">
+<x-import component-from-global-scope="DesignSystem_f8f42b.Card" interactive="{{ true }}" as="a" href="../site/Варвара - Сайт.dc.html" style="text-align:left;display:block;text-decoration:none;height:100%" hint-size="100%,112px">
+<div style="font-family:'Cormorant Garamond',Georgia,serif;font-size:20px;font-weight:600;color:var(--text-primary)">Сайт студии</div>
+<div style="font-size:13px;color:var(--text-muted);line-height:1.45;margin-top:6px">Лендинг: услуги, мастера, работы. Кнопки «Записаться» и «Войти»</div>
+</x-import>
+</div>
+<div style="display:flex;align-items:center;gap:14px">
+<span style="font-size:22px;color:var(--sand-300)">→</span>
+<div style="width:236px">
+<x-import component-from-global-scope="DesignSystem_f8f42b.Card" interactive="{{ true }}" as="a" href="../site/Вход.dc.html" style="text-align:left;display:block;text-decoration:none;height:100%;background:var(--gradient-plum);border-color:transparent" hint-size="100%,112px">
+<div style="font-family:'Cormorant Garamond',Georgia,serif;font-size:20px;font-weight:600;color:var(--text-inverse)">Вход</div>
+<div style="font-size:13px;color:rgba(255,255,255,.66);line-height:1.45;margin-top:6px">Логин и пароль, выбор роли: клиент · мастер · администратор</div>
+</x-import>
+</div>
+</div>
+<div style="display:flex;align-items:center;gap:14px">
+<span style="font-size:22px;color:var(--sand-300)">→</span>
+<div style="display:flex;flex-direction:column;gap:10px">
+<div style="display:flex;align-items:center;gap:10px;font-size:13.5px;color:var(--text-secondary)"><span style="width:8px;height:8px;border-radius:99px;background:var(--accent)"></span>роль «клиент» → <a href="../site/Кабинет.dc.html">Кабинет клиента</a></div>
+<div style="display:flex;align-items:center;gap:10px;font-size:13.5px;color:var(--text-secondary)"><span style="width:8px;height:8px;border-radius:99px;background:var(--accent)"></span>роль «мастер» → <a href="../site/Админ-панель.dc.html?role=lena">Кабинет мастера</a></div>
+<div style="display:flex;align-items:center;gap:10px;font-size:13.5px;color:var(--text-secondary)"><span style="width:8px;height:8px;border-radius:99px;background:var(--accent)"></span>роль «администратор» → <a href="../site/Админ-панель.dc.html?role=owner">Админ-панель</a></div>
+</div>
+</div>
+</div>
+</section>
+
+<section style="padding:40px 0;border-top:1px solid var(--border-default)">
+<x-import component-from-global-scope="DesignSystem_f8f42b.SectionHeader" eyebrow="Флоу клиента" title="Записаться и следить за записями" subtitle="Записаться можно без входа — прямо на сайте в модалке. Личный кабинет нужен, чтобы видеть историю и переносить визиты." hint-size="100%,120px"></x-import>
+
+<div style="display:flex;flex-direction:column;gap:32px;margin-top:24px">
+
+<div>
+<div style="font-size:12px;font-weight:600;color:var(--text-muted);margin-bottom:14px">Запись на сайте — модалка в четыре шага</div>
+<div style="display:flex;align-items:stretch;gap:12px;flex-wrap:wrap">
+<div style="width:190px">
+<x-import component-from-global-scope="DesignSystem_f8f42b.Card" variant="tight" interactive="{{ true }}" as="a" href="../site/Варвара - Сайт.dc.html" style="text-align:left;display:block;text-decoration:none;height:100%" hint-size="100%,88px">
+<div style="font-family:'Cormorant Garamond',Georgia,serif;font-size:18px;font-weight:600;color:var(--text-primary)">Сайт студии</div>
+<div style="font-size:12.5px;color:var(--text-muted);margin-top:4px">клик «Записаться»</div>
+</x-import>
+</div>
+<div style="display:flex;align-items:center;gap:12px">
+<span style="font-size:20px;color:var(--sand-300)">→</span>
+<div style="width:168px"><x-import component-from-global-scope="DesignSystem_f8f42b.Card" variant="sunken" style="height:100%" hint-size="100%,88px"><div style="font-size:14.5px;font-weight:600">Услуга и мастер</div><div style="font-size:12.5px;color:var(--text-muted);margin-top:4px">карточки услуг, чипы мастеров</div></x-import></div>
+</div>
+<div style="display:flex;align-items:center;gap:12px">
+<span style="font-size:20px;color:var(--sand-300)">→</span>
+<div style="width:168px"><x-import component-from-global-scope="DesignSystem_f8f42b.Card" variant="sunken" style="height:100%" hint-size="100%,88px"><div style="font-size:14.5px;font-weight:600">Дата и время</div><div style="font-size:12.5px;color:var(--text-muted);margin-top:4px">лента дат, сетка слотов</div></x-import></div>
+</div>
+<div style="display:flex;align-items:center;gap:12px">
+<span style="font-size:20px;color:var(--sand-300)">→</span>
+<div style="width:168px"><x-import component-from-global-scope="DesignSystem_f8f42b.Card" variant="sunken" style="height:100%" hint-size="100%,88px"><div style="font-size:14.5px;font-weight:600">Контакты</div><div style="font-size:12.5px;color:var(--text-muted);margin-top:4px">имя, телефон, комментарий</div></x-import></div>
+</div>
+<div style="display:flex;align-items:center;gap:12px">
+<span style="font-size:20px;color:var(--sand-300)">→</span>
+<div style="width:168px"><x-import component-from-global-scope="DesignSystem_f8f42b.Card" variant="sunken" style="height:100%" hint-size="100%,88px"><div style="font-size:14.5px;font-weight:600">Подтверждено</div><div style="font-size:12.5px;color:var(--text-muted);margin-top:4px">карточка записи, номер</div></x-import></div>
+</div>
+</div>
+</div>
+
+<div>
+<div style="font-size:12px;font-weight:600;color:var(--text-muted);margin-bottom:14px">Личный кабинет на сайте</div>
+<div style="display:flex;align-items:stretch;gap:12px;flex-wrap:wrap">
+<div style="width:190px">
+<x-import component-from-global-scope="DesignSystem_f8f42b.Card" variant="tight" interactive="{{ true }}" as="a" href="../site/Вход.dc.html" style="text-align:left;display:block;text-decoration:none;height:100%" hint-size="100%,88px">
+<div style="font-family:'Cormorant Garamond',Georgia,serif;font-size:18px;font-weight:600;color:var(--text-primary)">Вход</div>
+<div style="font-size:12.5px;color:var(--text-muted);margin-top:4px">роль «клиент»</div>
+</x-import>
+</div>
+<div style="display:flex;align-items:center;gap:12px">
+<span style="font-size:20px;color:var(--sand-300)">→</span>
+<div style="width:190px">
+<x-import component-from-global-scope="DesignSystem_f8f42b.Card" variant="tight" interactive="{{ true }}" as="a" href="../site/Кабинет.dc.html" style="text-align:left;display:block;text-decoration:none;height:100%" hint-size="100%,88px">
+<div style="font-family:'Cormorant Garamond',Georgia,serif;font-size:18px;font-weight:600;color:var(--text-primary)">Кабинет клиента</div>
+<div style="font-size:12.5px;color:var(--text-muted);margin-top:4px">две вкладки</div>
+</x-import>
+</div>
+</div>
+<div style="display:flex;align-items:center;gap:12px">
+<span style="font-size:20px;color:var(--sand-300)">→</span>
+<div style="width:200px"><x-import component-from-global-scope="DesignSystem_f8f42b.Card" variant="sunken" style="height:100%" hint-size="100%,88px"><div style="font-size:14.5px;font-weight:600">Мои записи</div><div style="font-size:12.5px;color:var(--text-muted);margin-top:4px">ближайшие и история, перенос и отмена</div></x-import></div>
+</div>
+<div style="width:200px"><x-import component-from-global-scope="DesignSystem_f8f42b.Card" variant="sunken" style="height:100%" hint-size="100%,88px"><div style="font-size:14.5px;font-weight:600">Профиль</div><div style="font-size:12.5px;color:var(--text-muted);margin-top:4px">уведомления, адрес, любимые мастера</div></x-import></div>
+</div>
+</div>
+
+<div>
+<div style="font-size:12px;font-weight:600;color:var(--text-muted);margin-bottom:14px">Telegram mini app — тот же клиент с телефона</div>
+<div style="display:flex;align-items:stretch;gap:12px;flex-wrap:wrap">
+<div style="width:190px">
+<x-import component-from-global-scope="DesignSystem_f8f42b.Card" variant="tight" interactive="{{ true }}" as="a" href="../site/Клиент.dc.html" style="text-align:left;display:block;text-decoration:none;height:100%" hint-size="100%,88px">
+<div style="font-family:'Cormorant Garamond',Georgia,serif;font-size:18px;font-weight:600;color:var(--text-primary)">Мини-апп клиента</div>
+<div style="font-size:12.5px;color:var(--text-muted);margin-top:4px">таб-бар из трёх разделов</div>
+</x-import>
+</div>
+<div style="display:flex;align-items:center;gap:12px">
+<span style="font-size:20px;color:var(--sand-300)">→</span>
+<div style="width:150px"><x-import component-from-global-scope="DesignSystem_f8f42b.Card" variant="sunken" style="height:100%" hint-size="100%,88px"><div style="font-size:14.5px;font-weight:600">Услуга</div><div style="font-size:12.5px;color:var(--text-muted);margin-top:4px">фильтр категорий</div></x-import></div>
+</div>
+<div style="display:flex;align-items:center;gap:12px">
+<span style="font-size:20px;color:var(--sand-300)">→</span>
+<div style="width:150px"><x-import component-from-global-scope="DesignSystem_f8f42b.Card" variant="sunken" style="height:100%" hint-size="100%,88px"><div style="font-size:14.5px;font-weight:600">Мастер</div><div style="font-size:12.5px;color:var(--text-muted);margin-top:4px">или любой свободный</div></x-import></div>
+</div>
+<div style="display:flex;align-items:center;gap:12px">
+<span style="font-size:20px;color:var(--sand-300)">→</span>
+<div style="width:150px"><x-import component-from-global-scope="DesignSystem_f8f42b.Card" variant="sunken" style="height:100%" hint-size="100%,88px"><div style="font-size:14.5px;font-weight:600">Время</div><div style="font-size:12.5px;color:var(--text-muted);margin-top:4px">даты и слоты</div></x-import></div>
+</div>
+<div style="display:flex;align-items:center;gap:12px">
+<span style="font-size:20px;color:var(--sand-300)">→</span>
+<div style="width:150px"><x-import component-from-global-scope="DesignSystem_f8f42b.Card" variant="sunken" style="height:100%" hint-size="100%,88px"><div style="font-size:14.5px;font-weight:600">Шторка проверки</div><div style="font-size:12.5px;color:var(--text-muted);margin-top:4px">итог и телефон</div></x-import></div>
+</div>
+<div style="display:flex;align-items:center;gap:12px">
+<span style="font-size:20px;color:var(--sand-300)">→</span>
+<div style="width:150px"><x-import component-from-global-scope="DesignSystem_f8f42b.Card" variant="sunken" style="height:100%" hint-size="100%,88px"><div style="font-size:14.5px;font-weight:600">Готово</div><div style="font-size:12.5px;color:var(--text-muted);margin-top:4px">→ Мои записи</div></x-import></div>
+</div>
+</div>
+<div style="display:flex;align-items:center;gap:10px;margin-top:14px;font-size:13px;color:var(--text-muted)">
+<span style="color:var(--sand-300)">↳</span> таб-бар в любой момент ведёт в «Мои записи» (перенос, отмена, повтор) и «Профиль»
+</div>
+</div>
+
+</div>
+</section>
+
+<section style="padding:40px 0;border-top:1px solid var(--border-default)">
+<x-import component-from-global-scope="DesignSystem_f8f42b.SectionHeader" eyebrow="Флоу мастера" title="Только своё расписание" subtitle="Мастер попадает в ту же панель, что и владелица, но видит один столбец расписания — свой — и записи только к себе. Услуги и настройки студии ей недоступны." hint-size="100%,120px"></x-import>
+<div style="display:flex;align-items:stretch;gap:12px;flex-wrap:wrap;margin-top:24px">
+<div style="width:190px">
+<x-import component-from-global-scope="DesignSystem_f8f42b.Card" variant="tight" interactive="{{ true }}" as="a" href="../site/Вход.dc.html" style="text-align:left;display:block;text-decoration:none;height:100%" hint-size="100%,88px">
+<div style="font-family:'Cormorant Garamond',Georgia,serif;font-size:18px;font-weight:600;color:var(--text-primary)">Вход</div>
+<div style="font-size:12.5px;color:var(--text-muted);margin-top:4px">роль «мастер» + имя</div>
+</x-import>
+</div>
+<div style="display:flex;align-items:center;gap:12px">
+<span style="font-size:20px;color:var(--sand-300)">→</span>
+<div style="width:206px">
+<x-import component-from-global-scope="DesignSystem_f8f42b.Card" variant="tight" interactive="{{ true }}" as="a" href="../site/Админ-панель.dc.html?role=lena" style="text-align:left;display:block;text-decoration:none;height:100%" hint-size="100%,88px">
+<div style="font-family:'Cormorant Garamond',Georgia,serif;font-size:18px;font-weight:600;color:var(--text-primary)">Кабинет мастера</div>
+<div style="font-size:12.5px;color:var(--text-muted);margin-top:4px">сайдбар из двух пунктов</div>
+</x-import>
+</div>
+</div>
+<div style="display:flex;align-items:center;gap:12px">
+<span style="font-size:20px;color:var(--sand-300)">→</span>
+<div style="width:206px"><x-import component-from-global-scope="DesignSystem_f8f42b.Card" variant="sunken" style="height:100%" hint-size="100%,88px"><div style="font-size:14.5px;font-weight:600">Моё расписание</div><div style="font-size:12.5px;color:var(--text-muted);margin-top:4px">один столбец дня, свои записи и окна</div></x-import></div>
+</div>
+<div style="width:206px"><x-import component-from-global-scope="DesignSystem_f8f42b.Card" variant="sunken" style="height:100%" hint-size="100%,88px"><div style="font-size:14.5px;font-weight:600">Мои записи</div><div style="font-size:12.5px;color:var(--text-muted);margin-top:4px">таблица без колонки «Мастер», подтверждение</div></x-import></div>
+</div>
+</section>
+
+<section style="padding:40px 0;border-top:1px solid var(--border-default)">
+<x-import component-from-global-scope="DesignSystem_f8f42b.SectionHeader" eyebrow="Флоу администратора" title="Вся студия целиком" subtitle="Владелица видит расписание всех мастеров рядом, все записи с источником, прайс и настройки записи. Переключатель роли в верхней панели показывает, как ту же панель видит конкретный мастер." hint-size="100%,120px"></x-import>
+<div style="display:flex;align-items:stretch;gap:12px;flex-wrap:wrap;margin-top:24px">
+<div style="width:184px">
+<x-import component-from-global-scope="DesignSystem_f8f42b.Card" variant="tight" interactive="{{ true }}" as="a" href="../site/Вход.dc.html" style="text-align:left;display:block;text-decoration:none;height:100%" hint-size="100%,88px">
+<div style="font-family:'Cormorant Garamond',Georgia,serif;font-size:18px;font-weight:600;color:var(--text-primary)">Вход</div>
+<div style="font-size:12.5px;color:var(--text-muted);margin-top:4px">роль «администратор»</div>
+</x-import>
+</div>
+<div style="display:flex;align-items:center;gap:12px">
+<span style="font-size:20px;color:var(--sand-300)">→</span>
+<div style="width:184px">
+<x-import component-from-global-scope="DesignSystem_f8f42b.Card" variant="tight" interactive="{{ true }}" as="a" href="../site/Админ-панель.dc.html?role=owner" style="text-align:left;display:block;text-decoration:none;height:100%" hint-size="100%,88px">
+<div style="font-family:'Cormorant Garamond',Georgia,serif;font-size:18px;font-weight:600;color:var(--text-primary)">Админ-панель</div>
+<div style="font-size:12.5px;color:var(--text-muted);margin-top:4px">четыре раздела</div>
+</x-import>
+</div>
+</div>
+<div style="display:flex;align-items:center;gap:12px">
+<span style="font-size:20px;color:var(--sand-300)">→</span>
+<div style="width:176px"><x-import component-from-global-scope="DesignSystem_f8f42b.Card" variant="sunken" style="height:100%" hint-size="100%,88px"><div style="font-size:14.5px;font-weight:600">Расписание</div><div style="font-size:12.5px;color:var(--text-muted);margin-top:4px">все мастера, KPI дня</div></x-import></div>
+</div>
+<div style="width:176px"><x-import component-from-global-scope="DesignSystem_f8f42b.Card" variant="sunken" style="height:100%" hint-size="100%,88px"><div style="font-size:14.5px;font-weight:600">Записи</div><div style="font-size:12.5px;color:var(--text-muted);margin-top:4px">фильтры, поиск, подтверждение</div></x-import></div>
+<div style="width:176px"><x-import component-from-global-scope="DesignSystem_f8f42b.Card" variant="sunken" style="height:100%" hint-size="100%,88px"><div style="font-size:14.5px;font-weight:600">Услуги</div><div style="font-size:12.5px;color:var(--text-muted);margin-top:4px">прайс и форма новой услуги</div></x-import></div>
+<div style="width:176px"><x-import component-from-global-scope="DesignSystem_f8f42b.Card" variant="sunken" style="height:100%" hint-size="100%,88px"><div style="font-size:14.5px;font-weight:600">Настройки</div><div style="font-size:12.5px;color:var(--text-muted);margin-top:4px">запись, уведомления, часы, бот</div></x-import></div>
+</div>
+</section>
+
+<section style="padding:40px 0;border-top:1px solid var(--border-default)">
+<x-import component-from-global-scope="DesignSystem_f8f42b.SectionHeader" eyebrow="Справочная страница" title="Варианты компонентов" subtitle="Вне флоу: мобильный экран выбора времени в рамке телефона и состояния карточек, статусов и кнопок — чтобы сверять экраны с дизайн-системой." hint-size="100%,120px"></x-import>
+<div style="width:236px;margin-top:24px">
+<x-import component-from-global-scope="DesignSystem_f8f42b.Card" variant="tight" interactive="{{ true }}" as="a" href="../site/Варианты.dc.html" style="text-align:left;display:block;text-decoration:none" hint-size="100%,88px">
+<div style="font-family:'Cormorant Garamond',Georgia,serif;font-size:18px;font-weight:600;color:var(--text-primary)">Варианты компонентов</div>
+<div style="font-size:12.5px;color:var(--text-muted);margin-top:4px">экран времени, карточки, статусы, кнопки</div>
+</x-import>
+</div>
+</section>
+
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1200,&quot;height&quot;:1000}}"></script>
+</body>
+</html>
