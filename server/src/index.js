@@ -8,6 +8,7 @@ import registerHolds from './routes/holds.js';
 import registerAppointments from './routes/appointments.js';
 import registerAdmin from './routes/admin.js';
 import registerExtras from './routes/extras.js';
+import registerStudio from './routes/studio.js';
 
 const router = createRouter();
 registerAuth(router);
@@ -16,6 +17,7 @@ registerHolds(router);
 registerAppointments(router);
 registerAdmin(router);
 registerExtras(router);
+registerStudio(router);
 
 router.get('/api/health', async () => ({
   body: { ok: true, database: dbFile, time: new Date().toISOString() }
@@ -71,5 +73,6 @@ for (const signal of ['SIGINT', 'SIGTERM']) {
     });
   });
 }
+
 
 

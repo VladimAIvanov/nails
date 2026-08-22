@@ -11,8 +11,9 @@ import { conflict, forbidden, notFound } from '../http.js';
 import { getSettings, requiredDuration, purgeExpiredHolds, nearestFreeSlots } from '../slots.js';
 import { nowIso, addMinutes } from '../time.js';
 import {
-  scheduleForAppointment, cancelScheduled, rescheduleNotifications
+  scheduleForAppointment, cancelScheduled, rescheduleNotifications, channelsFor
 } from './notifications.js';
+import { usePassFor, awardPointsFor, consumeMaterialsFor, matchWaitlist } from './studio.js';
 
 /* Права на создание. Возвращает поля, разрешённые этой роли: остальные
    значения из запроса сюда просто не доходят. */
@@ -95,6 +96,14 @@ export function createAppointment({ actor, input }) {
   const status = input.status
     ?? (settings.manual_confirmation_required === 1 && actor.role === 'client' ? 'pending' : 'confirmed');
 
+  /* Депозит на дорогих услугах. Здесь только учёт: сколько нужно и внесено ли.
+     Приём денег делает касса, сервис записи их не трогает. */
+  const totalPrice = need.services.reduce((sum, s) => sum + s.price_kopecks, 0);
+  const needsDeposit = settings.deposit_from_kopecks > 0 && totalPrice >= settings.deposit_from_kopecks;
+  const depositKopecks = needsDeposit
+    ? Math.round(totalPrice * settings.deposit_percent / 100)
+    : 0;
+
   let ids;
   try {
     ids = transaction(() => {
@@ -123,16 +132,20 @@ export function createAppointment({ actor, input }) {
         run(
           `INSERT INTO appointments (client_id, master_id, service_id, starts_at, duration_min,
                                      price_kopecks, status, source, client_comment, allow_overlap,
-                                     cancel_token)
+                                     cancel_token, deposit_kopecks, deposit_status)
            VALUES ($client, $master, $service, $starts, $duration, $price, $status, $source,
-                   $comment, $overlap, $token)`,
+                   $comment, $overlap, $token, $deposit, $depositStatus)`,
           {
             client: perms.clientId, master: perms.masterId, service: svc.id, starts: cursor,
             duration: svc.duration_min, price: svc.price_kopecks, status,
             source: perms.source, comment: input.comment ?? null, overlap: perms.allowOverlap,
             /* Токен отмены по ссылке. Свой у каждой записи и случайный:
                по номеру записи можно было бы перебором отменять чужие визиты. */
-            token: randomBytes(18).toString('base64url')
+            token: randomBytes(18).toString('base64url'),
+            /* Депозит берётся один раз за визит, а не за каждую услугу
+               в цепочке, поэтому назначается только первой записи. */
+            deposit: created.length === 0 ? depositKopecks : 0,
+            depositStatus: created.length === 0 && depositKopecks > 0 ? 'pending' : 'not_required'
           }
         );
         const id = get('SELECT last_insert_rowid() AS id').id;
@@ -226,7 +239,29 @@ export function cancelAppointment({ actor, id, reason }) {
   // напоминания снимаются: иначе придёт напоминание о визите, которого не будет
   cancelScheduled(id);
 
-  return { id, status: 'cancelled', late_cancellation: isLate };
+  /* Освободившееся время предлагается листу ожидания. Ради этого он и нужен:
+     отменённый визит сегодня иначе просто пропадает. */
+  const waiting = matchWaitlist({
+    masterId: row.master_id, serviceId: row.service_id, startsAt: row.starts_at
+  });
+  for (const entry of waiting) {
+    for (const channel of channelsFor(entry.client_id)) {
+      try {
+        run(
+          `INSERT INTO notifications (user_id, kind, channel, scheduled_at)
+           VALUES ($user, 'new_slot', $channel, $at)`,
+          { user: entry.client_id, channel, at: nowIso() }
+        );
+      } catch { /* уже поставлено */ }
+    }
+    run('UPDATE waitlist_entries SET notified_at = $now WHERE id = $id',
+      { now: nowIso(), id: entry.id });
+  }
+
+  return {
+    id, status: 'cancelled', late_cancellation: isLate,
+    waitlist_notified: waiting.length
+  };
 }
 
 /* Отмена по ссылке из письма или сообщения — без входа в кабинет.
@@ -270,6 +305,69 @@ export function confirmAppointment({ actor, id }) {
   return { id, status: 'confirmed' };
 }
 
+/** Завершение визита. Доступно мастеру этой записи и администратору.
+    Именно здесь визит превращается в факт: списывается абонемент,
+    начисляются баллы, расходуются материалы, ставится просьба оценить. */
+export function completeAppointment({ actor, id, outcome = 'done' }) {
+  const row = get('SELECT * FROM appointments WHERE id = $id', { id });
+  if (!row) throw notFound('Запись не найдена');
+
+  const isMaster = row.master_id === actor.id;
+  const isAdmin = actor.role === 'admin';
+  if (!isMaster && !isAdmin) throw forbidden('Завершать визит может мастер или администратор');
+
+  if (!['pending', 'confirmed'].includes(row.status)) {
+    throw conflict(`Запись в статусе «${row.status}» завершить нельзя`);
+  }
+  if (Date.parse(row.starts_at) > Date.now()) {
+    throw conflict('Визит ещё не начался');
+  }
+
+  const result = transaction(() => {
+    run('UPDATE appointments SET status = $s, updated_at = $now WHERE id = $id',
+      { s: outcome, now: nowIso(), id });
+    writeLog(id, row.status, outcome, actor.id,
+      outcome === 'no_show' ? 'клиент не пришёл' : 'визит состоялся');
+
+    if (outcome !== 'done') return { passId: null, points: 0, materials: [] };
+
+    /* Депозит после состоявшегося визита считается использованным,
+       после неявки — удержанным: ради этого он и брался. */
+    if (row.deposit_status === 'paid') {
+      run('UPDATE appointments SET deposit_status = \'refunded\' WHERE id = $id', { id });
+    }
+
+    return {
+      passId: usePassFor(row),
+      points: awardPointsFor(row),
+      materials: consumeMaterialsFor(row)
+    };
+  });
+
+  if (outcome === 'no_show' && row.deposit_status === 'paid') {
+    run('UPDATE appointments SET deposit_status = \'forfeited\' WHERE id = $id', { id });
+  }
+
+  if (outcome === 'done') {
+    // просьба оценить визит — через сутки, чтобы не спрашивать в дверях
+    for (const channel of channelsFor(row.client_id)) {
+      try {
+        run(
+          `INSERT INTO notifications (user_id, appointment_id, kind, channel, scheduled_at)
+           VALUES ($user, $appt, 'review_request', $channel, $at)`,
+          { user: row.client_id, appt: id, channel, at: addMinutes(nowIso(), 24 * 60) }
+        );
+      } catch { /* уже поставлено */ }
+    }
+  }
+
+  return {
+    id, status: outcome,
+    pass_used: result.passId, points_earned: result.points,
+    materials_written_off: result.materials.length
+  };
+}
+
 // ── вспомогательное ─────────────────────────────────────────────────────────
 
 function writeLog(appointmentId, from, to, byId, comment) {
@@ -296,3 +394,4 @@ function mapOverlapError(err, { masterId, serviceIds, startsAt, hint }) {
     available: nearestFreeSlots({ masterId, serviceIds, fromIso: startsAt })
   });
 }
+

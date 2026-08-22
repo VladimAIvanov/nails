@@ -91,6 +91,7 @@ export function createRouter() {
     get: (p, h) => add('GET', p, h),
     post: (p, h) => add('POST', p, h),
     patch: (p, h) => add('PATCH', p, h),
+    put: (p, h) => add('PUT', p, h),
     delete: (p, h) => add('DELETE', p, h),
     list: () => routes.map((r) => `${r.method} ${r.pattern}`),
 
