@@ -4,8 +4,13 @@ import { DatabaseSync } from 'node:sqlite';
 import { mkdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 
+/* SQLITE_PATH задаётся относительно корня проекта, а не текущей папки:
+   скрипты запускаются из server/, и путь «server/data/varvara.db» иначе
+   разворачивался бы в server/server/data/varvara.db. */
+const projectRoot = resolve(import.meta.dirname, '..', '..');
+
 const file = process.env.SQLITE_PATH
-  ? resolve(process.env.SQLITE_PATH)
+  ? resolve(projectRoot, process.env.SQLITE_PATH)
   : resolve(import.meta.dirname, '..', 'data', 'varvara.db');
 
 mkdirSync(dirname(file), { recursive: true });
