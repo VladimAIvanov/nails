@@ -1,0 +1,19 @@
+{
+  "name": "varvara-server",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "scripts": {
+    "migrate": "node --env-file=../.env src/migrate.js",
+    "seed": "node --env-file=../.env src/seed.js",
+    "smoke": "node --env-file=../.env src/smoke.js",
+    "dev": "node --env-file=../.env --watch src/index.js",
+    "start": "node --env-file=../.env src/index.js"
+  },
+  "dependencies": {
+    "pg": "^8.13.1"
+  }
+}
