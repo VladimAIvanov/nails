@@ -1,6 +1,6 @@
 /* Открытая часть: услуги, мастера и свободное время. Вход не требуется. */
 import { all, get } from '../db.js';
-import { notFound } from '../http.js';
+import { badRequest, notFound } from '../http.js';
 import * as v from '../validate.js';
 import { freeSlots, getSettings } from '../slots.js';
 
@@ -84,8 +84,9 @@ export default function register(router) {
     const date = v.date(query.get('date'), 'date');
 
     const raw = query.getAll('service_id');
+    // отсутствие обязательного параметра — 400, а не 404: адрес существует
     if (raw.length === 0) {
-      throw notFound('Укажите хотя бы одну услугу: ?service_id=1&service_id=2');
+      throw badRequest('Укажите хотя бы одну услугу: ?service_id=1&service_id=2');
     }
     const serviceIds = raw.map((x) => v.idParam(x, 'service_id'));
 
@@ -116,3 +117,4 @@ export default function register(router) {
     };
   });
 }
+

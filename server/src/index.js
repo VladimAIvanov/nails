@@ -1,7 +1,7 @@
 /* HTTP-сервер сервиса записи. Зависимостей нет: node:http и node:sqlite. */
 import { createServer } from 'node:http';
 import { db, dbFile } from './db.js';
-import { createRouter, readJson, send, sendRaw, HttpError } from './http.js';
+import { createRouter, readJson, send, sendRaw, corsHeaders, HttpError } from './http.js';
 import registerAuth from './routes/auth.js';
 import registerCatalog from './routes/catalog.js';
 import registerHolds from './routes/holds.js';
@@ -9,6 +9,8 @@ import registerAppointments from './routes/appointments.js';
 import registerAdmin from './routes/admin.js';
 import registerExtras from './routes/extras.js';
 import registerStudio from './routes/studio.js';
+import registerManage from './routes/manage.js';
+import registerProfile from './routes/profile.js';
 
 const router = createRouter();
 registerAuth(router);
@@ -18,6 +20,8 @@ registerAppointments(router);
 registerAdmin(router);
 registerExtras(router);
 registerStudio(router);
+registerManage(router);
+registerProfile(router);
 
 router.get('/api/health', async () => ({
   body: { ok: true, database: dbFile, time: new Date().toISOString() }
@@ -28,6 +32,16 @@ router.get('/api', async () => ({ body: { endpoints: router.list() } }));
 const server = createServer(async (req, res) => {
   const started = Date.now();
   let status = 500;
+
+  res.corsHeaders = corsHeaders(req.headers.origin);
+
+  /* Предварительный запрос браузера перед межсайтовым обращением.
+     Отвечать на него должен сервер, до всякой маршрутизации. */
+  if (req.method === 'OPTIONS') {
+    res.writeHead(204, res.corsHeaders);
+    res.end();
+    return;
+  }
 
   try {
     const url = new URL(req.url, `http://${req.headers.host ?? 'localhost'}`);
@@ -45,6 +59,7 @@ const server = createServer(async (req, res) => {
   } catch (err) {
     if (err instanceof HttpError) {
       status = err.status;
+      if (err.retryAfter) res.corsHeaders = { ...res.corsHeaders, 'retry-after': String(err.retryAfter) };
       send(res, status, { error: err.code, message: err.message, details: err.details });
     } else {
       status = 500;
@@ -73,6 +88,7 @@ for (const signal of ['SIGINT', 'SIGTERM']) {
     });
   });
 }
+
 
 
 

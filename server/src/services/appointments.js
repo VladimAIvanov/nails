@@ -242,7 +242,8 @@ export function cancelAppointment({ actor, id, reason }) {
   /* Освободившееся время предлагается листу ожидания. Ради этого он и нужен:
      отменённый визит сегодня иначе просто пропадает. */
   const waiting = matchWaitlist({
-    masterId: row.master_id, serviceId: row.service_id, startsAt: row.starts_at
+    masterId: row.master_id, serviceId: row.service_id, startsAt: row.starts_at,
+    excludeClientId: row.client_id
   });
   for (const entry of waiting) {
     for (const channel of channelsFor(entry.client_id)) {
@@ -331,12 +332,9 @@ export function completeAppointment({ actor, id, outcome = 'done' }) {
 
     if (outcome !== 'done') return { passId: null, points: 0, materials: [] };
 
-    /* Депозит после состоявшегося визита считается использованным,
-       после неявки — удержанным: ради этого он и брался. */
-    if (row.deposit_status === 'paid') {
-      run('UPDATE appointments SET deposit_status = \'refunded\' WHERE id = $id', { id });
-    }
-
+    /* Депозит после состоявшегося визита остаётся в статусе «внесён»:
+       он засчитывается в оплату, а не возвращается. Возврат и удержание —
+       отдельные события, их отмечает студия. */
     return {
       passId: usePassFor(row),
       points: awardPointsFor(row),

@@ -3,8 +3,8 @@ import { get, run, transaction } from '../db.js';
 import { badRequest, conflict, unauthorized } from '../http.js';
 import * as v from '../validate.js';
 import {
-  hashPassword, verifyPassword, createSession, revokeSession,
-  requireUser, purgeExpiredSessions
+  hashPassword, verifyPassword, createSession, revokeSession, requireUser,
+  purgeExpiredSessions, checkLoginAttempts, registerFailedLogin, clearLoginAttempts
 } from '../auth.js';
 import { nowIso } from '../time.js';
 
@@ -76,6 +76,8 @@ export default function register(router) {
     const login = v.str(body.login, 'login', { max: 200 });
     const password = v.password(body.password);
 
+    checkLoginAttempts(login);
+
     const isEmail = login.includes('@');
     const user = get(
       isEmail
@@ -87,8 +89,10 @@ export default function register(router) {
     /* Один и тот же ответ на «нет такого пользователя», «нет пароля»
        и «пароль неверный»: иначе по коду ответа можно перебрать базу телефонов. */
     if (!user || user.is_active !== 1 || !verifyPassword(password, user.password_hash)) {
+      registerFailedLogin(login);
       throw unauthorized('Неверный логин или пароль');
     }
+    clearLoginAttempts(login);
 
     purgeExpiredSessions();
     const session = createSession(user.id, {
@@ -108,3 +112,4 @@ export default function register(router) {
 
   router.get('/api/auth/me', async ({ req }) => ({ body: { user: publicUser(requireUser(req)) } }));
 }
+

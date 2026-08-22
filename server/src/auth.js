@@ -5,7 +5,7 @@
 import { scryptSync, randomBytes, timingSafeEqual, createHash } from 'node:crypto';
 import { db, get, run } from './db.js';
 import { nowIso, toIso } from './time.js';
-import { unauthorized, forbidden } from './http.js';
+import { unauthorized, forbidden, HttpError } from './http.js';
 
 const SESSION_TTL_DAYS = 30;
 
@@ -85,8 +85,43 @@ export function requireRole(req, ...roles) {
   return user;
 }
 
+/* Защита от подбора пароля. Счётчик в памяти процесса, а не в базе:
+   при перезапуске он сбрасывается, и это допустимо — задача не в том,
+   чтобы блокировать навсегда, а в том, чтобы перебор был слишком медленным.
+   Ключ — логин, а не адрес: за одним адресом может сидеть весь салон. */
+const attempts = new Map();
+const MAX_ATTEMPTS = 8;
+const WINDOW_MS = 15 * 60_000;
+
+export function checkLoginAttempts(login) {
+  const record = attempts.get(login);
+  if (!record) return;
+  if (Date.now() - record.first > WINDOW_MS) { attempts.delete(login); return; }
+  if (record.count >= MAX_ATTEMPTS) {
+    const waitSec = Math.ceil((WINDOW_MS - (Date.now() - record.first)) / 1000);
+    const err = new HttpError(429, 'too_many_attempts',
+      `Слишком много попыток входа. Повторите через ${Math.ceil(waitSec / 60)} мин`);
+    err.retryAfter = waitSec;
+    throw err;
+  }
+}
+
+export function registerFailedLogin(login) {
+  const record = attempts.get(login);
+  if (!record || Date.now() - record.first > WINDOW_MS) {
+    attempts.set(login, { count: 1, first: Date.now() });
+  } else {
+    record.count++;
+  }
+}
+
+export function clearLoginAttempts(login) {
+  attempts.delete(login);
+}
+
 /* Чистка просроченных сеансов. Вызывается при входе — отдельного
    планировщика ради этого заводить незачем. */
 export function purgeExpiredSessions() {
   db.prepare('DELETE FROM sessions WHERE expires_at < ?').run(nowIso());
 }
+

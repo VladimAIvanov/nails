@@ -9,7 +9,7 @@ import { nowIso, utcToLocal } from '../time.js';
 
 /* Освободилось время — кому предложить. Совпадение по услуге, мастеру
    (или «любой»), дате и времени суток. */
-export function matchWaitlist({ masterId, serviceId, startsAt }) {
+export function matchWaitlist({ masterId, serviceId, startsAt, excludeClientId = null }) {
   const settings = getSettings();
   const local = utcToLocal(new Date(startsAt), settings.timezone);
   const hour = Number(local.time.slice(0, 2));
@@ -24,9 +24,11 @@ export function matchWaitlist({ masterId, serviceId, startsAt }) {
         AND (w.master_id IS NULL OR w.master_id = $master)
         AND $date BETWEEN w.date_from AND w.date_to
         AND (w.part_of_day = 'any' OR w.part_of_day = $part)
-        AND w.client_id <> $excludeNothing
+        /* Тому, кто только что отменил этот визит, предлагать его обратно
+           не нужно: он и так знал, что время свободно. */
+        AND ($exclude IS NULL OR w.client_id <> $exclude)
       ORDER BY w.created_at`,
-    { service: serviceId, master: masterId, date: local.date, part, excludeNothing: -1 }
+    { service: serviceId, master: masterId, date: local.date, part, exclude: excludeClientId }
   );
 }
 

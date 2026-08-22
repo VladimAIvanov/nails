@@ -1,0 +1,40 @@
+# Переводы строк.
+#
+# В репозитории всё хранится с LF, в рабочей копии выдаётся как есть.
+# Без этого git на Windows всю дорогу предупреждал «LF will be replaced by CRLF»,
+# а на сервере файлы могли оказаться с CRLF — для .sh это ломает запуск.
+* text=auto eol=lf
+
+# Файлы, которые обязаны остаться с CRLF: их читает cmd.exe
+*.bat  text eol=crlf
+*.cmd  text eol=crlf
+
+# Двоичные: git не должен пытаться менять в них переводы строк
+# и показывать их содержимое в diff.
+*.docx binary
+*.xlsx binary
+*.pdf  binary
+*.zip  binary
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.webp binary
+*.ico  binary
+*.woff  binary
+*.woff2 binary
+
+# База SQLite в репозиторий не попадает, но если попадёт по недосмотру —
+# пусть хотя бы не считается текстом.
+*.db      binary
+*.db-wal  binary
+*.db-shm  binary
+
+# Артефакты прототипа: сгенерированы дизайн-инструментом, читать их diff
+# бессмысленно — правки там не построчные.
+site/_ds/** linguist-generated=true -diff
+site/support.js linguist-generated=true -diff
+
+# Язык репозитория определяется по коду сервера, а не по прототипу:
+# иначе GitHub считает проект «в основном HTML».
+site/** linguist-vendored=true
+docs/*.dc.html linguist-vendored=true

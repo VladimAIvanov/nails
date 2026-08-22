@@ -1,6 +1,25 @@
 /* Тонкий слой HTTP поверх node:http — без внешних зависимостей.
    Разбор тела, маршрутизация с параметрами, единый формат ошибок. */
 
+/* Фронтенд планируется отдельным приложением на своём порту, поэтому браузер
+   будет считать запросы к API межсайтовыми. Без этих заголовков он не покажет
+   ответ даже при коде 200. Список источников задаётся переменной CORS_ORIGINS
+   и по умолчанию пуст — открывать API всему интернету не нужно. */
+const ALLOWED_ORIGINS = (process.env.CORS_ORIGINS ?? '')
+  .split(',').map((s) => s.trim()).filter(Boolean);
+
+export function corsHeaders(origin) {
+  if (!origin || !ALLOWED_ORIGINS.includes(origin)) return {};
+  return {
+    'access-control-allow-origin': origin,
+    'access-control-allow-credentials': 'true',
+    'access-control-allow-headers': 'content-type, authorization',
+    'access-control-allow-methods': 'GET, POST, PATCH, PUT, DELETE, OPTIONS',
+    'access-control-max-age': '600',
+    vary: 'Origin'
+  };
+}
+
 export class HttpError extends Error {
   constructor(status, code, message, details) {
     super(message);
@@ -50,6 +69,7 @@ export function sendRaw(res, status, contentType, body, headers = {}) {
     'content-type': contentType,
     'content-length': Buffer.byteLength(body),
     'cache-control': 'no-store',
+    ...(res.corsHeaders ?? {}),
     ...headers
   });
   res.end(body);
@@ -60,7 +80,8 @@ export function send(res, status, payload) {
   res.writeHead(status, {
     'content-type': 'application/json; charset=utf-8',
     'content-length': Buffer.byteLength(body),
-    'cache-control': 'no-store'
+    'cache-control': 'no-store',
+    ...(res.corsHeaders ?? {})
   });
   res.end(body);
 }

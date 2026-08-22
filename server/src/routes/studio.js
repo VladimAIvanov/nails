@@ -237,10 +237,10 @@ export default function register(router) {
 
   router.get('/api/passes', async ({ req, query }) => {
     const actor = requireUser(req);
-    const clientId = actor.role === 'client'
-      ? actor.id
-      : v.idParam(query.get('client_id') ?? '0', 'client_id');
+    /* Проверка наличия параметра — до разбора: иначе клиент получал бы
+       «некорректный client_id» вместо понятного «укажите client_id». */
     if (actor.role !== 'client' && !query.get('client_id')) throw badRequest('Укажите client_id');
+    const clientId = actor.role === 'client' ? actor.id : v.idParam(query.get('client_id'), 'client_id');
     return { body: { passes: clientPasses(clientId) } };
   });
 
@@ -255,10 +255,8 @@ export default function register(router) {
 
   router.get('/api/loyalty', async ({ req, query }) => {
     const actor = requireUser(req);
-    const clientId = actor.role === 'client'
-      ? actor.id
-      : v.idParam(query.get('client_id') ?? '0', 'client_id');
     if (actor.role !== 'client' && !query.get('client_id')) throw badRequest('Укажите client_id');
+    const clientId = actor.role === 'client' ? actor.id : v.idParam(query.get('client_id'), 'client_id');
 
     return {
       body: { balance: loyaltyBalance(clientId), history: loyaltyHistory(clientId) }
