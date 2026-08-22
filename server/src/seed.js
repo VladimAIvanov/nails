@@ -40,6 +40,14 @@ const CLIENTS = [
   { name: 'Ирина Соколова',  phone: '+79210000012', registered: false }
 ];
 
+/* Блокировки времени: перерыв на обед и отпуск. Вычитаются из графика
+   наравне с записями, но это не записи — клиента за ними нет. */
+const TIME_OFF = [
+  { master: 'varvara@varvara.studio', dayOffset: 2, time: '12:00', minutes: 45, kind: 'break',    reason: 'Обед' },
+  { master: 'lena@varvara.studio',    dayOffset: 3, time: '12:30', minutes: 45, kind: 'break',    reason: 'Обед' },
+  { master: 'aya@varvara.studio',     dayOffset: 5, time: '07:00', minutes: 720, kind: 'vacation', reason: 'Отпуск' }
+];
+
 /* Записи: ближайшие и история, разные мастера, статусы и источники.
    Времена разведены так, чтобы не сработал запрет пересечения. */
 const APPOINTMENTS = [
@@ -63,6 +71,9 @@ const HIGHLIGHTS = [
   { slug: 'hl-telegram',  icon: 'send',         title: 'Запись в Telegram', body: 'Бот подтверждает окно и напоминает за два часа' },
   { slug: 'hl-materials', icon: 'sparkles',     title: 'Свои материалы',    body: 'Гель-лаки и базы, с которыми носится 4 недели' }
 ];
+
+const masterByEmailId = (conn, email) =>
+  conn.prepare('SELECT id FROM users WHERE email = ?').get(email).id;
 
 const WORKS = [
   'Нюд с втиркой', 'Френч', 'Матовое покрытие',
@@ -170,6 +181,25 @@ transaction((conn) => {
     VALUES (?, 'personal_data', 1, 'v1', 'site')
   `);
   for (const id of clientIds) addConsent.run(id);
+
+  // ── Блокировки времени ────────────────────────────────────────────────────
+  conn.prepare('DELETE FROM time_off').run();
+  const addTimeOff = conn.prepare(`
+    INSERT INTO time_off (master_id, starts_at, ends_at, kind, reason, created_by_id)
+    VALUES (?, ?, ?, ?, ?, ?)
+  `);
+  for (const t of TIME_OFF) {
+    const day = new Date();
+    day.setUTCDate(day.getUTCDate() + t.dayOffset);
+    const [h, m] = t.time.split(':');
+    day.setUTCHours(Number(h), Number(m), 0, 0);
+    const startsAt = toIso(day);
+    addTimeOff.run(
+      masterByEmailId(conn, t.master), startsAt,
+      toIso(new Date(day.getTime() + t.minutes * 60_000)),
+      t.kind, t.reason, ownerId
+    );
+  }
 
   // ── Записи ────────────────────────────────────────────────────────────────
   conn.prepare('DELETE FROM appointment_status_log').run();
