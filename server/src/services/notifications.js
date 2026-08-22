@@ -11,8 +11,14 @@ import { nowIso, addMinutes } from '../time.js';
    и того, чем до него вообще можно достучаться. */
 export function channelsFor(userId) {
   const user = get('SELECT telegram_user_id, email, phone FROM users WHERE id = $id', { id: userId });
-  const prefs = get('SELECT * FROM notification_prefs WHERE user_id = $id', { id: userId });
-  if (!user || !prefs) return [];
+  if (!user) return [];
+
+  /* Строки настроек может не быть: её заводит регистрация, а клиентка могла
+     появиться при гостевой записи или из тестовых данных. Отсутствие настроек
+     означает «по умолчанию», а не «связи нет» — иначе человек молча остаётся
+     без единственного напоминания о визите. */
+  const prefs = get('SELECT * FROM notification_prefs WHERE user_id = $id', { id: userId })
+    ?? { telegram_reminders: 1, push_reminders: 1, email_reminders: 0, sms_reminders: 0 };
 
   const hasPush = get(
     'SELECT COUNT(*) AS n FROM push_devices WHERE user_id = $id AND is_active = 1', { id: userId }
@@ -73,11 +79,13 @@ export function scheduleForAppointment(appointmentId) {
 
   /* Напоминание за сутки ставится только там, где оно не дублирует
      напоминание за два часа: у записи на сегодня суточного быть не может. */
-  if (settings.reminder_day_before === 1) {
+  if (settings.reminder_day_before === 1 && channels.length > 0) {
     const dayBefore = addMinutes(appt.starts_at, -24 * 60);
     if (dayBefore > nowIso() && dayBefore < remindAt) {
-      const channel = channels[0];
-      enqueue({ userId: appt.client_id, appointmentId, kind: 'reminder', channel, scheduledAt: dayBefore });
+      enqueue({
+        userId: appt.client_id, appointmentId, kind: 'reminder',
+        channel: channels[0], scheduledAt: dayBefore
+      });
     }
   }
 

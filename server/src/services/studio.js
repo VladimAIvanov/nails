@@ -4,6 +4,7 @@ import { all, get, run, transaction } from '../db.js';
 import { badRequest, conflict, forbidden, notFound } from '../http.js';
 import { getSettings } from '../slots.js';
 import { nowIso, utcToLocal } from '../time.js';
+import { actsAsClient } from '../auth.js';
 
 // ── Лист ожидания ───────────────────────────────────────────────────────────
 
@@ -33,7 +34,7 @@ export function matchWaitlist({ masterId, serviceId, startsAt, excludeClientId =
 }
 
 export function addToWaitlist({ actor, input }) {
-  const clientId = actor.role === 'client' ? actor.id : input.clientId;
+  const clientId = actsAsClient(actor) ? actor.id : input.clientId;
   if (!clientId) throw badRequest('Не указан клиент');
   if (!get('SELECT id FROM services WHERE id = $id AND is_active = 1', { id: input.serviceId })) {
     throw notFound('Услуга не найдена');
@@ -69,14 +70,14 @@ export function listWaitlist({ actor, clientId }) {
       WHERE w.is_active = 1
         AND ($client IS NULL OR w.client_id = $client)
       ORDER BY w.created_at DESC`,
-    { client: actor.role === 'client' ? actor.id : clientId ?? null }
+    { client: actsAsClient(actor) ? actor.id : clientId ?? null }
   );
 }
 
 export function removeFromWaitlist({ actor, id }) {
   const entry = get('SELECT * FROM waitlist_entries WHERE id = $id', { id });
   if (!entry) throw notFound('Заявка не найдена');
-  if (entry.client_id !== actor.id && actor.role === 'client') throw forbidden('Это чужая заявка');
+  if (entry.client_id !== actor.id && actsAsClient(actor)) throw forbidden('Это чужая заявка');
   run('UPDATE waitlist_entries SET is_active = 0 WHERE id = $id', { id });
   return { id, removed: true };
 }
@@ -84,7 +85,7 @@ export function removeFromWaitlist({ actor, id }) {
 // ── Абонементы ──────────────────────────────────────────────────────────────
 
 export function sellPass({ actor, input }) {
-  if (!['admin', 'master'].includes(actor.role)) throw forbidden('Абонемент продаёт студия');
+  if (actsAsClient(actor)) throw forbidden('Абонемент продаёт студия');
   if (!get('SELECT id FROM users WHERE id = $id', { id: input.clientId })) throw notFound('Клиент не найден');
   if (!get('SELECT id FROM services WHERE id = $id', { id: input.serviceId })) throw notFound('Услуга не найдена');
 
@@ -177,7 +178,7 @@ export function awardPointsFor(appointment) {
 }
 
 export function spendPoints({ actor, clientId, points, comment }) {
-  if (!['admin', 'master'].includes(actor.role)) throw forbidden('Списывает баллы студия');
+  if (actsAsClient(actor)) throw forbidden('Списывает баллы студия');
   const balance = loyaltyBalance(clientId);
   if (points > balance) throw conflict(`Недостаточно баллов: на счету ${balance}`);
 
@@ -199,7 +200,7 @@ export function materialsList() {
 }
 
 export function moveMaterial({ actor, materialId, delta, reason, comment, appointmentId = null }) {
-  if (!['admin', 'master'].includes(actor.role)) throw forbidden('Движения материалов ведёт студия');
+  if (actsAsClient(actor)) throw forbidden('Движения материалов ведёт студия');
   if (!get('SELECT id FROM materials WHERE id = $id', { id: materialId })) throw notFound('Материал не найден');
 
   transaction(() => {
@@ -333,3 +334,4 @@ export function analytics({ from, to }) {
     }
   };
 }
+

@@ -6,7 +6,7 @@
 import { all, get } from '../db.js';
 import { forbidden, notFound, badRequest } from '../http.js';
 import * as v from '../validate.js';
-import { requireUser, requireRole } from '../auth.js';
+import { requireUser, requireRole, isAdmin, actsAsClient } from '../auth.js';
 import { getSettings } from '../slots.js';
 import { nowIso, utcToLocal } from '../time.js';
 import {
@@ -168,12 +168,12 @@ export default function register(router) {
     if (!row) throw notFound('Запись не найдена');
 
     const isOwner = row.client_id === actor.id;
-    const isMaster = row.master_id === actor.id;
-    const isAdmin = actor.role === 'admin';
-    if (!isOwner && !isMaster && !isAdmin) throw forbidden('Это чужая запись');
+    const isTheirMaster = row.master_id === actor.id;
+    const admin = isAdmin(actor);
+    if (!isOwner && !isTheirMaster && !admin) throw forbidden('Это чужая запись');
 
-    const view = present(row, settings.timezone, { withClient: isMaster || isAdmin });
-    if (isMaster || isAdmin) {
+    const view = present(row, settings.timezone, { withClient: isTheirMaster || admin });
+    if (isTheirMaster || admin) {
       view.history = all(
         `SELECT from_status, to_status, comment, changed_at
            FROM appointment_status_log WHERE appointment_id = $id ORDER BY id`,
@@ -197,7 +197,7 @@ export default function register(router) {
 
     const updated = get(`${SELECT_APPOINTMENT} WHERE a.id = $id`, { id: v.idParam(params.id) });
     return {
-      body: present(updated, settings.timezone, { withClient: actor.role !== 'client' })
+      body: present(updated, settings.timezone, { withClient: !actsAsClient(actor) })
     };
   });
 
@@ -217,4 +217,5 @@ export default function register(router) {
     };
   });
 }
+
 

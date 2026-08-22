@@ -3,7 +3,7 @@
 import { all, get, run } from '../db.js';
 import { badRequest, conflict, forbidden, notFound } from '../http.js';
 import * as v from '../validate.js';
-import { requireUser, requireRole } from '../auth.js';
+import { requireUser, requireRole, isMasterOnly, actsAsClient } from '../auth.js';
 import { completeAppointment } from '../services/appointments.js';
 import {
   addToWaitlist, listWaitlist, removeFromWaitlist,
@@ -115,7 +115,7 @@ export default function register(router) {
     if (!client) throw notFound('Клиент не найден');
 
     /* Мастер видит карточку только тех, кто к нему приходил. */
-    if (actor.role === 'master') {
+    if (isMasterOnly(actor)) {
       const seen = get(
         'SELECT COUNT(*) AS n FROM appointments WHERE client_id = $c AND master_id = $m',
         { c: clientId, m: actor.id }
@@ -190,7 +190,7 @@ export default function register(router) {
     const id = v.idParam(params.id);
     const appt = get('SELECT master_id FROM appointments WHERE id = $id', { id });
     if (!appt) throw notFound('Запись не найдена');
-    if (actor.role === 'master' && appt.master_id !== actor.id) throw forbidden('Это чужая запись');
+    if (isMasterOnly(actor) && appt.master_id !== actor.id) throw forbidden('Это чужая запись');
 
     run('UPDATE appointments SET master_note = $note, updated_at = $now WHERE id = $id',
       { note: v.optionalStr(body.master_note, 'master_note', { max: 2000 }), now: nowIso(), id });
@@ -202,7 +202,7 @@ export default function register(router) {
     const id = v.idParam(params.id);
     const appt = get('SELECT master_id FROM appointments WHERE id = $id', { id });
     if (!appt) throw notFound('Запись не найдена');
-    if (actor.role === 'master' && appt.master_id !== actor.id) throw forbidden('Это чужая запись');
+    if (isMasterOnly(actor) && appt.master_id !== actor.id) throw forbidden('Это чужая запись');
 
     run(
       `INSERT INTO visit_photos (appointment_id, image_url, caption, is_public)
@@ -239,15 +239,15 @@ export default function register(router) {
     const actor = requireUser(req);
     /* Проверка наличия параметра — до разбора: иначе клиент получал бы
        «некорректный client_id» вместо понятного «укажите client_id». */
-    if (actor.role !== 'client' && !query.get('client_id')) throw badRequest('Укажите client_id');
-    const clientId = actor.role === 'client' ? actor.id : v.idParam(query.get('client_id'), 'client_id');
+    if (!actsAsClient(actor) && !query.get('client_id')) throw badRequest('Укажите client_id');
+    const clientId = actsAsClient(actor) ? actor.id : v.idParam(query.get('client_id'), 'client_id');
     return { body: { passes: clientPasses(clientId) } };
   });
 
   router.get('/api/passes/:id', async ({ params, req }) => {
     const actor = requireUser(req);
     const pass = passWithBalance(v.idParam(params.id));
-    if (actor.role === 'client' && pass.client_id !== actor.id) throw forbidden('Это чужой абонемент');
+    if (actsAsClient(actor) && pass.client_id !== actor.id) throw forbidden('Это чужой абонемент');
     return { body: pass };
   });
 
@@ -255,8 +255,8 @@ export default function register(router) {
 
   router.get('/api/loyalty', async ({ req, query }) => {
     const actor = requireUser(req);
-    if (actor.role !== 'client' && !query.get('client_id')) throw badRequest('Укажите client_id');
-    const clientId = actor.role === 'client' ? actor.id : v.idParam(query.get('client_id'), 'client_id');
+    if (!actsAsClient(actor) && !query.get('client_id')) throw badRequest('Укажите client_id');
+    const clientId = actsAsClient(actor) ? actor.id : v.idParam(query.get('client_id'), 'client_id');
 
     return {
       body: { balance: loyaltyBalance(clientId), history: loyaltyHistory(clientId) }
@@ -341,7 +341,7 @@ export default function register(router) {
     const from = v.date(query.get('from'), 'from');
     const to = v.date(query.get('to'), 'to');
     /* Мастер видит только своё вознаграждение — чужие заработки не его дело. */
-    const masterId = actor.role === 'master'
+    const masterId = isMasterOnly(actor)
       ? actor.id
       : (query.get('master_id') ? v.idParam(query.get('master_id'), 'master_id') : null);
     return { body: payroll({ from, to, masterId }) };

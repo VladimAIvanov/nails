@@ -8,6 +8,7 @@ import { badRequest, conflict, forbidden, notFound } from '../http.js';
 import { getSettings, requiredDuration } from '../slots.js';
 import { localToUtc, utcToLocal, isoWeekday, nowIso, toIso } from '../time.js';
 import { createAppointment } from './appointments.js';
+import { isAdmin, isMasterOnly, actsAsClient } from '../auth.js';
 
 /* Даты повторов по правилу, в календаре студии. */
 export function occurrenceDates(series, count) {
@@ -39,8 +40,8 @@ export function occurrenceDates(series, count) {
 export function createSeries({ actor, input }) {
   const settings = getSettings();
 
-  const clientId = actor.role === 'client' ? actor.id : input.clientId;
-  const masterId = actor.role === 'master' ? actor.id : input.masterId;
+  const clientId = actsAsClient(actor) ? actor.id : input.clientId;
+  const masterId = isMasterOnly(actor) ? actor.id : input.masterId;
   if (!clientId) throw badRequest('Не указан клиент');
   if (!masterId) throw badRequest('Не указан мастер');
 
@@ -122,7 +123,7 @@ export function materialize({ actor, series }) {
 }
 
 export function listSeries({ actor, clientId }) {
-  const target = actor.role === 'client' ? actor.id : clientId ?? null;
+  const target = actsAsClient(actor) ? actor.id : clientId ?? null;
   const rows = all(
     `SELECT rs.*, s.title AS service_title, u.full_name AS master_name,
             (SELECT COUNT(*) FROM appointments a
@@ -135,7 +136,7 @@ export function listSeries({ actor, clientId }) {
       ORDER BY rs.created_at DESC`,
     {
       client: target,
-      master: actor.role === 'master' ? actor.id : null
+      master: isMasterOnly(actor) ? actor.id : null
     }
   );
   return rows;
@@ -148,9 +149,9 @@ export function stopSeries({ actor, id, cancelUpcoming = false }) {
   if (!series) throw notFound('Серия не найдена');
 
   const isOwner = series.client_id === actor.id;
-  const isMaster = series.master_id === actor.id;
-  const isAdmin = actor.role === 'admin';
-  if (!isOwner && !isMaster && !isAdmin) throw forbidden('Это чужая серия');
+  const isTheirMaster = series.master_id === actor.id;
+  const admin = isAdmin(actor);
+  if (!isOwner && !isTheirMaster && !admin) throw forbidden('Это чужая серия');
   if (series.is_active !== 1) throw conflict('Серия уже остановлена');
 
   const upcoming = all(
@@ -181,3 +182,4 @@ export function stopSeries({ actor, id, cancelUpcoming = false }) {
     kept_appointments: cancelUpcoming ? 0 : upcoming.length
   };
 }
+

@@ -6,7 +6,7 @@
 import { all, get, run, transaction } from '../db.js';
 import { badRequest, conflict, forbidden, notFound } from '../http.js';
 import * as v from '../validate.js';
-import { requireRole } from '../auth.js';
+import { requireRole, isMasterOnly } from '../auth.js';
 import { nowIso } from '../time.js';
 
 const BOOL_SETTINGS = [
@@ -97,7 +97,7 @@ export default function register(router) {
       ? null
       : v.idParam(body.master_id, 'master_id');
 
-    if (actor.role === 'master' && masterId !== actor.id) {
+    if (isMasterOnly(actor) && masterId !== actor.id) {
       throw forbidden('Мастер правит только свой график');
     }
     if (masterId !== null && !get('SELECT user_id FROM master_profiles WHERE user_id = $id', { id: masterId })) {
@@ -162,7 +162,7 @@ export default function register(router) {
       ? null
       : v.idParam(body.master_id, 'master_id');
 
-    if (actor.role === 'master' && masterId !== actor.id) {
+    if (isMasterOnly(actor) && masterId !== actor.id) {
       throw forbidden('Мастер задаёт исключения только себе');
     }
 
@@ -199,7 +199,7 @@ export default function register(router) {
     const id = v.idParam(params.id);
     const row = get('SELECT master_id FROM schedule_exceptions WHERE id = $id', { id });
     if (!row) throw notFound('Исключение не найдено');
-    if (actor.role === 'master' && row.master_id !== actor.id) throw forbidden('Это чужое исключение');
+    if (isMasterOnly(actor) && row.master_id !== actor.id) throw forbidden('Это чужое исключение');
     run('DELETE FROM schedule_exceptions WHERE id = $id', { id });
     return { body: { ok: true, deleted: id } };
   });
@@ -219,7 +219,7 @@ export default function register(router) {
             WHERE t.ends_at >= $from
               AND ($master IS NULL OR t.master_id IS NULL OR t.master_id = $master)
             ORDER BY t.starts_at`,
-          { from, master: actor.role === 'master' ? actor.id : null }
+          { from, master: isMasterOnly(actor) ? actor.id : null }
         )
       }
     };
@@ -231,7 +231,7 @@ export default function register(router) {
       ? null
       : v.idParam(body.master_id, 'master_id');
 
-    if (actor.role === 'master' && masterId !== actor.id) {
+    if (isMasterOnly(actor) && masterId !== actor.id) {
       throw forbidden('Мастер закрывает только своё время');
     }
 
@@ -276,7 +276,7 @@ export default function register(router) {
     const id = v.idParam(params.id);
     const row = get('SELECT master_id FROM time_off WHERE id = $id', { id });
     if (!row) throw notFound('Блокировка не найдена');
-    if (actor.role === 'master' && row.master_id !== actor.id) throw forbidden('Это чужая блокировка');
+    if (isMasterOnly(actor) && row.master_id !== actor.id) throw forbidden('Это чужая блокировка');
     run('DELETE FROM time_off WHERE id = $id', { id });
     return { body: { ok: true, deleted: id } };
   });
@@ -368,7 +368,7 @@ export default function register(router) {
 
   router.post('/api/admin/portfolio', async ({ body, req }) => {
     const actor = requireRole(req, 'admin', 'master');
-    const masterId = actor.role === 'master' ? actor.id
+    const masterId = isMasterOnly(actor) ? actor.id
       : (body.master_id ? v.idParam(body.master_id, 'master_id') : null);
 
     run(
@@ -391,7 +391,7 @@ export default function register(router) {
     const id = v.idParam(params.id);
     const row = get('SELECT master_id FROM portfolio_works WHERE id = $id', { id });
     if (!row) throw notFound('Работа не найдена');
-    if (actor.role === 'master' && row.master_id !== actor.id) throw forbidden('Это чужая работа');
+    if (isMasterOnly(actor) && row.master_id !== actor.id) throw forbidden('Это чужая работа');
     run('DELETE FROM portfolio_works WHERE id = $id', { id });
     return { body: { ok: true, deleted: id } };
   });

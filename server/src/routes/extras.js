@@ -2,7 +2,7 @@
 import { all, get, run } from '../db.js';
 import { badRequest, notFound } from '../http.js';
 import * as v from '../validate.js';
-import { requireUser, requireRole } from '../auth.js';
+import { requireUser, requireRole, isAdmin, actsAsClient } from '../auth.js';
 import { getSettings } from '../slots.js';
 import { nowIso, utcToLocal } from '../time.js';
 import { cancelByToken } from '../services/appointments.js';
@@ -145,7 +145,7 @@ export default function register(router) {
   router.get('/api/recurring', async ({ req, query }) => {
     const actor = requireUser(req);
     const clientId = query.get('client_id') ? v.idParam(query.get('client_id'), 'client_id') : null;
-    if (clientId && actor.role === 'client') throw badRequest('Чужие серии недоступны');
+    if (clientId && actsAsClient(actor)) throw badRequest('Чужие серии недоступны');
     return { body: { series: listSeries({ actor, clientId }) } };
   });
 
@@ -156,7 +156,7 @@ export default function register(router) {
     const id = v.idParam(params.id);
     const series = get('SELECT * FROM recurring_series WHERE id = $id', { id });
     if (!series) throw notFound('Серия не найдена');
-    if (actor.role === 'client' && series.client_id !== actor.id) throw badRequest('Это чужая серия');
+    if (actsAsClient(actor) && series.client_id !== actor.id) throw badRequest('Это чужая серия');
     return { body: materialize({ actor, series }) };
   });
 
@@ -179,7 +179,7 @@ export default function register(router) {
     const id = v.idParam(params.id);
     const appt = get('SELECT client_id, master_id FROM appointments WHERE id = $id', { id });
     if (!appt) throw notFound('Запись не найдена');
-    if (appt.client_id !== actor.id && appt.master_id !== actor.id && actor.role !== 'admin') {
+    if (appt.client_id !== actor.id && appt.master_id !== actor.id && !isAdmin(actor)) {
       throw notFound('Запись не найдена');
     }
 

@@ -7,7 +7,10 @@ import { db, transaction } from './db.js';
 import { nowIso, toIso } from './time.js';
 import { hashPassword } from './auth.js';
 
-const DEMO_PASSWORD = 'varvara-demo';
+/* Пароль для стенда берётся из окружения: в коде секретов быть не должно.
+   Значение по умолчанию задано в .env.example и предназначено только для
+   локальной установки — на сервере переменную нужно задать своей. */
+const DEMO_PASSWORD = process.env.SEED_PASSWORD ?? 'varvara-demo';
 
 
 const CATEGORIES = [
@@ -167,11 +170,16 @@ transaction((conn) => {
     ON CONFLICT (phone) DO UPDATE SET full_name = excluded.full_name
   `);
   const findByPhone = conn.prepare('SELECT id FROM users WHERE phone = ?');
+  const addPrefs = conn.prepare(
+    'INSERT INTO notification_prefs (user_id) VALUES (?) ON CONFLICT (user_id) DO NOTHING'
+  );
   const clientIds = [];
   for (const c of CLIENTS) {
     upsertClient.run(c.name, c.phone, c.registered ? hashPassword(DEMO_PASSWORD) : null,
       c.registered ? nowIso() : null);
-    clientIds.push(findByPhone.get(c.phone).id);
+    const id = findByPhone.get(c.phone).id;
+    addPrefs.run(id); // как после регистрации: иначе каналы связи не определены
+    clientIds.push(id);
   }
 
   // Согласие на обработку данных даётся при первой записи
@@ -261,6 +269,7 @@ console.log(`  записей ${c.appts}, блоков лендинга ${c.bloc
 console.log(`\n  Демо-пароль для всех учётных записей: ${DEMO_PASSWORD}`);
 
 db.close();
+
 
 
 

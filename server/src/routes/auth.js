@@ -4,7 +4,8 @@ import { badRequest, conflict, unauthorized } from '../http.js';
 import * as v from '../validate.js';
 import {
   hashPassword, verifyPassword, createSession, revokeSession, requireUser,
-  purgeExpiredSessions, checkLoginAttempts, registerFailedLogin, clearLoginAttempts
+  purgeExpiredSessions, checkLoginAttempts, registerFailedLogin, clearLoginAttempts,
+  checkSignupRate, registerSignup
 } from '../auth.js';
 import { nowIso } from '../time.js';
 
@@ -22,6 +23,8 @@ export default function register(router) {
   /* Регистрация клиентки. Мастеров и администратора заводит владелица
      через административные адреса, самостоятельно такую роль получить нельзя. */
   router.post('/api/auth/register', async ({ body, req }) => {
+    checkSignupRate(req.socket.remoteAddress);
+
     const fullName = v.str(body.full_name, 'full_name', { min: 2, max: 120 });
     const phoneNumber = v.phone(body.phone);
     const password = v.password(body.password);
@@ -62,6 +65,8 @@ export default function register(router) {
 
       return get('SELECT id, role, full_name, phone, email FROM users WHERE id = $id', { id });
     });
+
+    registerSignup(req.socket.remoteAddress);
 
     const session = createSession(user.id, {
       userAgent: req.headers['user-agent'] ?? null,
@@ -112,4 +117,5 @@ export default function register(router) {
 
   router.get('/api/auth/me', async ({ req }) => ({ body: { user: publicUser(requireUser(req)) } }));
 }
+
 

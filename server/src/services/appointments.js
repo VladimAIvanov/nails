@@ -14,46 +14,51 @@ import {
   scheduleForAppointment, cancelScheduled, rescheduleNotifications, channelsFor
 } from './notifications.js';
 import { usePassFor, awardPointsFor, consumeMaterialsFor, matchWaitlist } from './studio.js';
+import { isAdmin, isMaster, isMasterOnly, actsAsClient, hasRole } from '../auth.js';
 
 /* Права на создание. Возвращает поля, разрешённые этой роли: остальные
    значения из запроса сюда просто не доходят. */
 function resolveCreatePermissions(actor, input) {
-  switch (actor.role) {
-    case 'client':
-      /* Клиент записывает только себя, только к указанному мастеру
-         и никогда — поверх занятого времени. */
-      return {
-        clientId: actor.id,
-        masterId: input.masterId,
-        source: 'site',
-        allowOverlap: 0,
-        enforceLeadTime: true
-      };
-
-    case 'master':
-      /* Мастер оформляет визит в своём расписании: клиента указывает,
-         мастера — нет, им всегда является он сам. */
-      return {
-        clientId: input.clientId,
-        masterId: actor.id,
-        source: 'admin',
-        allowOverlap: 0,
-        enforceLeadTime: false
-      };
-
-    case 'admin':
-      /* Администратор — единственный, кому доступно осознанное наложение. */
-      return {
-        clientId: input.clientId,
-        masterId: input.masterId,
-        source: 'admin',
-        allowOverlap: input.allowOverlap ? 1 : 0,
-        enforceLeadTime: false
-      };
-
-    default:
-      throw forbidden('Создавать записи может клиент, мастер или администратор');
+  /* Роли проверяются по списку и по старшинству, а не сравнением с
+     единственным значением: у владелицы-мастера их две, и при сравнении
+     она получила бы права только по одной из них. Старший набор прав
+     побеждает — администратор, затем мастер, затем клиент. */
+  if (isAdmin(actor)) {
+    /* Администратор — единственный, кому доступно осознанное наложение. */
+    return {
+      clientId: input.clientId,
+      masterId: input.masterId,
+      source: 'admin',
+      allowOverlap: input.allowOverlap ? 1 : 0,
+      enforceLeadTime: false
+    };
   }
+
+  if (isMaster(actor)) {
+    /* Мастер оформляет визит в своём расписании: клиента указывает,
+       мастера — нет, им всегда является он сам. */
+    return {
+      clientId: input.clientId,
+      masterId: actor.id,
+      source: 'admin',
+      allowOverlap: 0,
+      enforceLeadTime: false
+    };
+  }
+
+  if (hasRole(actor, 'client')) {
+    /* Клиент записывает только себя, только к указанному мастеру
+       и никогда — поверх занятого времени. */
+    return {
+      clientId: actor.id,
+      masterId: input.masterId,
+      source: 'site',
+      allowOverlap: 0,
+      enforceLeadTime: true
+    };
+  }
+
+  throw forbidden('Создавать записи может клиент, мастер или администратор');
 }
 
 /**
@@ -80,7 +85,7 @@ export function createAppointment({ actor, input }) {
 
   /* Онлайн-запись выключают, когда студия не хочет принимать заявки с сайта.
      На оформление из панели это не влияет: студия записывает вручную всегда. */
-  if (actor.role === 'client') {
+  if (actsAsClient(actor)) {
     if (settings.online_booking_enabled !== 1) throw conflict('Онлайн-запись сейчас отключена');
     if (master.accepts_online_booking !== 1) throw conflict('Мастер не принимает онлайн-запись');
   }
@@ -94,7 +99,7 @@ export function createAppointment({ actor, input }) {
   }
 
   const status = input.status
-    ?? (settings.manual_confirmation_required === 1 && actor.role === 'client' ? 'pending' : 'confirmed');
+    ?? (settings.manual_confirmation_required === 1 && actsAsClient(actor) ? 'pending' : 'confirmed');
 
   /* Депозит на дорогих услугах. Здесь только учёт: сколько нужно и внесено ли.
      Приём денег делает касса, сервис записи их не трогает. */
@@ -158,7 +163,7 @@ export function createAppointment({ actor, input }) {
   } catch (err) {
     throw mapOverlapError(err, {
       masterId: perms.masterId, serviceIds: input.serviceIds, startsAt: input.startsAt,
-      hint: actor.role === 'admin'
+      hint: isAdmin(actor)
         ? 'Время занято. Чтобы записать поверх, передайте allow_overlap: true'
         : 'Это время только что заняли. Выберите другое окно'
     });
@@ -180,15 +185,15 @@ export function rescheduleAppointment({ actor, id, startsAt }) {
   if (!row) throw notFound('Запись не найдена');
 
   const isOwner = row.client_id === actor.id;
-  const isAdmin = actor.role === 'admin';
-  if (!isOwner && !isAdmin) {
+  const admin = isAdmin(actor);
+  if (!isOwner && !admin) {
     throw forbidden('Переносить запись может владелец записи или администратор');
   }
 
   if (!['pending', 'confirmed'].includes(row.status)) {
     throw conflict(`Запись в статусе «${row.status}» переносить нельзя`);
   }
-  if (!isAdmin && Date.parse(startsAt) - Date.now() < settings.min_lead_time_min * 60_000) {
+  if (!admin && Date.parse(startsAt) - Date.now() < settings.min_lead_time_min * 60_000) {
     throw conflict(`Перенести можно не позднее чем за ${settings.min_lead_time_min} мин`);
   }
 
@@ -218,9 +223,9 @@ export function cancelAppointment({ actor, id, reason }) {
   if (!row) throw notFound('Запись не найдена');
 
   const isOwner = row.client_id === actor.id;
-  const isMaster = row.master_id === actor.id;
-  const isAdmin = actor.role === 'admin';
-  if (!isOwner && !isMaster && !isAdmin) throw forbidden('Это чужая запись');
+  const isTheirMaster = row.master_id === actor.id;
+  const admin = isAdmin(actor);
+  if (!isOwner && !isTheirMaster && !admin) throw forbidden('Это чужая запись');
 
   if (row.status === 'cancelled') throw conflict('Запись уже отменена');
   if (['done', 'no_show'].includes(row.status)) throw conflict('Состоявшийся визит отменить нельзя');
@@ -288,9 +293,9 @@ export function confirmAppointment({ actor, id }) {
   const row = get('SELECT * FROM appointments WHERE id = $id', { id });
   if (!row) throw notFound('Запись не найдена');
 
-  const isMaster = row.master_id === actor.id;
-  const isAdmin = actor.role === 'admin';
-  if (!isMaster && !isAdmin) throw forbidden('Подтверждать запись может мастер или администратор');
+  const isTheirMaster = row.master_id === actor.id;
+  const admin = isAdmin(actor);
+  if (!isTheirMaster && !admin) throw forbidden('Подтверждать запись может мастер или администратор');
 
   if (row.status !== 'pending') {
     throw conflict(`Запись в статусе «${row.status}», подтверждать нечего`);
@@ -300,7 +305,7 @@ export function confirmAppointment({ actor, id }) {
     run('UPDATE appointments SET status = \'confirmed\', updated_at = $now WHERE id = $id',
       { now: nowIso(), id });
     writeLog(id, 'pending', 'confirmed', actor.id,
-      isAdmin ? 'подтверждено в панели' : 'подтверждено мастером');
+      admin ? 'подтверждено в панели' : 'подтверждено мастером');
   });
 
   return { id, status: 'confirmed' };
@@ -313,9 +318,9 @@ export function completeAppointment({ actor, id, outcome = 'done' }) {
   const row = get('SELECT * FROM appointments WHERE id = $id', { id });
   if (!row) throw notFound('Запись не найдена');
 
-  const isMaster = row.master_id === actor.id;
-  const isAdmin = actor.role === 'admin';
-  if (!isMaster && !isAdmin) throw forbidden('Завершать визит может мастер или администратор');
+  const isTheirMaster = row.master_id === actor.id;
+  const admin = isAdmin(actor);
+  if (!isTheirMaster && !admin) throw forbidden('Завершать визит может мастер или администратор');
 
   if (!['pending', 'confirmed'].includes(row.status)) {
     throw conflict(`Запись в статусе «${row.status}» завершить нельзя`);
@@ -378,8 +383,9 @@ function writeLog(appointmentId, from, to, byId, comment) {
 
 function createNote(actor, perms) {
   if (perms.allowOverlap === 1) return 'создано администратором поверх занятого времени';
-  if (actor.role === 'master') return 'оформлено мастером';
-  if (actor.role === 'admin') return 'создано администратором';
+  // порядок по старшинству: у владелицы-мастера обе роли
+  if (isAdmin(actor)) return 'создано администратором';
+  if (isMaster(actor)) return 'оформлено мастером';
   return 'запись создана';
 }
 
@@ -392,4 +398,7 @@ function mapOverlapError(err, { masterId, serviceIds, startsAt, hint }) {
     available: nearestFreeSlots({ masterId, serviceIds, fromIso: startsAt })
   });
 }
+
+
+
 

@@ -23,9 +23,9 @@ registerStudio(router);
 registerManage(router);
 registerProfile(router);
 
-router.get('/api/health', async () => ({
-  body: { ok: true, database: dbFile, time: new Date().toISOString() }
-}));
+/* Путь к файлу базы наружу не отдаётся: это имя пользователя ОС и
+   структура каталогов сервера. Для диагностики есть npm run doctor. */
+router.get('/api/health', async () => ({ body: { ok: true, time: new Date().toISOString() } }));
 
 router.get('/api', async () => ({ body: { endpoints: router.list() } }));
 
@@ -88,6 +88,7 @@ for (const signal of ['SIGINT', 'SIGTERM']) {
     });
   });
 }
+
 
 
 

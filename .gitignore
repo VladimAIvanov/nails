@@ -147,3 +147,6 @@ server/data/
 *.db
 *.db-wal
 *.db-shm
+
+# Отчёт проверки безопасности: остаётся локальным
+security-review.local.md
