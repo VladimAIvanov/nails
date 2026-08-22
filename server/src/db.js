@@ -1,8 +1,18 @@
 /* Подключение к SQLite через встроенный в Node 24 модуль node:sqlite —
-   без внешних зависимостей и нативной сборки. */
-import { DatabaseSync } from 'node:sqlite';
-import { mkdirSync } from 'node:fs';
-import { dirname, resolve } from 'node:path';
+   без внешних зависимостей и нативной сборки.
+
+   Перед открытием базы проверяется окружение: версия Node, наличие самого
+   модуля в сборке, права на каталог. Требования — в src/env-check.js. */
+import { resolve } from 'node:path';
+import {
+  checkRuntime,
+  checkSqliteModule,
+  checkDataDirectory,
+  checkConnection
+} from './env-check.js';
+
+const runtimeNotes = checkRuntime();
+const { DatabaseSync } = await checkSqliteModule();
 
 /* SQLITE_PATH задаётся относительно корня проекта, а не текущей папки:
    скрипты запускаются из server/, и путь «server/data/varvara.db» иначе
@@ -13,7 +23,7 @@ const file = process.env.SQLITE_PATH
   ? resolve(projectRoot, process.env.SQLITE_PATH)
   : resolve(import.meta.dirname, '..', 'data', 'varvara.db');
 
-mkdirSync(dirname(file), { recursive: true });
+const dirNotes = checkDataDirectory(file);
 
 export const dbFile = file;
 export const db = new DatabaseSync(file);
@@ -27,6 +37,13 @@ db.exec('PRAGMA foreign_keys = ON');
 db.exec('PRAGMA journal_mode = WAL');
 db.exec('PRAGMA busy_timeout = 5000');
 db.exec('PRAGMA synchronous = NORMAL');
+
+export const environment = checkConnection(db);
+
+/* Замечания не мешают работе, но должны быть видны в логе запуска. */
+for (const note of [...runtimeNotes, ...dirNotes, ...environment.notes]) {
+  console.warn(`[окружение] ${note}`);
+}
 
 export function all(sql, params = {}) {
   return db.prepare(sql).all(params);
@@ -42,7 +59,8 @@ export function run(sql, params = {}) {
 
 /* BEGIN IMMEDIATE, а не обычный BEGIN: блокировка записи берётся сразу,
    а не при первой записи. Именно это закрывает гонку «проверили — вставили»
-   в расчёте свободного времени: пока транзакция открыта, второй писатель ждёт. */
+   в расчёте свободного времени: пока транзакция открыта, второй писатель ждёт.
+   Работает и между процессами — блокировка живёт на уровне файла. */
 export function transaction(fn) {
   db.exec('BEGIN IMMEDIATE');
   try {
