@@ -1,12 +1,13 @@
 /* HTTP-сервер сервиса записи. Зависимостей нет: node:http и node:sqlite. */
 import { createServer } from 'node:http';
 import { db, dbFile } from './db.js';
-import { createRouter, readJson, send, HttpError } from './http.js';
+import { createRouter, readJson, send, sendRaw, HttpError } from './http.js';
 import registerAuth from './routes/auth.js';
 import registerCatalog from './routes/catalog.js';
 import registerHolds from './routes/holds.js';
 import registerAppointments from './routes/appointments.js';
 import registerAdmin from './routes/admin.js';
+import registerExtras from './routes/extras.js';
 
 const router = createRouter();
 registerAuth(router);
@@ -14,6 +15,7 @@ registerCatalog(router);
 registerHolds(router);
 registerAppointments(router);
 registerAdmin(router);
+registerExtras(router);
 
 router.get('/api/health', async () => ({
   body: { ok: true, database: dbFile, time: new Date().toISOString() }
@@ -32,7 +34,12 @@ const server = createServer(async (req, res) => {
 
     const result = await handler({ req, res, params, query: url.searchParams, body });
     status = result.status ?? 200;
-    send(res, status, result.body);
+
+    if (result.raw) {
+      sendRaw(res, status, result.raw.contentType, result.raw.body, result.raw.headers);
+    } else {
+      send(res, status, result.body);
+    }
   } catch (err) {
     if (err instanceof HttpError) {
       status = err.status;
@@ -64,3 +71,5 @@ for (const signal of ['SIGINT', 'SIGTERM']) {
     });
   });
 }
+
+

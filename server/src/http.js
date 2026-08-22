@@ -43,6 +43,18 @@ export async function readJson(req) {
   }
 }
 
+/* Не всё, что отдаёт сервис, — JSON: календарь передаётся как text/calendar,
+   иначе приложение календаря его не распознает. */
+export function sendRaw(res, status, contentType, body, headers = {}) {
+  res.writeHead(status, {
+    'content-type': contentType,
+    'content-length': Buffer.byteLength(body),
+    'cache-control': 'no-store',
+    ...headers
+  });
+  res.end(body);
+}
+
 export function send(res, status, payload) {
   const body = JSON.stringify(payload);
   res.writeHead(status, {

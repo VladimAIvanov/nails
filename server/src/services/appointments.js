@@ -5,10 +5,14 @@
    пересечений, одна транзакция, один журнал статусов, одна обработка отказа
    триггера. Второго пути вставки в API нет — если он появится, вместе с ним
    появится и возможность обойти права или транзакцию. */
+import { randomBytes } from 'node:crypto';
 import { all, get, run, transaction } from '../db.js';
 import { conflict, forbidden, notFound } from '../http.js';
 import { getSettings, requiredDuration, purgeExpiredHolds, nearestFreeSlots } from '../slots.js';
 import { nowIso, addMinutes } from '../time.js';
+import {
+  scheduleForAppointment, cancelScheduled, rescheduleNotifications
+} from './notifications.js';
 
 /* Права на создание. Возвращает поля, разрешённые этой роли: остальные
    значения из запроса сюда просто не доходят. */
@@ -118,13 +122,17 @@ export function createAppointment({ actor, input }) {
       for (const svc of need.services) {
         run(
           `INSERT INTO appointments (client_id, master_id, service_id, starts_at, duration_min,
-                                     price_kopecks, status, source, client_comment, allow_overlap)
+                                     price_kopecks, status, source, client_comment, allow_overlap,
+                                     cancel_token)
            VALUES ($client, $master, $service, $starts, $duration, $price, $status, $source,
-                   $comment, $overlap)`,
+                   $comment, $overlap, $token)`,
           {
             client: perms.clientId, master: perms.masterId, service: svc.id, starts: cursor,
             duration: svc.duration_min, price: svc.price_kopecks, status,
-            source: perms.source, comment: input.comment ?? null, overlap: perms.allowOverlap
+            source: perms.source, comment: input.comment ?? null, overlap: perms.allowOverlap,
+            /* Токен отмены по ссылке. Свой у каждой записи и случайный:
+               по номеру записи можно было бы перебором отменять чужие визиты. */
+            token: randomBytes(18).toString('base64url')
           }
         );
         const id = get('SELECT last_insert_rowid() AS id').id;
@@ -143,7 +151,13 @@ export function createAppointment({ actor, input }) {
     });
   }
 
-  return { ids, allowOverlap: perms.allowOverlap === 1, status, services: need.services };
+  /* Уведомления ставятся после коммита: сообщение о записи, которая
+     откатилась, — хуже, чем отсутствие сообщения. */
+  const notifications = scheduleForAppointment(ids[0]);
+
+  return {
+    ids, allowOverlap: perms.allowOverlap === 1, status, services: need.services, notifications
+  };
 }
 
 /** Перенос. Доступен владельцу записи и администратору. */
@@ -178,6 +192,9 @@ export function rescheduleAppointment({ actor, id, startsAt }) {
     });
   }
 
+  // напоминания пересобираются от нового времени
+  rescheduleNotifications(id);
+
   return get('SELECT * FROM appointments WHERE id = $id', { id });
 }
 
@@ -206,7 +223,28 @@ export function cancelAppointment({ actor, id, reason }) {
       reason ?? (isLate ? 'поздняя отмена' : 'отмена'));
   });
 
+  // напоминания снимаются: иначе придёт напоминание о визите, которого не будет
+  cancelScheduled(id);
+
   return { id, status: 'cancelled', late_cancellation: isLate };
+}
+
+/* Отмена по ссылке из письма или сообщения — без входа в кабинет.
+   Знание токена и есть подтверждение права: он случайный, свой у каждой
+   записи и уходит только её владелице. */
+export function cancelByToken({ token, reason }) {
+  const row = get(
+    `SELECT a.*, u.full_name AS client_name FROM appointments a
+       JOIN users u ON u.id = a.client_id WHERE a.cancel_token = $token`,
+    { token }
+  );
+  if (!row) throw notFound('Ссылка недействительна');
+
+  return cancelAppointment({
+    actor: { id: row.client_id, role: 'client' },
+    id: row.id,
+    reason: reason ?? 'отмена по ссылке'
+  });
 }
 
 /** Подтверждение. Доступно администратору и мастеру, которому запись адресована. */
