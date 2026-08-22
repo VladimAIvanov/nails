@@ -4,10 +4,14 @@
    Пароли здесь демонстрационные и заданы одной константой: это локальный
    стенд, а не рабочая установка. */
 import { scryptSync, randomBytes } from 'node:crypto';
-import { db, transaction, nowIso } from './db.js';
+import { db, transaction, nowIso, toIso } from './db.js';
 
 const DEMO_PASSWORD = 'varvara-demo';
 
+/* Соль генерируется на каждый вызов, поэтому одинаковый пароль даёт разные
+   хеши. Вызывать функцию нужно отдельно для каждой учётной записи: общий
+   результат на всех сводит смысл соли к нулю — по совпадающим хешам сразу
+   видно, что пароль у этих людей один и тот же. */
 function hashPassword(plain) {
   const salt = randomBytes(16);
   const key = scryptSync(plain, salt, 64);
@@ -29,7 +33,29 @@ const SERVICES = [
   { slug: 'ext',       cat: 'extension', title: 'Наращивание',          desc: 'Гель, форма и длина на выбор',  dur: 180, price: 550000, buffer: 20, priceFrom: 1, badge: 'хит' },
   { slug: 'ped',       cat: 'pedicure',  title: 'Педикюр с покрытием',  desc: 'Медицинский аппаратный',        dur: 100, price: 380000, buffer: 20 },
   { slug: 'design',    cat: 'design',    title: 'Дизайн ногтей',        desc: 'Френч, втирка, стемпинг',       dur: 20,  price: 60000,  buffer: 5,  priceFrom: 1, durFrom: 1 },
-  { slug: 'repair',    cat: 'manicure',  title: 'Ремонт ногтя',         desc: null,                            dur: 15,  price: 40000,  buffer: 5,  online: 0 }
+  { slug: 'repair',    cat: 'manicure',  title: 'Ремонт ногтя',         desc: null,                            dur: 15,  price: 40000,  buffer: 5,  online: 0 },
+  { slug: 'removal',   cat: 'manicure',  title: 'Снятие покрытия',      desc: 'Аппаратное, без повреждения',   dur: 30,  price: 70000,  buffer: 10 },
+  { slug: 'ped-clean', cat: 'pedicure',  title: 'Педикюр без покрытия', desc: 'Медицинский аппаратный',        dur: 70,  price: 290000, buffer: 20 },
+  { slug: 'strength',  cat: 'manicure',  title: 'Укрепление гелем',     desc: 'Под гель-лак, для тонких ногтей', dur: 40, price: 120000, buffer: 10 },
+  { slug: 'paraffin',  cat: 'pedicure',  title: 'Парафинотерапия',      desc: 'Руки или стопы, уход',          dur: 35,  price: 150000, buffer: 10 }
+];
+
+/* Клиентки из прототипа. Марина зарегистрирована и заходит в кабинет,
+   Ольга и Ирина записались как гости — у них пароля нет вовсе. */
+const CLIENTS = [
+  { name: 'Марина Ковалёва', phone: '+79210000010', registered: true },
+  { name: 'Ольга Петрова',   phone: '+79210000011', registered: false },
+  { name: 'Ирина Соколова',  phone: '+79210000012', registered: false }
+];
+
+/* Записи: ближайшие и история, разные мастера, статусы и источники.
+   Времена разведены так, чтобы не сработал запрет пересечения. */
+const APPOINTMENTS = [
+  { client: 0, master: 'varvara@varvara.studio', service: 'man-cover', dayOffset: 2,  time: '10:00', status: 'confirmed', source: 'site' },
+  { client: 1, master: 'varvara@varvara.studio', service: 'ext',       dayOffset: 2,  time: '13:00', status: 'pending',   source: 'telegram' },
+  { client: 2, master: 'lena@varvara.studio',    service: 'ped',       dayOffset: 3,  time: '11:00', status: 'confirmed', source: 'site' },
+  { client: 0, master: 'aya@varvara.studio',     service: 'design',    dayOffset: -7, time: '15:00', status: 'done',      source: 'telegram' },
+  { client: 1, master: 'lena@varvara.studio',    service: 'man',       dayOffset: -3, time: '14:00', status: 'cancelled', source: 'admin' }
 ];
 
 /* Специализации мастеров хранятся не текстом, а списком услуг — см. раздел 10. */
@@ -52,8 +78,6 @@ const WORKS = [
 ];
 
 transaction((conn) => {
-  const passwordHash = hashPassword(DEMO_PASSWORD);
-
   const upsertCategory = conn.prepare(`
     INSERT INTO service_categories (slug, title, sort_order) VALUES (?, ?, ?)
     ON CONFLICT (slug) DO UPDATE SET title = excluded.title, sort_order = excluded.sort_order
@@ -85,7 +109,7 @@ transaction((conn) => {
 
   // Владелица: роль admin, отдельный профиль мастера ей не заводится.
   upsertUser.run('admin', 'Варвара Администратор', 'admin@varvara.studio',
-    '+79210000000', passwordHash, nowIso());
+    '+79210000000', hashPassword(DEMO_PASSWORD), nowIso());
   const ownerId = findUser.get('admin@varvara.studio').id;
   conn.prepare('UPDATE studio_settings SET owner_user_id = ? WHERE id = 1').run(ownerId);
 
@@ -100,7 +124,7 @@ transaction((conn) => {
   `);
 
   for (const m of MASTERS) {
-    upsertUser.run('master', m.name, m.email, m.phone, passwordHash, nowIso());
+    upsertUser.run('master', m.name, m.email, m.phone, hashPassword(DEMO_PASSWORD), nowIso());
     const id = findUser.get(m.email).id;
     upsertProfile.run(id, m.sort);
     clearServices.run(id);
@@ -132,6 +156,61 @@ transaction((conn) => {
   for (const [i, title] of WORKS.entries()) {
     addWork.run(masterIds[i % masterIds.length], `/img/works/${i + 1}.jpg`, title, (i + 1) * 10);
   }
+
+  // ── Клиентки ──────────────────────────────────────────────────────────────
+  const upsertClient = conn.prepare(`
+    INSERT INTO users (role, full_name, phone, password_hash, password_changed_at)
+    VALUES ('client', ?, ?, ?, ?)
+    ON CONFLICT (phone) DO UPDATE SET full_name = excluded.full_name
+  `);
+  const findByPhone = conn.prepare('SELECT id FROM users WHERE phone = ?');
+  const clientIds = [];
+  for (const c of CLIENTS) {
+    upsertClient.run(c.name, c.phone, c.registered ? hashPassword(DEMO_PASSWORD) : null,
+      c.registered ? nowIso() : null);
+    clientIds.push(findByPhone.get(c.phone).id);
+  }
+
+  // Согласие на обработку данных даётся при первой записи
+  conn.prepare('DELETE FROM consents').run();
+  const addConsent = conn.prepare(`
+    INSERT INTO consents (user_id, kind, is_granted, document_version, source)
+    VALUES (?, 'personal_data', 1, 'v1', 'site')
+  `);
+  for (const id of clientIds) addConsent.run(id);
+
+  // ── Записи ────────────────────────────────────────────────────────────────
+  conn.prepare('DELETE FROM appointment_status_log').run();
+  conn.prepare('DELETE FROM appointments').run();
+
+  const masterByEmail = conn.prepare('SELECT id FROM users WHERE email = ?');
+  const serviceBySlug = conn.prepare(
+    'SELECT id, duration_min, price_kopecks FROM services WHERE slug = ?'
+  );
+  const addAppointment = conn.prepare(`
+    INSERT INTO appointments (client_id, master_id, service_id, starts_at,
+                              duration_min, price_kopecks, status, source)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+  `);
+  const addLog = conn.prepare(`
+    INSERT INTO appointment_status_log (appointment_id, from_status, to_status, comment)
+    VALUES (?, NULL, ?, 'создано при загрузке тестовых данных')
+  `);
+
+  for (const a of APPOINTMENTS) {
+    const day = new Date();
+    day.setUTCDate(day.getUTCDate() + a.dayOffset);
+    const [h, m] = a.time.split(':');
+    day.setUTCHours(Number(h), Number(m), 0, 0);
+
+    const svc = serviceBySlug.get(a.service);
+    const masterId = masterByEmail.get(a.master).id;
+
+    addAppointment.run(clientIds[a.client], masterId, svc.id, toIso(day),
+      svc.duration_min, svc.price_kopecks, a.status, a.source);
+    const id = conn.prepare('SELECT last_insert_rowid() AS id').get().id;
+    addLog.run(id, a.status);
+  }
 });
 
 const c = db.prepare(`
@@ -141,13 +220,17 @@ const c = db.prepare(`
          (SELECT COUNT(*) FROM master_services) AS links,
          (SELECT COUNT(*) FROM working_hours)   AS hours,
          (SELECT COUNT(*) FROM content_blocks)  AS blocks,
-         (SELECT COUNT(*) FROM portfolio_works) AS works
+         (SELECT COUNT(*) FROM portfolio_works) AS works,
+         (SELECT COUNT(*) FROM appointments)    AS appts,
+         (SELECT COUNT(*) FROM users WHERE role = 'client') AS clients
 `).get();
 
 console.log('Сиды загружены:');
-console.log(`  пользователей ${c.users}, мастеров ${c.masters}, услуг ${c.services}`);
-console.log(`  связей мастер-услуга ${c.links}, интервалов графика ${c.hours}`);
-console.log(`  блоков лендинга ${c.blocks}, работ в портфолио ${c.works}`);
+console.log(`  пользователей ${c.users} (клиентов ${c.clients}, мастеров ${c.masters}, владелица 1)`);
+console.log(`  услуг ${c.services}, связей мастер-услуга ${c.links}, интервалов графика ${c.hours}`);
+console.log(`  записей ${c.appts}, блоков лендинга ${c.blocks}, работ в портфолио ${c.works}`);
 console.log(`\n  Демо-пароль для всех учётных записей: ${DEMO_PASSWORD}`);
 
 db.close();
+
+
