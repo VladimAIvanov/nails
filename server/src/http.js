@@ -20,6 +20,21 @@ export function corsHeaders(origin) {
   };
 }
 
+/* Заголовки безопасности ставятся на каждый ответ, а не только на будущие
+   страницы фронтенда. Сервис отдаёт JSON и календарные ленты, и всё это
+   браузер не должен ни угадывать по содержимому (nosniff), ни встраивать
+   во фрейм чужого сайта (frame-ancestors, X-Frame-Options), ни утаскивать
+   адрес с токеном отмены в чужой Referer (no-referrer). Политика default-src
+   'none' для API строгая по существу: собственных скриптов, стилей и картинок
+   у ответов нет — если браузер что-то из них исполняет, это уже не наш ответ. */
+export const SECURITY_HEADERS = {
+  'x-content-type-options': 'nosniff',
+  'x-frame-options': 'DENY',
+  'referrer-policy': 'no-referrer',
+  'content-security-policy':
+    "default-src 'none'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'"
+};
+
 export class HttpError extends Error {
   constructor(status, code, message, details) {
     super(message);
@@ -69,6 +84,7 @@ export function sendRaw(res, status, contentType, body, headers = {}) {
     'content-type': contentType,
     'content-length': Buffer.byteLength(body),
     'cache-control': 'no-store',
+    ...SECURITY_HEADERS,
     ...(res.corsHeaders ?? {}),
     ...headers
   });
@@ -81,6 +97,7 @@ export function send(res, status, payload) {
     'content-type': 'application/json; charset=utf-8',
     'content-length': Buffer.byteLength(body),
     'cache-control': 'no-store',
+    ...SECURITY_HEADERS,
     ...(res.corsHeaders ?? {})
   });
   res.end(body);

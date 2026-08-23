@@ -1,5 +1,5 @@
 /* Уведомления, регулярные записи, календарь и отмена по ссылке. */
-import { all, get, run } from '../db.js';
+import { all, get, run, setClause } from '../db.js';
 import { badRequest, notFound } from '../http.js';
 import * as v from '../validate.js';
 import { requireUser, requireRole, isAdmin, actsAsClient } from '../auth.js';
@@ -43,10 +43,16 @@ export default function register(router) {
     run(`INSERT INTO notification_prefs (user_id) VALUES ($id)
          ON CONFLICT (user_id) DO NOTHING`, { id: actor.id });
 
-    for (const [column, value] of Object.entries(fields)) {
-      if (value === null) continue;
-      run(`UPDATE notification_prefs SET ${column} = $v, updated_at = $now WHERE user_id = $id`,
-        { v: value, now: nowIso(), id: actor.id });
+    /* Переданные переключатели собираются в один UPDATE, а имена столбцов
+       сверяются со списком разрешённых: из тела запроса сюда попадают
+       только значения, но не имена. */
+    const updates = Object.fromEntries(
+      Object.entries(fields).filter(([, value]) => value !== null)
+    );
+    if (Object.keys(updates).length > 0) {
+      const columns = setClause(updates, Object.keys(fields));
+      run(`UPDATE notification_prefs SET ${columns}, updated_at = $now WHERE user_id = $id`,
+        { ...updates, now: nowIso(), id: actor.id });
     }
 
     return { body: { ok: true, active_channels: channelsFor(actor.id) } };

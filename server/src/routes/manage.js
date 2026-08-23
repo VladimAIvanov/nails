@@ -3,7 +3,7 @@
 
    Всё это было в схеме с самого начала, но управлялось только правкой базы
    руками — экранов и адресов не было. */
-import { all, get, run, transaction } from '../db.js';
+import { all, get, run, transaction, setClause } from '../db.js';
 import { badRequest, conflict, forbidden, notFound } from '../http.js';
 import * as v from '../validate.js';
 import { requireRole, isMasterOnly } from '../auth.js';
@@ -21,6 +21,13 @@ const INT_SETTINGS = [
 const TEXT_SETTINGS = [
   'title', 'city', 'address_line', 'address_note', 'phone', 'email',
   'telegram_bot_username', 'timezone', 'public_base_url'
+];
+
+/* Полный список столбцов, которые администратор вправе менять.
+   Всё, чего здесь нет, до запроса не дойдёт. */
+const SETTINGS_COLUMNS = [
+  ...TEXT_SETTINGS, ...INT_SETTINGS, ...BOOL_SETTINGS,
+  'guest_booking_mode', 'bot_status', 'bot_connected_at'
 ];
 
 export default function register(router) {
@@ -65,7 +72,7 @@ export default function register(router) {
       throw badRequest('Поле «deposit_percent»: не больше 100');
     }
 
-    const columns = Object.keys(updates).map((k) => `${k} = $${k}`).join(', ');
+    const columns = setClause(updates, SETTINGS_COLUMNS);
     run(`UPDATE studio_settings SET ${columns}, updated_at = $now WHERE id = 1`,
       { ...updates, now: nowIso() });
 
@@ -443,3 +450,4 @@ export default function register(router) {
     return { body: { id, deposit_kopecks: row.deposit_kopecks, deposit_status: status } };
   });
 }
+

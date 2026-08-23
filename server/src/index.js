@@ -3,7 +3,9 @@ import { createServer as createHttpServer } from 'node:http';
 import { createServer as createHttpsServer } from 'node:https';
 import { readFileSync } from 'node:fs';
 import { db, dbFile } from './db.js';
-import { createRouter, readJson, send, sendRaw, corsHeaders, HttpError } from './http.js';
+import {
+  createRouter, readJson, send, sendRaw, corsHeaders, HttpError, SECURITY_HEADERS
+} from './http.js';
 import { isSecure, trustedProxies } from './net.js';
 import registerAuth from './routes/auth.js';
 import registerCatalog from './routes/catalog.js';
@@ -74,7 +76,7 @@ const handler = async (req, res) => {
   /* Предварительный запрос браузера перед межсайтовым обращением.
      Отвечать на него должен сервер, до всякой маршрутизации. */
   if (req.method === 'OPTIONS') {
-    res.writeHead(204, res.corsHeaders);
+    res.writeHead(204, { ...SECURITY_HEADERS, ...res.corsHeaders });
     res.end();
     return;
   }

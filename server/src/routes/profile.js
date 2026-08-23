@@ -3,7 +3,7 @@
 
    Всё это было в схеме и на экранах прототипа, но управлять этим
    через API было нельзя. */
-import { all, get, run } from '../db.js';
+import { all, get, run, setClause } from '../db.js';
 import { badRequest, conflict, forbidden, notFound, unauthorized } from '../http.js';
 import * as v from '../validate.js';
 import { requireUser, hashPassword, verifyPassword, createSession } from '../auth.js';
@@ -33,7 +33,9 @@ export default function register(router) {
       throw conflict('Эта почта уже занята');
     }
 
-    const columns = Object.keys(updates).map((k) => `${k} = $${k}`).join(', ');
+    /* Список разрешённых столбцов задан явно: телефона и роли в нём нет,
+       поэтому изменить их через профиль невозможно даже по недосмотру. */
+    const columns = setClause(updates, ['full_name', 'email', 'photo_url', 'telegram_username']);
     run(`UPDATE users SET ${columns}, updated_at = $now WHERE id = $id`,
       { ...updates, now: nowIso(), id: actor.id });
 
@@ -273,4 +275,5 @@ export default function register(router) {
     };
   });
 }
+
 

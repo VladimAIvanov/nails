@@ -7,7 +7,37 @@ import { db, all, get, run } from './db.js';
 import { nowIso, toIso } from './time.js';
 import { unauthorized, forbidden, HttpError } from './http.js';
 
-const SESSION_TTL_DAYS = 30;
+/* Срок жизни сеанса зависит от прав.
+
+   У администратора и мастера в руках чужие персональные данные, деньги
+   студии и настройки записи — украденный токен должен протухать за сутки.
+   Клиентке месяц бессменного токена не нужен: семь дней с продлением при
+   активности не заставляют её входить заново, но и не оставляют забытый
+   в чужом браузере сеанс живым до следующего сезона. */
+const days = (value, fallback) => {
+  const n = Number(value);
+  return Number.isFinite(n) && n > 0 ? n : fallback;
+};
+
+const SESSION_TTL_DAYS = {
+  staff: days(process.env.SESSION_TTL_DAYS_STAFF, 1),
+  client: days(process.env.SESSION_TTL_DAYS, 7)
+};
+
+/* Роли берутся из базы: и список user_roles, и основная роль в users.
+   Ни то ни другое из запроса не приходит. */
+function rolesOf(userId) {
+  return all(
+    `SELECT role FROM user_roles WHERE user_id = $id
+     UNION SELECT role FROM users WHERE id = $id`,
+    { id: userId }
+  ).map((r) => r.role);
+}
+
+const ttlMsFor = (roles) =>
+  (roles.includes('admin') || roles.includes('master')
+    ? SESSION_TTL_DAYS.staff
+    : SESSION_TTL_DAYS.client) * 86_400_000;
 
 /* Параметры стойкости scrypt. Хранятся вместе с хешем, а не подразумеваются:
    иначе смена умолчаний в новой версии Node или наше собственное решение
@@ -71,7 +101,7 @@ const tokenHash = (token) => createHash('sha256').update(token).digest('hex');
 
 export function createSession(userId, { userAgent = null, ip = null } = {}) {
   const token = randomBytes(32).toString('base64url');
-  const expiresAt = toIso(new Date(Date.now() + SESSION_TTL_DAYS * 86_400_000));
+  const expiresAt = toIso(new Date(Date.now() + ttlMsFor(rolesOf(userId))));
 
   run(
     `INSERT INTO sessions (user_id, token_hash, expires_at, user_agent, ip)
@@ -95,7 +125,8 @@ export function currentUser(req) {
   if (!token) return null;
 
   const row = get(
-    `SELECT u.id, u.role, u.full_name, u.phone, u.email, u.is_active, s.id AS session_id
+    `SELECT u.id, u.role, u.full_name, u.phone, u.email, u.is_active,
+            s.id AS session_id, s.expires_at
        FROM sessions s
        JOIN users u ON u.id = s.user_id
       WHERE s.token_hash = $hash
@@ -113,6 +144,15 @@ export function currentUser(req) {
   const roles = all('SELECT role FROM user_roles WHERE user_id = $id', { id: row.id })
     .map((r) => r.role);
   if (!roles.includes(row.role)) roles.push(row.role);
+
+  /* Продление при активности. Короткий срок не должен выбрасывать человека
+     посреди работы, но и запись в базу на каждый запрос ни к чему: срок
+     сдвигается, только когда истекла половина. */
+  const ttlMs = ttlMsFor(roles);
+  if (Date.parse(row.expires_at) - Date.now() < ttlMs / 2) {
+    run('UPDATE sessions SET expires_at = $exp WHERE id = $id',
+      { exp: toIso(new Date(Date.now() + ttlMs)), id: row.session_id });
+  }
 
   return {
     id: row.id,
