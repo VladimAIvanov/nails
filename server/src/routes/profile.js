@@ -8,6 +8,7 @@ import { badRequest, conflict, forbidden, notFound, unauthorized } from '../http
 import * as v from '../validate.js';
 import { requireUser, hashPassword, verifyPassword, createSession } from '../auth.js';
 import { nowIso } from '../time.js';
+import { clientIp } from '../net.js';
 
 export default function register(router) {
   // ── Свои данные ───────────────────────────────────────────────────────────
@@ -69,7 +70,7 @@ export default function register(router) {
 
     const session = createSession(actor.id, {
       userAgent: req.headers['user-agent'] ?? null,
-      ip: req.socket.remoteAddress ?? null
+      ip: clientIp(req) || null
     });
 
     return { body: { ok: true, sessions_closed: closed, ...session } };
@@ -272,3 +273,4 @@ export default function register(router) {
     };
   });
 }
+

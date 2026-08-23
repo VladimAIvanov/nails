@@ -3,10 +3,10 @@ import { get, run, transaction } from '../db.js';
 import { badRequest, conflict, unauthorized } from '../http.js';
 import * as v from '../validate.js';
 import {
-  hashPassword, verifyPassword, createSession, revokeSession, requireUser,
-  purgeExpiredSessions, checkLoginAttempts, registerFailedLogin, clearLoginAttempts,
-  checkSignupRate, registerSignup
+  hashPassword, verifyPassword, createSession, revokeSession, requireUser, purgeExpiredSessions
 } from '../auth.js';
+import { check as checkRate, hit as hitRate, clear as clearRate, purge as purgeRates } from '../ratelimit.js';
+import { clientIp } from '../net.js';
 import { nowIso } from '../time.js';
 
 /* Наружу отдаём только то, что нужно интерфейсу. Хеша пароля здесь нет
@@ -23,7 +23,10 @@ export default function register(router) {
   /* Регистрация клиентки. Мастеров и администратора заводит владелица
      через административные адреса, самостоятельно такую роль получить нельзя. */
   router.post('/api/auth/register', async ({ body, req }) => {
-    checkSignupRate(req.socket.remoteAddress);
+    /* Ключ — адрес клиента с учётом доверенных прокси, а не адрес соединения:
+       за прокси последний одинаков для всех и ограничение теряет смысл. */
+    const ip = clientIp(req);
+    checkRate('signup', ip);
 
     const fullName = v.str(body.full_name, 'full_name', { min: 2, max: 120 });
     const phoneNumber = v.phone(body.phone);
@@ -66,11 +69,11 @@ export default function register(router) {
       return get('SELECT id, role, full_name, phone, email FROM users WHERE id = $id', { id });
     });
 
-    registerSignup(req.socket.remoteAddress);
+    hitRate('signup', ip);
 
     const session = createSession(user.id, {
       userAgent: req.headers['user-agent'] ?? null,
-      ip: req.socket.remoteAddress ?? null
+      ip: clientIp(req) || null
     });
 
     return { status: 201, body: { user: publicUser(user), ...session } };
@@ -81,7 +84,7 @@ export default function register(router) {
     const login = v.str(body.login, 'login', { max: 200 });
     const password = v.password(body.password);
 
-    checkLoginAttempts(login);
+    checkRate('login', login);
 
     const isEmail = login.includes('@');
     const user = get(
@@ -94,15 +97,16 @@ export default function register(router) {
     /* Один и тот же ответ на «нет такого пользователя», «нет пароля»
        и «пароль неверный»: иначе по коду ответа можно перебрать базу телефонов. */
     if (!user || user.is_active !== 1 || !verifyPassword(password, user.password_hash)) {
-      registerFailedLogin(login);
+      hitRate('login', login);
       throw unauthorized('Неверный логин или пароль');
     }
-    clearLoginAttempts(login);
+    clearRate('login', login);
 
     purgeExpiredSessions();
+    purgeRates();
     const session = createSession(user.id, {
       userAgent: req.headers['user-agent'] ?? null,
-      ip: req.socket.remoteAddress ?? null
+      ip: clientIp(req) || null
     });
 
     return { body: { user: publicUser(user), ...session } };
@@ -117,5 +121,6 @@ export default function register(router) {
 
   router.get('/api/auth/me', async ({ req }) => ({ body: { user: publicUser(requireUser(req)) } }));
 }
+
 
 

@@ -159,75 +159,15 @@ export const isMasterOnly = (user) => isMaster(user) && !isAdmin(user);
 /* «Действует как клиент» — нет ни административных, ни мастерских прав. */
 export const actsAsClient = (user) => !isAdmin(user) && !isMaster(user);
 
-/* Защита от подбора пароля. Счётчик в памяти процесса, а не в базе:
-   при перезапуске он сбрасывается, и это допустимо — задача не в том,
-   чтобы блокировать навсегда, а в том, чтобы перебор был слишком медленным.
-   Ключ — логин, а не адрес: за одним адресом может сидеть весь салон. */
-const attempts = new Map();
-const MAX_ATTEMPTS = 8;
-const WINDOW_MS = 15 * 60_000;
-
-export function checkLoginAttempts(login) {
-  const record = attempts.get(login);
-  if (!record) return;
-  if (Date.now() - record.first > WINDOW_MS) { attempts.delete(login); return; }
-  if (record.count >= MAX_ATTEMPTS) {
-    const waitSec = Math.ceil((WINDOW_MS - (Date.now() - record.first)) / 1000);
-    const err = new HttpError(429, 'too_many_attempts',
-      `Слишком много попыток входа. Повторите через ${Math.ceil(waitSec / 60)} мин`);
-    err.retryAfter = waitSec;
-    throw err;
-  }
-}
-
-export function registerFailedLogin(login) {
-  const record = attempts.get(login);
-  if (!record || Date.now() - record.first > WINDOW_MS) {
-    attempts.set(login, { count: 1, first: Date.now() });
-  } else {
-    record.count++;
-  }
-}
-
-export function clearLoginAttempts(login) {
-  attempts.delete(login);
-}
-
-/* Ограничение частоты регистраций. Ключ — адрес запроса: логина здесь ещё
-   нет, а без ограничения скрипт заведёт тысячи учётных записей, каждую
-   с согласием на обработку данных. */
-const signups = new Map();
-const MAX_SIGNUPS = 5;
-const SIGNUP_WINDOW_MS = 60 * 60_000;
-
-export function checkSignupRate(ip) {
-  const key = ip ?? 'unknown';
-  const record = signups.get(key);
-  if (!record) return;
-  if (Date.now() - record.first > SIGNUP_WINDOW_MS) { signups.delete(key); return; }
-  if (record.count >= MAX_SIGNUPS) {
-    const waitSec = Math.ceil((SIGNUP_WINDOW_MS - (Date.now() - record.first)) / 1000);
-    const err = new HttpError(429, 'too_many_attempts',
-      `Слишком много регистраций. Повторите через ${Math.ceil(waitSec / 60)} мин`);
-    err.retryAfter = waitSec;
-    throw err;
-  }
-}
-
-export function registerSignup(ip) {
-  const key = ip ?? 'unknown';
-  const record = signups.get(key);
-  if (!record || Date.now() - record.first > SIGNUP_WINDOW_MS) {
-    signups.set(key, { count: 1, first: Date.now() });
-  } else {
-    record.count++;
-  }
-}
+/* Ограничение частоты вынесено в ratelimit.js: счётчики хранятся в базе
+   и переживают перезапуск сервиса. */
+export { check as checkRate, hit as hitRate, clear as clearRate } from './ratelimit.js';
 
 /* Чистка просроченных сеансов. Вызывается при входе — отдельного
    планировщика ради этого заводить незачем. */
 export function purgeExpiredSessions() {
   db.prepare('DELETE FROM sessions WHERE expires_at < ?').run(nowIso());
 }
+
 
 
