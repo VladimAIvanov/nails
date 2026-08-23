@@ -10,6 +10,7 @@ import {
   checkDataDirectory,
   checkConnection
 } from './env-check.js';
+import * as env from './env.js';
 
 const runtimeNotes = checkRuntime();
 const { DatabaseSync } = await checkSqliteModule();
@@ -19,8 +20,9 @@ const { DatabaseSync } = await checkSqliteModule();
    разворачивался бы в server/server/data/varvara.db. */
 const projectRoot = resolve(import.meta.dirname, '..', '..');
 
-const file = process.env.SQLITE_PATH
-  ? resolve(projectRoot, process.env.SQLITE_PATH)
+const configuredPath = env.text('SQLITE_PATH');
+const file = configuredPath
+  ? resolve(projectRoot, configuredPath)
   : resolve(import.meta.dirname, '..', 'data', 'varvara.db');
 
 const dirNotes = checkDataDirectory(file);

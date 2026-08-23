@@ -6,17 +6,18 @@
 import { get, run } from './db.js';
 import { HttpError } from './http.js';
 import { nowIso, toIso } from './time.js';
+import * as env from './env.js';
 
 /* Пороги вынесены в окружение: на боевом сервере их держат строже,
    а на стенде послабее, чтобы проверки не упирались в ограничитель. */
 export const LIMITS = {
   login: {
-    max: Number(process.env.RATE_LIMIT_LOGIN ?? 8),
-    windowMin: Number(process.env.RATE_LIMIT_LOGIN_WINDOW_MIN ?? 15)
+    max: env.number('RATE_LIMIT_LOGIN', 8),
+    windowMin: env.number('RATE_LIMIT_LOGIN_WINDOW_MIN', 15, { min: 1 })
   },
   signup: {
-    max: Number(process.env.RATE_LIMIT_SIGNUP ?? 5),
-    windowMin: Number(process.env.RATE_LIMIT_SIGNUP_WINDOW_MIN ?? 60)
+    max: env.number('RATE_LIMIT_SIGNUP', 5),
+    windowMin: env.number('RATE_LIMIT_SIGNUP_WINDOW_MIN', 60, { min: 1 })
   }
 };
 

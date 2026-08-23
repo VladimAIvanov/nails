@@ -6,6 +6,7 @@ import { scryptSync, randomBytes, timingSafeEqual, createHash } from 'node:crypt
 import { db, all, get, run } from './db.js';
 import { nowIso, toIso } from './time.js';
 import { unauthorized, forbidden, HttpError } from './http.js';
+import * as env from './env.js';
 
 /* Срок жизни сеанса зависит от прав.
 
@@ -14,14 +15,9 @@ import { unauthorized, forbidden, HttpError } from './http.js';
    Клиентке месяц бессменного токена не нужен: семь дней с продлением при
    активности не заставляют её входить заново, но и не оставляют забытый
    в чужом браузере сеанс живым до следующего сезона. */
-const days = (value, fallback) => {
-  const n = Number(value);
-  return Number.isFinite(n) && n > 0 ? n : fallback;
-};
-
 const SESSION_TTL_DAYS = {
-  staff: days(process.env.SESSION_TTL_DAYS_STAFF, 1),
-  client: days(process.env.SESSION_TTL_DAYS, 7)
+  staff: env.number('SESSION_TTL_DAYS_STAFF', 1, { min: 0.001 }),
+  client: env.number('SESSION_TTL_DAYS', 7, { min: 0.001 })
 };
 
 /* Роли берутся из базы: и список user_roles, и основная роль в users.

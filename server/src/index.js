@@ -7,6 +7,7 @@ import {
   createRouter, readJson, send, sendRaw, corsHeaders, HttpError, SECURITY_HEADERS
 } from './http.js';
 import { isSecure, trustedProxies } from './net.js';
+import * as env from './env.js';
 import registerAuth from './routes/auth.js';
 import registerCatalog from './routes/catalog.js';
 import registerHolds from './routes/holds.js';
@@ -38,12 +39,12 @@ router.get('/api', async () => ({ body: { endpoints: router.list() } }));
    или в репозитории нельзя. Если путей нет, сервер поднимается по обычному
    HTTP — это допустимо только за прокси, который завершает TLS сам,
    либо на локальном стенде. */
-const tlsKey = process.env.TLS_KEY_FILE;
-const tlsCert = process.env.TLS_CERT_FILE;
+const tlsKey = env.text('TLS_KEY_FILE');
+const tlsCert = env.text('TLS_CERT_FILE');
 const ownTls = Boolean(tlsKey && tlsCert);
 
-const production = process.env.NODE_ENV === 'production';
-const allowInsecure = process.env.ALLOW_INSECURE_HTTP === 'true';
+const production = env.text('NODE_ENV') === 'production';
+const allowInsecure = env.flag('ALLOW_INSECURE_HTTP');
 
 /* В рабочем режиме сервер отказывается стартовать по открытому HTTP,
    если TLS не завершает ни он сам, ни доверенный прокси. Токен сеанса ходит
@@ -113,8 +114,24 @@ const server = ownTls
   ? createHttpsServer({ key: readFileSync(tlsKey), cert: readFileSync(tlsCert) }, handler)
   : createHttpServer(handler);
 
-const port = Number(process.env.PORT ?? 3000);
+const port = env.number('PORT', 3000, { min: 1 });
 const scheme = ownTls ? 'https' : 'http';
+
+/* Занятый порт — самая частая неприятность при первом запуске: на 3000
+   сидит половина учебных проектов. Без этого обработчика Node печатает
+   стек вызовов, из которого новичку неясно, что делать. */
+server.on('error', (err) => {
+  if (err.code === 'EADDRINUSE') {
+    console.error(
+      `\nПорт ${port} уже занят другой программой.\n` +
+      `  Запустите на свободном порту: PORT=3100 npm start\n` +
+      `  (в PowerShell: $env:PORT=3100; npm start)\n` +
+      '  Либо задайте PORT в файле .env — его читают и сервер, и страницы.\n'
+    );
+    process.exit(1);
+  }
+  throw err;
+});
 
 server.listen(port, () => {
   console.log(`Сервис записи «Варвара» слушает ${scheme}://127.0.0.1:${port}`);

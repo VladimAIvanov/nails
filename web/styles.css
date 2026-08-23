@@ -1,0 +1,54 @@
+/* Минимум стилей: рамки, отступы и цвета сообщений. Оформление здесь
+   не задача — страницы нужны, чтобы проверять API руками. */
+* { box-sizing: border-box; }
+
+body {
+  font: 15px/1.45 system-ui, sans-serif;
+  margin: 0;
+  padding: 0 16px 48px;
+  color: #1a1a1a;
+  background: #fff;
+}
+
+main { max-width: 1000px; margin: 0 auto; }
+
+nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  padding: 10px 0;
+  margin-bottom: 16px;
+  border-bottom: 1px solid #ccc;
+}
+nav a { color: #0645ad; }
+nav a.current { font-weight: 700; text-decoration: none; }
+nav .who { margin-left: auto; color: #555; font-size: 13px; }
+
+h1 { font-size: 22px; }
+h2 { font-size: 17px; margin-top: 28px; }
+section { border: 1px solid #ddd; padding: 12px 14px; margin-bottom: 16px; }
+
+label { display: block; margin: 8px 0 2px; font-size: 13px; color: #333; }
+input, select, textarea { font: inherit; padding: 5px 6px; border: 1px solid #999; width: 260px; }
+textarea { width: 100%; max-width: 520px; }
+input[type="checkbox"] { width: auto; }
+button { font: inherit; padding: 5px 12px; margin: 8px 6px 0 0; cursor: pointer; }
+.row { display: flex; flex-wrap: wrap; gap: 14px; align-items: flex-end; }
+.hint { color: #666; font-size: 13px; margin: 4px 0; }
+
+table { border-collapse: collapse; width: 100%; margin-top: 10px; font-size: 14px; }
+th, td { border: 1px solid #ddd; padding: 5px 7px; text-align: left; vertical-align: top; }
+th { background: #f2f2f2; }
+td.actions button { margin: 0 4px 0 0; padding: 2px 8px; }
+
+.msg { padding: 8px 10px; margin: 10px 0; border: 1px solid; white-space: pre-wrap; }
+.msg.error { border-color: #b00020; background: #fdecef; color: #7d0016; }
+.msg.ok { border-color: #1f7a1f; background: #eefaee; color: #145714; }
+.msg .details { margin-top: 6px; font-size: 13px; }
+.msg button { margin: 6px 6px 0 0; }
+
+.slot { margin: 0 6px 6px 0; }
+.status { font-size: 12px; border: 1px solid #bbb; padding: 1px 6px; border-radius: 8px; }
+.muted { color: #777; }
+pre { background: #f6f6f6; padding: 8px; overflow-x: auto; font-size: 12px; }

@@ -6,11 +6,12 @@
 import { db, transaction } from './db.js';
 import { nowIso, toIso } from './time.js';
 import { hashPassword } from './auth.js';
+import * as env from './env.js';
 
 /* Пароль для стенда берётся из окружения: в коде секретов быть не должно.
    Значение по умолчанию задано в .env.example и предназначено только для
    локальной установки — на сервере переменную нужно задать своей. */
-const DEMO_PASSWORD = process.env.SEED_PASSWORD ?? 'varvara-demo';
+const DEMO_PASSWORD = env.text('SEED_PASSWORD', 'varvara-demo');
 
 
 const CATEGORIES = [
