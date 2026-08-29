@@ -62,11 +62,21 @@ const APPOINTMENTS = [
   { client: 1, master: 'lena@varvara.studio',    service: 'man',       dayOffset: -3, time: '14:00', status: 'cancelled', source: 'admin' }
 ];
 
-/* Специализации мастеров хранятся не текстом, а списком услуг — см. раздел 10. */
+/* Специализации мастеров хранятся не текстом, а списком услуг — см. раздел 10.
+
+   Каждая услуга прайса закреплена хотя бы за одним действующим мастером.
+   Иначе она видна в каталоге, но записаться на неё не к кому: человек
+   выбирает услугу и только на следующем шаге узнаёт, что её никто не делает.
+   Прайс без исполнителя — законная ситуация для настоящей студии (мастер
+   уволился, новый не нанят), но в демонстрационных данных это выглядит
+   поломкой сервиса, а не жизнью студии. */
 const MASTERS = [
-  { email: 'varvara@varvara.studio', name: 'Варвара', phone: '+79210000001', sort: 10, services: ['man-cover', 'man', 'ext', 'design', 'repair'] },
-  { email: 'lena@varvara.studio',    name: 'Лена',    phone: '+79210000002', sort: 20, services: ['ped', 'man-cover', 'man'] },
-  { email: 'aya@varvara.studio',     name: 'Ая',      phone: '+79210000003', sort: 30, services: ['design', 'ext'] }
+  { email: 'varvara@varvara.studio', name: 'Варвара', phone: '+79210000001', sort: 10,
+    services: ['man-cover', 'man', 'ext', 'design', 'repair', 'removal', 'strength'] },
+  { email: 'lena@varvara.studio',    name: 'Лена',    phone: '+79210000002', sort: 20,
+    services: ['ped', 'man-cover', 'man', 'ped-clean', 'paraffin', 'removal'] },
+  { email: 'aya@varvara.studio',     name: 'Ая',      phone: '+79210000003', sort: 30,
+    services: ['design', 'ext', 'strength'] }
 ];
 
 const HIGHLIGHTS = [
