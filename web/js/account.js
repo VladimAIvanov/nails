@@ -16,8 +16,11 @@ document.getElementById('hello-sub').textContent = isNew
   ? 'Кабинет готов. Записей пока нет — самое время выбрать окно.'
   : 'Ближайшие визиты и история.';
 
-let tab = 'upcoming';
+const PARTS = { any: 'в любое время', morning: 'утром', day: 'днём', evening: 'вечером' };
+
+let tab = new URLSearchParams(location.search).get('tab') === 'waitlist' ? 'waitlist' : 'upcoming';
 let data = null;
+let waiting = [];
 let settings = null;
 
 function card(a, { first = false } = {}) {
@@ -49,13 +52,57 @@ function card(a, { first = false } = {}) {
   );
 }
 
+/* Заявка в лист ожидания: ждём освободившееся окно у мастера на дату. */
+function waitCard(entry) {
+  const drop = el('button', { type: 'button', className: 'btn btn--ghost btn--sm', textContent: 'Убрать из списка' });
+  drop.addEventListener('click', guard(async () => {
+    await api('DELETE', `/api/waitlist/${entry.id}`);
+    await load();
+  }));
+
+  const when = entry.date_from === entry.date_to
+    ? `на ${entry.date_from.split('-').reverse().join('.')}`
+    : `с ${entry.date_from.split('-').reverse().join('.')} по ${entry.date_to.split('-').reverse().join('.')}`;
+
+  return el('article', { className: 'card visit' },
+    el('div', { className: 'row account__head' },
+      el('h3', { textContent: entry.service_title }),
+      el('span', {
+        className: `status ${entry.notified_at ? 'status--confirmed' : 'status--pending'}`,
+        textContent: entry.notified_at ? 'окно освободилось' : 'ждём отмену'
+      })),
+    el('p', { className: 'account__when', textContent: `${entry.master_name}, ${when}` }),
+    el('p', { className: 'muted', textContent: `Готовы прийти ${PARTS[entry.part_of_day] ?? entry.part_of_day}` }),
+    entry.notified_at
+      ? el('p', { className: 'caption', textContent: 'Мы уже сообщили вам — время могли занять, проверьте свободные окна.' })
+      : null,
+    el('div', { className: 'row' },
+      el('a', { className: 'btn btn--secondary btn--sm', href: `/booking-time?master=${entry.master_id}`, textContent: 'Посмотреть окна' }),
+      drop)
+  );
+}
+
 function render() {
   const list = document.getElementById('list');
-  const items = tab === 'upcoming' ? data.upcoming : data.past;
 
   for (const btn of document.querySelectorAll('.tab')) {
     btn.classList.toggle('tab--on', btn.dataset.tab === tab);
   }
+
+  if (tab === 'waitlist') {
+    list.replaceChildren(
+      ...(waiting.length
+        ? waiting.map(waitCard)
+        : [el('div', { className: 'card stack empty' },
+          el('h3', {}, 'Лист ожидания пуст'),
+          el('p', { className: 'muted' },
+            'Если в нужный день у мастера нет окон, встаньте в лист ожидания — сообщим, когда кто-нибудь отменит визит.'),
+          el('a', { className: 'btn', href: '/booking', textContent: 'Выбрать время' }))])
+    );
+    return;
+  }
+
+  const items = tab === 'upcoming' ? data.upcoming : data.past;
 
   if (items.length === 0) {
     list.replaceChildren(
@@ -74,11 +121,18 @@ function render() {
 
 async function load() {
   settings = await studio();
-  data = await api('GET', '/api/appointments/my?scope=all');
+  const [visits, list] = await Promise.all([
+    api('GET', '/api/appointments/my?scope=all'),
+    api('GET', '/api/waitlist')
+  ]);
+
+  data = visits;
+  waiting = list.entries.filter((e) => e.is_active === 1);
 
   /* Ближайший — это последний в списке: сервер отдаёт по убыванию времени. */
   document.getElementById('count-upcoming').textContent = data.upcoming.length;
   document.getElementById('count-past').textContent = data.past.length;
+  document.getElementById('count-waitlist').textContent = waiting.length;
   render();
 }
 

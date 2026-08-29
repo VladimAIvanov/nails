@@ -279,6 +279,33 @@ a.steps__item:hover { border-color: var(--color-border-accent); color: var(--col
 .switch__title { display: block; font-weight: var(--weight-medium); }
 .switch__hint { display: block; font-size: var(--text-sm); color: var(--color-text-muted); }
 
+/* ── Абонементы и баллы ────────────────────────────────────────────────── */
+
+.bonus__dots { display: flex; gap: var(--space-1); flex-wrap: wrap; }
+.bonus__dot {
+  width: var(--space-5);
+  height: var(--space-2);
+  border-radius: var(--radius-pill);
+  background: var(--color-surface-sunken);
+  border: var(--border-width) solid var(--color-border);
+}
+.bonus__dot--used { background: var(--color-button); border-color: var(--color-button); }
+
+.bonus__balance { display: flex; align-items: baseline; gap: var(--space-2); }
+.bonus__value {
+  font-family: var(--font-display);
+  font-size: var(--text-display);
+  font-weight: var(--weight-semibold);
+  line-height: var(--line-tight);
+  color: var(--color-text);
+}
+.bonus__subtitle { margin-top: var(--space-5); }
+.bonus__delta { font-variant-numeric: tabular-nums; font-weight: var(--weight-semibold); }
+.bonus__delta--plus { color: var(--color-success); }
+.bonus__delta--minus { color: var(--color-error); }
+
+.waitlist { margin-block: var(--space-4); }
+
 /* ── Окно подтверждения ────────────────────────────────────────────────── */
 
 .modal {

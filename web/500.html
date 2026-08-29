@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Сервис недоступен — Варвара</title>
+  <link rel="stylesheet" href="/tokens.css">
+  <link rel="stylesheet" href="/css/base.css">
+  <link rel="stylesheet" href="/css/booking.css">
+</head>
+<body>
+
+<header id="header" class="header"></header>
+
+<main class="wrap wrap--narrow auth">
+  <div class="auth__card">
+    <p class="eyebrow">Ошибка сервера</p>
+    <h1 class="auth__title">Сервис сейчас не отвечает</h1>
+    <p class="auth__sub">
+      Ваши записи в порядке — они хранятся на сервере и никуда не делись.
+      Проблема на нашей стороне, обычно это ненадолго.
+    </p>
+
+    <div id="msg"></div>
+    <div id="state" class="note note--info">Проверяем связь…</div>
+
+    <div class="row">
+      <button class="btn" id="retry" type="button">Проверить снова</button>
+      <a class="btn btn--secondary" href="/">На главную</a>
+    </div>
+
+    <p class="auth__foot" id="studio">
+      Если нужно записаться прямо сейчас — позвоните в студию.
+    </p>
+  </div>
+</main>
+
+<script type="module" src="/js/500.js"></script>
+</body>
+</html>

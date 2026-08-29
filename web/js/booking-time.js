@@ -348,6 +348,7 @@ async function showEmpty(date, answer) {
           return btn;
         })))
       : el('p', { className: 'muted' }, 'В ближайшие две недели окон нет.'),
+    waitlistBlock(date),
     el('div', { className: 'stack' },
       el('p', { className: 'muted' }, 'Что ещё можно сделать:'),
       el('ul', { className: 'hints' },
@@ -355,6 +356,51 @@ async function showEmpty(date, answer) {
         el('li', {}, el('a', { href: '/booking', textContent: 'убрать часть услуг — короткий визит легче поместить' })),
         el('li', {}, 'посмотреть соседние дни в календаре слева')))
   );
+}
+
+/* Лист ожидания. Ради него он и заведён: отменённый визит иначе просто
+   пропадает, а тут студия сообщит тем, кто ждал это время. */
+function waitlistBlock(date) {
+  const button = el('button', { type: 'button', className: 'btn btn--secondary btn--sm',
+    textContent: 'Сообщить, если освободится' });
+
+  const box = el('div', { className: 'card stack waitlist' },
+    el('h4', {}, 'Встать в лист ожидания'),
+    el('p', { className: 'muted' },
+      `Если на ${dayTitle(date).toLowerCase()} кто-нибудь отменит визит, вам придёт сообщение — успеете занять окно первой.`),
+    button);
+
+  button.addEventListener('click', guard(async () => {
+    button.disabled = true;
+    try {
+      await api('POST', '/api/waitlist', {
+        master_id: masterId,
+        service_id: serviceIds[0],
+        date_from: date,
+        date_to: date
+      });
+      box.replaceChildren(
+        el('div', { className: 'note note--ok' },
+          'Готово: сообщим, как только это время освободится.'),
+        el('p', { className: 'muted' },
+          el('a', { href: '/account?tab=waitlist', textContent: 'Список ожидания — в кабинете' }))
+      );
+    } catch (err) {
+      button.disabled = false;
+      /* Повторная заявка на тот же день — не поломка, а «уже стоите». */
+      if (err.status === 409) {
+        box.replaceChildren(
+          el('div', { className: 'note note--info' }, err.message),
+          el('p', { className: 'muted' },
+            el('a', { href: '/account?tab=waitlist', textContent: 'Посмотреть в кабинете' }))
+        );
+        return;
+      }
+      throw err;
+    }
+  }));
+
+  return box;
 }
 
 // ── Нижняя полоса ───────────────────────────────────────────────────────────

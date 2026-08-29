@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Абонементы и баллы — Варвара</title>
+  <link rel="stylesheet" href="/tokens.css">
+  <link rel="stylesheet" href="/css/base.css">
+  <link rel="stylesheet" href="/css/booking.css">
+</head>
+<body>
+
+<header id="header" class="header"></header>
+
+<main class="wrap wrap--narrow section">
+  <p class="eyebrow">Личный кабинет</p>
+  <h1>Абонементы и баллы</h1>
+  <p class="lead section__sub">Что у вас накоплено и сколько визитов осталось.</p>
+
+  <div id="msg"></div>
+
+  <section class="card stack profile__block">
+    <h3>Абонементы</h3>
+    <div id="passes" class="stack">
+      <div class="skeleton skeleton-card"></div>
+    </div>
+  </section>
+
+  <section class="card stack profile__block">
+    <h3>Баллы</h3>
+    <div id="balance" class="stack">
+      <div class="skeleton skeleton-line"></div>
+    </div>
+    <h4 class="bonus__subtitle">Как набирались и тратились</h4>
+    <div id="history" class="stack"></div>
+  </section>
+
+  <p class="auth__foot">
+    <a href="/account">Мои записи</a> · <a href="/profile">Профиль</a>
+  </p>
+</main>
+
+<script type="module" src="/js/bonuses.js"></script>
+</body>
+</html>
