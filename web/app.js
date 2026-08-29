@@ -53,8 +53,14 @@ export async function api(method, path, body) {
   try { data = text ? JSON.parse(text) : null; } catch { data = { message: text }; }
 
   /* Токен протух или отозван — уводим на вход, а не показываем пустую
-     страницу с непонятной ошибкой. */
-  if (res.status === 401 && token()) {
+     страницу с непонятной ошибкой.
+
+     Вход и регистрация из этого правила исключены. Там 401 означает
+     «неверный пароль», а не «сеанс кончился»: без исключения неудачная
+     попытка входа стирала пропуск тому, кто уже вошёл, и подменяла причину
+     отказа. Ответ сервера нужно показывать как есть — он и так точный. */
+  const isAuthAttempt = path.startsWith('/api/auth/login') || path.startsWith('/api/auth/register');
+  if (res.status === 401 && token() && !isAuthAttempt) {
     clearSession();
     throw new ApiError(401, { error: 'unauthorized', message: 'Сеанс закончился, войдите заново' });
   }
@@ -87,6 +93,7 @@ export function showOk(text, id = 'msg') {
 export function showError(err, id = 'msg', { onSlot } = {}) {
   const el = box(id);
   el.innerHTML = '';
+  markStalled(); // «Загрузка…» рядом с сообщением об ошибке — обман, снимаем
 
   const div = document.createElement('div');
   div.className = 'msg error';
@@ -151,6 +158,34 @@ export function guard(fn, id = 'msg') {
       console.error(err);
     }
   };
+}
+
+/* Общая сеть под всей страницей.
+
+   Обёртка выше закрывает только то, что запускается по нажатию. Запросы
+   первой загрузки живут на верхнем уровне модуля, и до этой сети их отказ
+   попадал лишь в консоль: экран оставался с надписью «Загрузка…», а человек
+   видел молчание. Правило простое — ни один ответ сервера не остаётся
+   невидимым, поэтому ловим и то, что не поймали по дороге. */
+window.addEventListener('unhandledrejection', (event) => {
+  const err = event.reason;
+  showError(err instanceof ApiError ? err : new ApiError(0, { message: err?.message ?? String(err) }));
+  event.preventDefault();
+});
+
+window.addEventListener('error', (event) => {
+  showError(new ApiError(0, { message: event.message }));
+});
+
+/* Надпись «Загрузка…» после отказа — обман: ничего уже не грузится.
+   Заменяем её на честную отметку, чтобы экран не выглядел занятым. */
+function markStalled() {
+  for (const node of document.querySelectorAll('*')) {
+    if (node.children.length === 0 && node.textContent.trim() === 'Загрузка…') {
+      node.textContent = 'не загрузилось — см. сообщение выше';
+      node.classList.add('muted');
+    }
+  }
 }
 
 // ── Форматирование ──────────────────────────────────────────────────────────

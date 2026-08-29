@@ -131,8 +131,13 @@ import {
 
 renderNav();
 if (requireSession()) {
-  const settings = await studio();
   const user = currentUser();
+
+  let settings = null;
+  let masters = [];
+  let catalog = { categories: [], services: [] };
+  let admin = false;
+  let canMaster = false;
 
   /* Какие разделы показывать, решает не поле роли в ответе, а сам сервер.
 
@@ -151,27 +156,34 @@ if (requireSession()) {
     }
   }
 
-  const canMaster = user.role === 'master';
-  const admin = user.role === 'admin'
-    || (canMaster && await allowed('/api/admin/appointments?limit=1'));
+  /* Первая загрузка идёт через ту же обёртку, что и нажатия: отказ сервера
+     при открытии страницы должен быть виден на экране, а не только в консоли. */
+  async function init() {
+    settings = await studio();
 
-  document.getElementById('role-note').textContent = admin
-    ? (canMaster
-      ? 'Вы вошли владелицей: доступны и панель студии, и своё расписание.'
-      : 'Вы вошли администратором: видны все записи, услуги и мастера.')
-    : `Вы вошли как «${user.role}». Административные разделы закрыты — доступно своё расписание.`;
+    canMaster = user.role === 'master';
+    admin = user.role === 'admin'
+      || (canMaster && await allowed('/api/admin/appointments?limit=1'));
 
-  for (const id of ['appointments-section', 'create-section', 'services-section', 'masters-section']) {
-    document.getElementById(id).hidden = !admin;
+    document.getElementById('role-note').textContent = admin
+      ? (canMaster
+        ? 'Вы вошли владелицей: доступны и панель студии, и своё расписание.'
+        : 'Вы вошли администратором: видны все записи, услуги и мастера.')
+      : `Вы вошли как «${user.role}». Административные разделы закрыты — доступно своё расписание.`;
+
+    for (const id of ['appointments-section', 'create-section', 'services-section', 'masters-section']) {
+      document.getElementById(id).hidden = !admin;
+    }
+    document.getElementById('schedule-section').hidden = !canMaster;
+
+    masters = (await api('GET', '/api/masters')).masters;
+    catalog = await api('GET', '/api/services');
+    document.getElementById('schedule-date').value = today(settings.timezone);
   }
-  document.getElementById('schedule-section').hidden = !canMaster;
 
-  const masters = (await api('GET', '/api/masters')).masters;
-  const catalog = await api('GET', '/api/services');
+  await guard(init)();
 
   // ── Моё расписание ────────────────────────────────────────────────────────
-
-  document.getElementById('schedule-date').value = today(settings.timezone);
 
   async function loadSchedule() {
     const date = document.getElementById('schedule-date').value;

@@ -44,12 +44,10 @@ import { api, guard, renderNav, el, studio, today, whenLocal, query } from './ap
 
 renderNav();
 
-const settings = await studio();
 const params = query();
-
 const masterSelect = document.getElementById('master');
 const dateInput = document.getElementById('date');
-dateInput.value = params.get('date') ?? today(settings.timezone);
+let settings = null;
 
 /* Причины, по которым окон нет, приходят кодом — переводим их в текст,
    иначе пустой список выглядит как поломка. */
@@ -60,11 +58,18 @@ const REASONS = {
   day_off: 'В этот день мастер не работает'
 };
 
-const masters = (await api('GET', '/api/masters')).masters;
-for (const m of masters) {
-  masterSelect.append(el('option', { value: String(m.id), textContent: `${m.name} (id ${m.id})` }));
+/* Первая загрузка идёт через ту же обёртку, что и нажатия: иначе отказ
+   сервера при открытии страницы остался бы только в консоли. */
+async function init() {
+  settings = await studio();
+  dateInput.value = params.get('date') ?? today(settings.timezone);
+
+  const masters = (await api('GET', '/api/masters')).masters;
+  for (const m of masters) {
+    masterSelect.append(el('option', { value: String(m.id), textContent: `${m.name} (id ${m.id})` }));
+  }
+  if (params.get('master_id')) masterSelect.value = params.get('master_id');
 }
-if (params.get('master_id')) masterSelect.value = params.get('master_id');
 
 async function loadServices() {
   const masterId = masterSelect.value;
@@ -142,8 +147,11 @@ async function loadSlots() {
 masterSelect.addEventListener('change', guard(loadServices));
 document.getElementById('show').addEventListener('click', guard(loadSlots));
 
-await guard(loadServices)();
-if (params.get('master_id') || params.get('service_id')) await guard(loadSlots)();
+await guard(init)();
+if (masterSelect.options.length > 0) {
+  await guard(loadServices)();
+  if (params.get('master_id') || params.get('service_id')) await guard(loadSlots)();
+}
 </script>
 </body>
 </html>

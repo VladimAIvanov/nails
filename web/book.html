@@ -56,7 +56,6 @@ import {
 
 renderNav();
 
-const settings = await studio();
 const params = query();
 
 const masterSelect = document.getElementById('master');
@@ -65,19 +64,33 @@ const preview = document.getElementById('local-preview');
 
 startsInput.value = params.get('starts_at') ?? '';
 
-const masters = (await api('GET', '/api/masters')).masters;
-for (const m of masters) {
-  masterSelect.append(el('option', { value: String(m.id), textContent: `${m.name} (id ${m.id})` }));
-}
-if (params.get('master_id')) masterSelect.value = params.get('master_id');
-
+let settings = null;
 let hold = null;
 
+/* Первая загрузка идёт через ту же обёртку, что и нажатия: отказ сервера
+   при открытии страницы должен быть виден на экране. */
+async function init() {
+  settings = await studio();
+
+  const masters = (await api('GET', '/api/masters')).masters;
+  for (const m of masters) {
+    masterSelect.append(el('option', { value: String(m.id), textContent: `${m.name} (id ${m.id})` }));
+  }
+  if (params.get('master_id')) masterSelect.value = params.get('master_id');
+  showPreview(); // теперь пояс студии известен — показываем время по-человечески
+}
+
+/* Пояс студии приходит с сервера, поэтому до конца загрузки его ещё нет:
+   показываем время как есть, а не падаем на пустых настройках. */
 function showPreview() {
   const value = startsInput.value.trim();
-  preview.textContent = value && !Number.isNaN(Date.parse(value))
+  if (!value || Number.isNaN(Date.parse(value))) {
+    preview.textContent = 'Время указывается в UTC и заканчивается на Z. Проще выбрать окно на странице «Свободное время».';
+    return;
+  }
+  preview.textContent = settings
     ? `По времени студии: ${whenLocal(value, settings.timezone)} (${settings.timezone})`
-    : 'Время указывается в UTC и заканчивается на Z. Проще выбрать окно на странице «Свободное время».';
+    : `Начало ${value} (UTC)`;
 }
 
 async function loadServices() {
@@ -182,7 +195,8 @@ document.getElementById('create').addEventListener('click', async (event) => {
 });
 
 showPreview();
-await guard(loadServices)();
+await guard(init)();
+if (masterSelect.options.length > 0) await guard(loadServices)();
 </script>
 </body>
 </html>

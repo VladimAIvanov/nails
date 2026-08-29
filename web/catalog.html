@@ -47,14 +47,17 @@ import { api, guard, renderNav, el, table, fillSelect, money, studio } from './a
 
 renderNav();
 
-const settings = await studio();
-
-document.getElementById('studio').replaceChildren(
-  el('p', {}, `${settings.title}, ${settings.city}, ${settings.address_line}`),
-  el('p', { className: 'hint' },
-    `Часовой пояс ${settings.timezone} · онлайн-запись ${settings.online_booking_enabled ? 'включена' : 'выключена'} · `
-    + `бесплатная отмена за ${settings.free_cancellation_lead_min} мин`)
-);
+/* Загрузка страницы идёт через ту же обёртку, что и нажатия: отказ сервера
+   при открытии должен попадать на экран, а не только в консоль. */
+async function loadStudio() {
+  const settings = await studio();
+  document.getElementById('studio').replaceChildren(
+    el('p', {}, `${settings.title}, ${settings.city}, ${settings.address_line}`),
+    el('p', { className: 'hint' },
+      `Часовой пояс ${settings.timezone} · онлайн-запись ${settings.online_booking_enabled ? 'включена' : 'выключена'} · `
+      + `бесплатная отмена за ${settings.free_cancellation_lead_min} мин`)
+  );
+}
 
 let allServices = [];
 
@@ -118,6 +121,7 @@ document.getElementById('reload').addEventListener('click', guard(async () => {
   await loadMasters();
 }));
 
+await guard(loadStudio)();
 await guard(loadServices)();
 await guard(loadMasters)();
 </script>

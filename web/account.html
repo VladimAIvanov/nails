@@ -63,11 +63,17 @@ import {
 
 renderNav();
 if (requireSession()) {
-  const settings = await studio();
-  document.getElementById('cancel-rule').textContent =
-    `Отмена бесплатна не позднее чем за ${settings.free_cancellation_lead_min} мин до визита. Позже отменить тоже можно — визит просто будет помечен поздней отменой.`;
-
+  let settings = null;
   let selected = null;
+
+  /* Первая загрузка идёт через ту же обёртку, что и нажатия: отказ сервера
+     при открытии страницы должен быть виден на экране. */
+  async function init() {
+    settings = await studio();
+    document.getElementById('cancel-rule').textContent =
+      `Отмена бесплатна не позднее чем за ${settings.free_cancellation_lead_min} мин до визита. Позже отменить тоже можно — визит просто будет помечен поздней отменой.`;
+    document.getElementById('new-date').value = today(settings.timezone);
+  }
 
   function statusCell(item) {
     return el('span', { className: 'status' }, item.status_title ?? item.status);
@@ -202,8 +208,8 @@ if (requireSession()) {
   document.getElementById('scope').addEventListener('change', guard(loadList));
   document.getElementById('reload').addEventListener('click', guard(loadList));
 
-  document.getElementById('new-date').value = today(settings.timezone);
-  await guard(loadList)();
+  await guard(init)();
+  if (settings) await guard(loadList)();
 }
 </script>
 </body>
