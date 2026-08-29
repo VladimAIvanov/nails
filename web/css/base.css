@@ -295,6 +295,73 @@ a:hover { color: var(--color-text-link-hover); }
 .auth__sub { margin-bottom: var(--space-6); color: var(--color-text-secondary); font-size: var(--text-sm); }
 .auth__foot { margin-top: var(--space-5); font-size: var(--text-sm); color: var(--color-text-secondary); }
 
+/* ── Секции ────────────────────────────────────────────────────────────── */
+
+.section__sub { margin-block: var(--space-3) var(--space-6); max-width: 60ch; }
+
+.chips { display: flex; gap: var(--space-2); flex-wrap: wrap; margin-bottom: var(--space-6); }
+.chip {
+  min-height: var(--control-sm);
+  padding-inline: var(--space-4);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-pill);
+  background: var(--color-surface);
+  color: var(--color-text-secondary);
+  font-family: var(--font-text);
+  font-size: var(--text-sm);
+  cursor: pointer;
+}
+.chip:hover { border-color: var(--color-border-accent); color: var(--color-text); }
+.chip--on { background: var(--color-button); border-color: var(--color-button); color: var(--color-button-text); }
+
+/* ── Карточка услуги ───────────────────────────────────────────────────── */
+
+.service { display: flex; flex-direction: column; gap: var(--space-3); }
+.service__head { display: flex; gap: var(--space-3); align-items: flex-start; justify-content: space-between; }
+.service__title { font-size: var(--text-h3); }
+.service__text { color: var(--color-text-secondary); font-size: var(--text-sm); }
+.service__foot {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--space-4);
+  padding-top: var(--space-3);
+  border-top: var(--border-width) solid var(--color-border-subtle);
+  margin-top: auto;
+}
+.price {
+  font-family: var(--font-display);
+  font-size: var(--text-h4);
+  font-weight: var(--weight-semibold);
+  color: var(--color-text);
+  font-variant-numeric: tabular-nums;
+}
+.badge {
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-pill);
+  background: var(--color-surface-accent);
+  color: var(--color-text-link);
+  font-size: var(--text-overline);
+  font-weight: var(--weight-semibold);
+  letter-spacing: var(--tracking-overline);
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.service .btn { align-self: flex-start; }
+
+/* ── Карточка мастера ──────────────────────────────────────────────────── */
+
+.master { display: flex; flex-direction: column; align-items: flex-start; gap: var(--space-2); }
+.master__name { font-size: var(--text-h3); }
+.master__rating { font-size: var(--text-sm); color: var(--color-text-secondary); }
+.master .btn { margin-top: var(--space-3); }
+.avatar--lg {
+  width: var(--space-16);
+  height: var(--space-16);
+  font-size: var(--text-h2);
+  margin-bottom: var(--space-2);
+}
+
 /* ── Кабинет и служебные экраны ────────────────────────────────────────── */
 
 .status {
@@ -344,3 +411,5 @@ a:hover { color: var(--color-text-link-hover); }
 @media (min-width: 700px) {
   .footer__grid { grid-template-columns: 2fr 1fr 1fr 1fr; }
 }
+
+

@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Запись: время — Варвара</title>
+  <link rel="stylesheet" href="/tokens.css">
+  <link rel="stylesheet" href="/css/base.css">
+  <link rel="stylesheet" href="/css/booking.css">
+</head>
+<body>
+
+<header id="header" class="header"></header>
+
+<main class="wrap booking">
+  <div id="steps"></div>
+
+  <h1 id="title">Когда вам удобно</h1>
+  <p class="lead section__sub" id="sub">Свободное время считает сервис: рабочие часы мастера минус занятое.</p>
+
+  <div id="msg"></div>
+  <div id="reschedule-note"></div>
+
+  <div class="time">
+    <section class="time__calendar card">
+      <div class="cal__head">
+        <button class="btn btn--ghost btn--sm" id="prev" type="button" aria-label="Предыдущий месяц">←</button>
+        <h3 id="month"></h3>
+        <button class="btn btn--ghost btn--sm" id="next-month" type="button" aria-label="Следующий месяц">→</button>
+      </div>
+      <div class="cal__weekdays" id="weekdays"></div>
+      <div class="cal__grid" id="days"></div>
+      <p class="cal__legend">
+        <span class="cal__dot cal__dot--free"></span> есть окна
+        <span class="cal__dot cal__dot--busy"></span> занято
+        <span class="cal__dot cal__dot--off"></span> не работает
+      </p>
+    </section>
+
+    <section class="time__slots">
+      <h3 id="day-title">Выберите день</h3>
+      <div id="slots" class="slots">
+        <p class="muted">Нажмите на день в календаре слева.</p>
+      </div>
+      <p class="slots__end" id="ends"></p>
+    </section>
+  </div>
+</main>
+
+<div class="bar">
+  <div class="wrap bar__in">
+    <div class="bar__summary" id="summary"></div>
+    <div class="bar__side">
+      <span class="bar__hint" id="hint"></span>
+      <button class="btn btn--lg" id="next" type="button" disabled>Далее</button>
+    </div>
+  </div>
+</div>
+
+<script type="module" src="/js/booking-time.js"></script>
+</body>
+</html>

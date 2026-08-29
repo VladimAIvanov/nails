@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Запись: услуги — Варвара</title>
+  <link rel="stylesheet" href="/tokens.css">
+  <link rel="stylesheet" href="/css/base.css">
+  <link rel="stylesheet" href="/css/booking.css">
+</head>
+<body>
+
+<header id="header" class="header"></header>
+
+<main class="wrap booking">
+  <div id="steps"></div>
+
+  <h1>Что будем делать</h1>
+  <p class="lead section__sub">Можно отметить несколько услуг — время сложится, а визит пройдёт за один приход.</p>
+
+  <div id="msg"></div>
+
+  <div class="chips" id="categories"></div>
+
+  <div class="grid grid--2" id="services-list">
+    <div class="skeleton skeleton-card"></div>
+    <div class="skeleton skeleton-card"></div>
+    <div class="skeleton skeleton-card"></div>
+    <div class="skeleton skeleton-card"></div>
+  </div>
+</main>
+
+<div class="bar" id="bar">
+  <div class="wrap bar__in">
+    <div class="bar__summary" id="summary">Ничего не выбрано</div>
+    <div class="bar__side">
+      <span class="bar__hint" id="hint"></span>
+      <button class="btn btn--lg" id="next" type="button" disabled>Далее</button>
+    </div>
+  </div>
+</div>
+
+<script type="module" src="/js/booking.js"></script>
+</body>
+</html>

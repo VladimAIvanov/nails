@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Записались — Варвара</title>
+  <link rel="stylesheet" href="/tokens.css">
+  <link rel="stylesheet" href="/css/base.css">
+  <link rel="stylesheet" href="/css/booking.css">
+</head>
+<body>
+
+<header id="header" class="header"></header>
+
+<main class="wrap wrap--narrow booking done">
+  <div id="msg"></div>
+
+  <div class="done__mark">✓</div>
+  <h1 id="title">Записались</h1>
+  <p class="lead section__sub" id="sub">Напоминание придёт заранее.</p>
+
+  <div class="card stack" id="card">
+    <div class="skeleton skeleton-line"></div>
+    <div class="skeleton skeleton-line"></div>
+    <div class="skeleton skeleton-line"></div>
+  </div>
+
+  <div class="row done__actions">
+    <a class="btn" href="/account">Мои записи</a>
+    <a class="btn btn--secondary" href="/">На главную</a>
+  </div>
+</main>
+
+<script type="module" src="/js/booking-done.js"></script>
+</body>
+</html>

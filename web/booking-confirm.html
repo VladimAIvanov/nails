@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Запись: подтверждение — Варвара</title>
+  <link rel="stylesheet" href="/tokens.css">
+  <link rel="stylesheet" href="/css/base.css">
+  <link rel="stylesheet" href="/css/booking.css">
+</head>
+<body>
+
+<header id="header" class="header"></header>
+
+<main class="wrap booking">
+  <div id="steps"></div>
+
+  <h1>Проверьте и подтвердите</h1>
+
+  <div id="msg"></div>
+
+  <div class="confirm">
+    <section class="confirm__form card">
+      <h3>Ваши данные</h3>
+      <div id="who" class="stack">
+        <div class="skeleton skeleton-line"></div>
+      </div>
+
+      <label class="field confirm__comment">
+        <span class="field__label">Комментарий мастеру <span class="muted">— необязательно</span></span>
+        <textarea class="field__input" id="comment" rows="3" maxlength="1000"
+                  placeholder="Например: аллергия на отдушки, нужна короткая длина"></textarea>
+      </label>
+
+      <div id="hold" class="hold"></div>
+
+      <button class="btn btn--lg btn--wide" id="submit" type="button">Подтвердить запись</button>
+      <p class="caption confirm__rules" id="rules"></p>
+    </section>
+
+    <aside class="confirm__summary card">
+      <h3>Визит</h3>
+      <div id="summary" class="stack">
+        <div class="skeleton skeleton-line"></div>
+        <div class="skeleton skeleton-line"></div>
+        <div class="skeleton skeleton-line"></div>
+      </div>
+    </aside>
+  </div>
+</main>
+
+<script type="module" src="/js/booking-confirm.js"></script>
+</body>
+</html>

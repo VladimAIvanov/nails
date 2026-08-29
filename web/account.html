@@ -6,6 +6,7 @@
   <title>Мои записи — Варвара</title>
   <link rel="stylesheet" href="/tokens.css">
   <link rel="stylesheet" href="/css/base.css">
+  <link rel="stylesheet" href="/css/booking.css">
 </head>
 <body>
 
@@ -18,12 +19,19 @@
 
   <div id="msg"></div>
 
-  <div class="stack" id="upcoming">
-    <div class="skeleton skeleton-card"></div>
+  <div class="tabs">
+    <button class="tab tab--on" data-tab="upcoming" type="button">
+      Активные <span class="tab__count" id="count-upcoming">·</span>
+    </button>
+    <button class="tab" data-tab="past" type="button">
+      История <span class="tab__count" id="count-past">·</span>
+    </button>
+    <a class="btn btn--sm tabs__action" href="/booking">Записаться</a>
   </div>
 
-  <h2 class="account__past" id="past-title" hidden>История</h2>
-  <div class="stack" id="past"></div>
+  <div class="stack" id="list">
+    <div class="skeleton skeleton-card"></div>
+  </div>
 
   <p class="auth__foot">
     <a href="/password-change">Сменить пароль</a> · <a href="/sessions">Устройства и входы</a>

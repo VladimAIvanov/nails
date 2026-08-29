@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Запись: мастер — Варвара</title>
+  <link rel="stylesheet" href="/tokens.css">
+  <link rel="stylesheet" href="/css/base.css">
+  <link rel="stylesheet" href="/css/booking.css">
+</head>
+<body>
+
+<header id="header" class="header"></header>
+
+<main class="wrap booking">
+  <div id="steps"></div>
+
+  <h1>К кому пойдём</h1>
+  <p class="lead section__sub" id="sub">Показаны все мастера студии: те, кто не делает выбранные услуги, отмечены.</p>
+
+  <div id="msg"></div>
+
+  <div class="grid grid--3" id="masters-list">
+    <div class="skeleton skeleton-card"></div>
+    <div class="skeleton skeleton-card"></div>
+    <div class="skeleton skeleton-card"></div>
+  </div>
+</main>
+
+<div class="bar">
+  <div class="wrap bar__in">
+    <div class="bar__summary" id="summary"></div>
+    <div class="bar__side">
+      <span class="bar__hint" id="hint"></span>
+      <button class="btn btn--lg" id="next" type="button" disabled>Далее</button>
+    </div>
+  </div>
+</div>
+
+<script type="module" src="/js/booking-master.js"></script>
+</body>
+</html>
