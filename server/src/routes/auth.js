@@ -3,10 +3,11 @@ import { get, run, transaction } from '../db.js';
 import { badRequest, conflict, unauthorized } from '../http.js';
 import * as v from '../validate.js';
 import {
-  hashPassword, verifyPassword, createSession, revokeSession, requireUser, purgeExpiredSessions
+  hashPassword, verifyPassword, createSession, revokeSession, requireUser, purgeExpiredSessions,
+  sessionCookie, clearSessionCookie, tokenFromRequest
 } from '../auth.js';
 import { check as checkRate, hit as hitRate, clear as clearRate, purge as purgeRates } from '../ratelimit.js';
-import { clientIp } from '../net.js';
+import { clientIp, isSecure } from '../net.js';
 import { nowIso } from '../time.js';
 
 /* Наружу отдаём только то, что нужно интерфейсу. Хеша пароля здесь нет
@@ -19,10 +20,17 @@ const publicUser = (u) => ({
   email: u.email ?? null
 });
 
+/* Пропуск уезжает клиенту куком, который ставит сервер: страница его
+   не видит и не хранит. Токен в теле ответа остаётся для скриптов
+   проверки и внешних клиентов, у которых куки нет. */
+const withSession = (res, req, session) => {
+  res.setHeader('set-cookie', sessionCookie(session.token, session.expiresAt, { secure: isSecure(req) }));
+};
+
 export default function register(router) {
   /* Регистрация клиентки. Мастеров и администратора заводит владелица
      через административные адреса, самостоятельно такую роль получить нельзя. */
-  router.post('/api/auth/register', async ({ body, req }) => {
+  router.post('/api/auth/register', async ({ body, req, res }) => {
     /* Ключ — адрес клиента с учётом доверенных прокси, а не адрес соединения:
        за прокси последний одинаков для всех и ограничение теряет смысл. */
     const ip = clientIp(req);
@@ -75,12 +83,13 @@ export default function register(router) {
       userAgent: req.headers['user-agent'] ?? null,
       ip: clientIp(req) || null
     });
+    withSession(res, req, session);
 
     return { status: 201, body: { user: publicUser(user), ...session } };
   });
 
   /* Вход по телефону (клиентка) или почте (мастер и администратор). */
-  router.post('/api/auth/login', async ({ body, req }) => {
+  router.post('/api/auth/login', async ({ body, req, res }) => {
     const login = v.str(body.login, 'login', { max: 200 });
     const password = v.password(body.password);
 
@@ -108,14 +117,15 @@ export default function register(router) {
       userAgent: req.headers['user-agent'] ?? null,
       ip: clientIp(req) || null
     });
+    withSession(res, req, session);
 
     return { body: { user: publicUser(user), ...session } };
   });
 
-  router.post('/api/auth/logout', async ({ req }) => {
+  router.post('/api/auth/logout', async ({ req, res }) => {
     requireUser(req);
-    const token = (req.headers.authorization ?? '').slice(7).trim();
-    revokeSession(token);
+    revokeSession(tokenFromRequest(req));
+    res.setHeader('set-cookie', clearSessionCookie({ secure: isSecure(req) }));
     return { body: { ok: true } };
   });
 

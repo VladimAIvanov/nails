@@ -6,9 +6,9 @@
 import { all, get, run, setClause } from '../db.js';
 import { badRequest, conflict, forbidden, notFound, unauthorized } from '../http.js';
 import * as v from '../validate.js';
-import { requireUser, hashPassword, verifyPassword, createSession } from '../auth.js';
+import { requireUser, hashPassword, verifyPassword, createSession, sessionCookie } from '../auth.js';
 import { nowIso } from '../time.js';
-import { clientIp } from '../net.js';
+import { clientIp, isSecure } from '../net.js';
 
 export default function register(router) {
   // ── Свои данные ───────────────────────────────────────────────────────────
@@ -48,7 +48,7 @@ export default function register(router) {
   /* Смена пароля закрывает все прежние сеансы: поле password_changed_at
      сравнивается с issued_at сеанса при каждой проверке. Текущему устройству
      выдаётся новый токен, чтобы человека не выбросило из приложения. */
-  router.post('/api/profile/password', async ({ body, req }) => {
+  router.post('/api/profile/password', async ({ body, req, res }) => {
     const actor = requireUser(req);
     const current = v.str(body.current_password, 'current_password', { max: 200 });
     const next = v.password(body.new_password, 'new_password');
@@ -74,6 +74,9 @@ export default function register(router) {
       userAgent: req.headers['user-agent'] ?? null,
       ip: clientIp(req) || null
     });
+    /* Прежняя кука указывает на закрытый сеанс — сразу подменяем её новой,
+       иначе человека выбросит со страницы сменой собственного пароля. */
+    res.setHeader('set-cookie', sessionCookie(session.token, session.expiresAt, { secure: isSecure(req) }));
 
     return { body: { ok: true, sessions_closed: closed, ...session } };
   });

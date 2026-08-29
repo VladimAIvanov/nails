@@ -1,0 +1,113 @@
+/* Отдача страниц из папки web.
+
+   Почему это делает тот же сервер, что и API: пропуск лежит в куке, а кука
+   привязана к источнику. Страницы на одном порту, API на другом — и браузер
+   считает запросы межсайтовыми: куку не пришлёт, вход работать не будет.
+   Один порт снимает вопрос целиком — ни настройки CORS, ни послаблений.
+
+   Заголовки безопасности здесь свои. Для API стоит запрет на всё
+   (default-src 'none') — ответу JSON нечего загружать. Странице же нужны
+   собственные стили, скрипты и шрифты, поэтому разрешено ровно это и
+   ничего больше: чужие домены, инлайновые скрипты и фреймы закрыты. */
+import { readFile, stat } from 'node:fs/promises';
+import { extname, join, normalize, resolve, sep } from 'node:path';
+
+const WEB_ROOT = resolve(import.meta.dirname, '..', '..', 'web');
+
+const TYPES = {
+  '.html': 'text/html; charset=utf-8',
+  '.css': 'text/css; charset=utf-8',
+  '.js': 'text/javascript; charset=utf-8',
+  '.json': 'application/json; charset=utf-8',
+  '.svg': 'image/svg+xml',
+  '.png': 'image/png',
+  '.jpg': 'image/jpeg',
+  '.webp': 'image/webp',
+  '.ico': 'image/x-icon',
+  '.woff2': 'font/woff2'
+};
+
+/* Шрифты подключаются с Google Fonts — так сделано в дизайн-системе
+   прототипа. Больше внешних источников не разрешено. */
+const PAGE_CSP = [
+  "default-src 'self'",
+  "style-src 'self' https://fonts.googleapis.com",
+  "font-src 'self' https://fonts.gstatic.com",
+  "script-src 'self'",
+  "img-src 'self' data:",
+  "connect-src 'self'",
+  "frame-ancestors 'none'",
+  "base-uri 'none'",
+  "form-action 'self'"
+].join('; ');
+
+const PAGE_HEADERS = {
+  'x-content-type-options': 'nosniff',
+  'x-frame-options': 'DENY',
+  'referrer-policy': 'no-referrer',
+  'content-security-policy': PAGE_CSP
+};
+
+/* Путь из запроса складывается с корнем и проверяется: выйти из папки web
+   последовательностью «..» нельзя. */
+function safePath(pathname) {
+  const clean = normalize(decodeURIComponent(pathname)).replace(/^[/\\]+/, '');
+  const full = join(WEB_ROOT, clean === '' ? 'index.html' : clean);
+  return full === WEB_ROOT || full.startsWith(WEB_ROOT + sep) ? full : null;
+}
+
+/**
+ * Пытается отдать файл страницы. Возвращает true, если ответ отправлен.
+ * Адреса, начинающиеся с /api, сюда не попадают — их разбирает маршрутизатор.
+ */
+export async function servePage(req, res, pathname) {
+  if (req.method !== 'GET' && req.method !== 'HEAD') return false;
+
+  let file = safePath(pathname);
+  if (!file) {
+    res.writeHead(403, { 'content-type': 'text/plain; charset=utf-8', ...PAGE_HEADERS });
+    res.end('Нельзя выйти за пределы папки web');
+    return true;
+  }
+
+  /* Адрес без расширения — это страница: /login открывает login.html.
+     Так ссылки в вёрстке выглядят чище, а файлы остаются обычными. */
+  if (!extname(file)) {
+    const asDirectory = join(file, 'index.html');
+    const asPage = `${file}.html`;
+    file = (await exists(asDirectory)) ? asDirectory : asPage;
+  }
+
+  let body;
+  try {
+    body = await readFile(file);
+  } catch {
+    /* Своя страница 404, если она есть; иначе короткий текст. */
+    const notFound = join(WEB_ROOT, '404.html');
+    if (await exists(notFound)) {
+      const page = await readFile(notFound);
+      res.writeHead(404, { 'content-type': TYPES['.html'], 'content-length': page.length, ...PAGE_HEADERS });
+      res.end(req.method === 'HEAD' ? undefined : page);
+      return true;
+    }
+    return false;
+  }
+
+  res.writeHead(200, {
+    'content-type': TYPES[extname(file)] ?? 'application/octet-stream',
+    'content-length': body.length,
+    'cache-control': 'no-cache',
+    ...PAGE_HEADERS
+  });
+  res.end(req.method === 'HEAD' ? undefined : body);
+  return true;
+}
+
+async function exists(path) {
+  try {
+    const info = await stat(path);
+    return info.isFile();
+  } catch {
+    return false;
+  }
+}

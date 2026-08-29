@@ -3,214 +3,33 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Варвара · кабинет</title>
-  <link rel="stylesheet" href="styles.css">
+  <title>Мои записи — Варвара</title>
+  <link rel="stylesheet" href="/tokens.css">
+  <link rel="stylesheet" href="/css/base.css">
 </head>
 <body>
-<main>
-  <h1>Личный кабинет</h1>
-  <p class="hint">Мои записи, детали, перенос и отмена. Чужая запись по подстановке номера не откроется — сервер ответит 403.</p>
+
+<header id="header" class="header"></header>
+
+<main class="wrap wrap--narrow section">
+  <p class="eyebrow">Личный кабинет</p>
+  <h1 id="hello">Мои записи</h1>
+  <p class="lead section__sub" id="hello-sub">Ближайшие визиты и история.</p>
 
   <div id="msg"></div>
 
-  <section>
-    <h2>Мои записи</h2>
-    <div class="row">
-      <div>
-        <label for="scope">Показать</label>
-        <select id="scope">
-          <option value="all">все</option>
-          <option value="upcoming">ближайшие</option>
-          <option value="past">историю</option>
-        </select>
-      </div>
-      <button id="reload" type="button">Обновить</button>
-    </div>
-    <div id="list">Загрузка…</div>
-  </section>
+  <div class="stack" id="upcoming">
+    <div class="skeleton skeleton-card"></div>
+  </div>
 
-  <section id="details-section" hidden>
-    <h2>Запись <span id="details-title"></span></h2>
-    <div id="details"></div>
+  <h2 class="account__past" id="past-title" hidden>История</h2>
+  <div class="stack" id="past"></div>
 
-    <h2>Перенос</h2>
-    <div class="row">
-      <div>
-        <label for="new-date">Дата для поиска окон</label>
-        <input id="new-date" type="date">
-      </div>
-      <button id="find" type="button">Показать свободные окна</button>
-    </div>
-    <div id="free"></div>
-
-    <label for="new-starts">Новое начало, UTC</label>
-    <input id="new-starts" placeholder="2026-08-26T10:00:00Z">
-    <button id="move" type="button">Перенести</button>
-
-    <h2>Отмена</h2>
-    <label for="reason">Причина (необязательно)</label>
-    <input id="reason" maxlength="500">
-    <button id="cancel" type="button">Отменить запись</button>
-    <p class="hint" id="cancel-rule"></p>
-  </section>
+  <p class="auth__foot">
+    <a href="/password-change">Сменить пароль</a> · <a href="/sessions">Устройства и входы</a>
+  </p>
 </main>
 
-<script type="module">
-import {
-  api, guard, renderNav, requireSession, el, table, money, studio, whenLocal,
-  showOk, showError, currentUser, today
-} from './app.js';
-
-renderNav();
-if (requireSession()) {
-  let settings = null;
-  let selected = null;
-
-  /* Первая загрузка идёт через ту же обёртку, что и нажатия: отказ сервера
-     при открытии страницы должен быть виден на экране. */
-  async function init() {
-    settings = await studio();
-    document.getElementById('cancel-rule').textContent =
-      `Отмена бесплатна не позднее чем за ${settings.free_cancellation_lead_min} мин до визита. Позже отменить тоже можно — визит просто будет помечен поздней отменой.`;
-    document.getElementById('new-date').value = today(settings.timezone);
-  }
-
-  function statusCell(item) {
-    return el('span', { className: 'status' }, item.status_title ?? item.status);
-  }
-
-  function rowsFor(items) {
-    return items.map((a) => {
-      const open = el('button', { type: 'button', textContent: 'детали' });
-      open.addEventListener('click', guard(() => showDetails(a.id)));
-
-      return el('tr', {},
-        el('td', {}, a.id),
-        el('td', {}, `${a.local.date} ${a.local.time}`),
-        el('td', {}, a.service.title),
-        el('td', {}, a.master.name),
-        el('td', {}, money(a.price_kopecks)),
-        el('td', {}, statusCell(a)),
-        el('td', { className: 'actions' }, open)
-      );
-    });
-  }
-
-  async function loadList() {
-    const scope = document.getElementById('scope').value;
-    const list = document.getElementById('list');
-
-    let data;
-    try {
-      data = await api('GET', `/api/appointments/my?scope=${scope}`);
-    } catch (err) {
-      /* Мастер и администратор сюда не ходят: у них своя страница.
-         Показать это надо текстом, а не пустым списком. */
-      if (err.status === 403) {
-        list.replaceChildren(el('p', { className: 'msg error' },
-          `${err.message}. Вы вошли как «${currentUser()?.role}» — свои записи есть на странице «Студия».`));
-        return;
-      }
-      throw err;
-    }
-
-    const parts = [];
-    if (data.upcoming.length) {
-      parts.push(el('h2', {}, 'Ближайшие'),
-        table(['id', 'Когда', 'Услуга', 'Мастер', 'Цена', 'Статус', ''], rowsFor(data.upcoming)));
-    }
-    if (data.past.length) {
-      parts.push(el('h2', {}, 'История'),
-        table(['id', 'Когда', 'Услуга', 'Мастер', 'Цена', 'Статус', ''], rowsFor(data.past)));
-    }
-    if (!parts.length) parts.push(el('p', { className: 'muted' }, 'Записей нет. Создайте на странице «Создать запись».'));
-    if (data.address) parts.push(el('p', { className: 'hint' }, `Адрес студии: ${data.address}`));
-
-    list.replaceChildren(...parts);
-  }
-
-  async function showDetails(id) {
-    const a = await api('GET', `/api/appointments/${id}`);
-    selected = a;
-
-    document.getElementById('details-section').hidden = false;
-    document.getElementById('details-title').textContent = `№${a.number ?? a.id}`;
-    document.getElementById('new-date').value = a.local.date;
-    document.getElementById('new-starts').value = a.starts_at;
-    document.getElementById('free').replaceChildren();
-
-    document.getElementById('details').replaceChildren(
-      table(['Поле', 'Значение'], [
-        ['Статус', `${a.status_title} (${a.status})`],
-        ['Когда', `${a.local.date} ${a.local.time} · UTC ${a.starts_at}`],
-        ['Длительность', `${a.duration_min} мин`],
-        ['Услуга', a.service.title],
-        ['Мастер', a.master.name],
-        ['Цена', money(a.price_kopecks)],
-        ['Источник', a.source],
-        ['Комментарий', a.client_comment ?? '—'],
-        ['Создана', whenLocal(a.created_at, settings.timezone)]
-      ].map(([k, val]) => el('tr', {}, el('td', {}, k), el('td', {}, val))))
-    );
-    document.getElementById('details-section').scrollIntoView({ block: 'start' });
-  }
-
-  async function findFree() {
-    if (!selected) return;
-    const qs = new URLSearchParams({ date: document.getElementById('new-date').value });
-    qs.append('service_id', String(selected.service.id));
-
-    const data = await api('GET', `/api/masters/${selected.master.id}/slots?${qs}`);
-    const box = document.getElementById('free');
-
-    if (!data.slots.length) {
-      box.replaceChildren(el('p', { className: 'muted' }, 'В этот день у мастера свободных окон нет'));
-      return;
-    }
-
-    box.replaceChildren(...data.slots.map((slot) => {
-      const btn = el('button', { type: 'button', className: 'slot', title: slot.starts_at }, slot.local_time);
-      btn.addEventListener('click', () => { document.getElementById('new-starts').value = slot.starts_at; });
-      return btn;
-    }));
-  }
-
-  document.getElementById('find').addEventListener('click', guard(findFree));
-
-  document.getElementById('move').addEventListener('click', async (event) => {
-    event.preventDefault();
-    try {
-      const updated = await api('PATCH', `/api/appointments/${selected.id}`,
-        { starts_at: document.getElementById('new-starts').value.trim() });
-      showOk(`Перенесли на ${updated.local.date} ${updated.local.time}.`);
-      await loadList();
-      await showDetails(selected.id);
-    } catch (err) {
-      showError(err, 'msg', {
-        onSlot: (slot) => {
-          document.getElementById('new-starts').value = slot.starts_at;
-          document.getElementById('details-section').scrollIntoView({ block: 'start' });
-        }
-      });
-    }
-  });
-
-  document.getElementById('cancel').addEventListener('click', guard(async () => {
-    const result = await api('POST', `/api/appointments/${selected.id}/cancel`,
-      { reason: document.getElementById('reason').value.trim() || undefined });
-
-    showOk(`Запись отменена${result.late_cancellation ? ' (поздняя отмена)' : ''}.`
-      + (result.waitlist_notified ? ` Листу ожидания отправлено оповещений: ${result.waitlist_notified}.` : ''));
-    await loadList();
-    await showDetails(selected.id);
-  }));
-
-  document.getElementById('scope').addEventListener('change', guard(loadList));
-  document.getElementById('reload').addEventListener('click', guard(loadList));
-
-  await guard(init)();
-  if (settings) await guard(loadList)();
-}
-</script>
+<script type="module" src="/js/account.js"></script>
 </body>
 </html>

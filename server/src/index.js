@@ -7,6 +7,7 @@ import {
   createRouter, readJson, send, sendRaw, corsHeaders, HttpError, SECURITY_HEADERS
 } from './http.js';
 import { isSecure, trustedProxies } from './net.js';
+import { servePage } from './static.js';
 import * as env from './env.js';
 import registerAuth from './routes/auth.js';
 import registerCatalog from './routes/catalog.js';
@@ -84,6 +85,16 @@ const handler = async (req, res) => {
 
   try {
     const url = new URL(req.url, `http://${req.headers.host ?? 'localhost'}`);
+
+    /* Всё, что не /api, — это страница из папки web. Тот же порт, что и у
+       API: пропуск лежит в куке, а кука привязана к источнику. */
+    if (!url.pathname.startsWith('/api')) {
+      if (await servePage(req, res, url.pathname)) {
+        status = res.statusCode;
+        return;
+      }
+    }
+
     const { handler, params } = router.match(req.method, url.pathname);
     const body = await readJson(req);
 

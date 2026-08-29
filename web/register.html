@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Регистрация — Варвара</title>
+  <link rel="stylesheet" href="/tokens.css">
+  <link rel="stylesheet" href="/css/base.css">
+</head>
+<body>
+
+<header id="header" class="header"></header>
+
+<main class="wrap auth">
+  <div class="auth__card">
+    <h1 class="auth__title">Регистрация</h1>
+    <p class="auth__sub">Заведём кабинет: свои записи, перенос и отмена без звонка в студию.</p>
+
+    <div id="msg"></div>
+
+    <form id="form" novalidate>
+      <label class="field">
+        <span class="field__label">Как вас зовут</span>
+        <input class="field__input" name="full_name" type="text" required minlength="2"
+               autocomplete="name" placeholder="Марина Ковалёва">
+      </label>
+
+      <label class="field">
+        <span class="field__label">Телефон</span>
+        <input class="field__input" name="phone" type="tel" required
+               autocomplete="tel" placeholder="+7 921 000-00-00">
+        <span class="field__hint">По нему вы будете входить и получать напоминания</span>
+      </label>
+
+      <label class="field">
+        <span class="field__label">Почта <span class="muted">— необязательно</span></span>
+        <input class="field__input" name="email" type="email" autocomplete="email"
+               placeholder="marina@example.com">
+      </label>
+
+      <label class="field">
+        <span class="field__label">Пароль</span>
+        <input class="field__input" name="password" type="password" required minlength="8"
+               autocomplete="new-password">
+        <span class="field__hint">Не короче восьми символов</span>
+      </label>
+
+      <label class="checkbox">
+        <input type="checkbox" name="consent_personal_data">
+        <span>Согласна на обработку персональных данных: имени, телефона и истории визитов</span>
+      </label>
+
+      <button class="btn btn--wide btn--lg" type="submit">Зарегистрироваться</button>
+    </form>
+
+    <p class="auth__foot">
+      Уже заходили раньше? <a href="/login">Войти</a>
+    </p>
+  </div>
+</main>
+
+<script type="module" src="/js/register.js"></script>
+</body>
+</html>

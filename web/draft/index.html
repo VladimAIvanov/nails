@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Варвара · вход</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<main>
+  <h1>Вход и регистрация</h1>
+  <p class="hint">Черновой интерфейс для проверки API. Клиентка входит по телефону, мастер и администратор — по почте.</p>
+
+  <div id="msg"></div>
+
+  <section id="session" hidden>
+    <h2>Текущий сеанс</h2>
+    <div id="session-body"></div>
+  </section>
+
+  <section>
+    <h2>Вход</h2>
+    <form id="login-form">
+      <label for="login">Телефон или почта</label>
+      <input id="login" name="login" required placeholder="+79210000010">
+      <label for="login-password">Пароль</label>
+      <input id="login-password" name="password" type="password" required>
+      <button type="submit">Войти</button>
+    </form>
+    <p class="hint">Пароль учётных записей стенда задаётся в <code>SEED_PASSWORD</code>.</p>
+  </section>
+
+  <section>
+    <h2>Регистрация клиентки</h2>
+    <form id="register-form">
+      <label for="reg-name">Имя</label>
+      <input id="reg-name" name="full_name" required minlength="2">
+      <label for="reg-phone">Телефон</label>
+      <input id="reg-phone" name="phone" required placeholder="+79990001122">
+      <label for="reg-email">Почта (необязательно)</label>
+      <input id="reg-email" name="email" type="email">
+      <label for="reg-password">Пароль</label>
+      <input id="reg-password" name="password" type="password" required minlength="8">
+      <label><input id="reg-consent" type="checkbox"> Согласие на обработку персональных данных</label>
+      <button type="submit">Зарегистрироваться</button>
+    </form>
+    <p class="hint">Роль в запросе не принимается: регистрация всегда создаёт клиентку.</p>
+  </section>
+</main>
+
+<script type="module">
+import {
+  api, guard, saveSession, currentUser, renderNav, showOk, el, query, clearSession
+} from './app.js';
+
+renderNav();
+
+function afterAuth(data, text) {
+  saveSession(data);
+  showOk(`${text}: ${data.user.full_name}, роль «${data.user.role}». Токен действует до ${new Date(data.expiresAt).toLocaleString('ru-RU')}.`);
+  renderSession();
+
+  const next = query().get('next');
+  if (next) setTimeout(() => { location.href = next; }, 700);
+}
+
+function renderSession() {
+  const user = currentUser();
+  const section = document.getElementById('session');
+  const body = document.getElementById('session-body');
+  section.hidden = !user;
+  if (!user) return;
+
+  body.innerHTML = '';
+  body.append(
+    el('p', {}, `${user.full_name} · ${user.phone ?? ''} · роль «${user.role}»`),
+    el('p', { className: 'hint' }, 'Ссылки в верхнем меню открывают остальные страницы.')
+  );
+
+  const check = el('button', { type: 'button', textContent: 'Проверить сеанс (/api/auth/me)' });
+  check.addEventListener('click', guard(async () => {
+    const me = await api('GET', '/api/auth/me');
+    showOk(`Сеанс живой: ${me.user.full_name}, роль «${me.user.role}»`);
+  }));
+
+  const drop = el('button', { type: 'button', textContent: 'Забыть токен локально' });
+  drop.addEventListener('click', () => { clearSession(); location.reload(); });
+
+  body.append(check, drop);
+}
+
+document.getElementById('login-form').addEventListener('submit', guard(async (event) => {
+  const form = new FormData(event.target);
+  const data = await api('POST', '/api/auth/login', {
+    login: form.get('login').trim(),
+    password: form.get('password')
+  });
+  afterAuth(data, 'Вход выполнен');
+}));
+
+document.getElementById('register-form').addEventListener('submit', guard(async (event) => {
+  const form = new FormData(event.target);
+  const data = await api('POST', '/api/auth/register', {
+    full_name: form.get('full_name').trim(),
+    phone: form.get('phone').trim(),
+    email: form.get('email')?.trim() || undefined,
+    password: form.get('password'),
+    consent_personal_data: document.getElementById('reg-consent').checked
+  });
+  afterAuth(data, 'Регистрация прошла');
+}));
+
+renderSession();
+</script>
+</body>
+</html>

@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Устройства и входы — Варвара</title>
+  <link rel="stylesheet" href="/tokens.css">
+  <link rel="stylesheet" href="/css/base.css">
+</head>
+<body>
+
+<header id="header" class="header"></header>
+
+<main class="wrap wrap--narrow section">
+  <p class="eyebrow">Безопасность</p>
+  <h1>Устройства и входы</h1>
+  <p class="lead section__sub">
+    Здесь видно, откуда открыт кабинет. Если узнаёте не всё — закройте лишнее,
+    а потом смените пароль.
+  </p>
+
+  <div id="msg"></div>
+
+  <div class="stack" id="list">
+    <div class="skeleton skeleton-card"></div>
+    <div class="skeleton skeleton-card"></div>
+  </div>
+
+  <p class="auth__foot">
+    <a href="/password-change">Сменить пароль</a> · <a href="/account">Вернуться в кабинет</a>
+  </p>
+</main>
+
+<script type="module" src="/js/sessions.js"></script>
+</body>
+</html>

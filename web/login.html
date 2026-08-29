@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Вход — Варвара</title>
+  <link rel="stylesheet" href="/tokens.css">
+  <link rel="stylesheet" href="/css/base.css">
+</head>
+<body>
+
+<header id="header" class="header"></header>
+
+<main class="wrap auth">
+  <div class="auth__card">
+    <h1 class="auth__title">Вход</h1>
+    <p class="auth__sub">Клиентка входит по телефону, мастер и администратор — по почте.</p>
+
+    <div id="msg"></div>
+
+    <form id="form" novalidate>
+      <label class="field">
+        <span class="field__label">Телефон или почта</span>
+        <input class="field__input" name="login" type="text" required
+               autocomplete="username" placeholder="+7 921 000-00-00">
+      </label>
+
+      <label class="field">
+        <span class="field__label">Пароль</span>
+        <input class="field__input" name="password" type="password" required minlength="8"
+               autocomplete="current-password">
+      </label>
+
+      <button class="btn btn--wide btn--lg" type="submit">Войти</button>
+    </form>
+
+    <p class="auth__foot">
+      Забыли пароль? <a href="/password-reset">Восстановить доступ</a><br>
+      Ещё нет учётной записи? <a href="/register">Зарегистрироваться</a>
+    </p>
+  </div>
+</main>
+
+<script type="module" src="/js/login.js"></script>
+</body>
+</html>

@@ -3,114 +3,137 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Варвара · вход</title>
-  <link rel="stylesheet" href="styles.css">
+  <title>Варвара — ногтевая студия в Санкт-Петербурге</title>
+  <link rel="stylesheet" href="/tokens.css">
+  <link rel="stylesheet" href="/css/base.css">
+  <link rel="stylesheet" href="/css/landing.css">
 </head>
 <body>
+
+<header id="header" class="header"></header>
+
 <main>
-  <h1>Вход и регистрация</h1>
-  <p class="hint">Черновой интерфейс для проверки API. Клиентка входит по телефону, мастер и администратор — по почте.</p>
+  <div id="msg" class="wrap"></div>
 
-  <div id="msg"></div>
-
-  <section id="session" hidden>
-    <h2>Текущий сеанс</h2>
-    <div id="session-body"></div>
+  <!-- Первый экран -->
+  <section class="wrap hero">
+    <div class="hero__text">
+      <p class="eyebrow" id="hero-place">Санкт-Петербург</p>
+      <h1 id="hero-title">Аккуратные ногти<br>без спешки</h1>
+      <p class="lead hero__lead" id="hero-body">
+        Маникюр, педикюр и наращивание в маленькой студии на четыре кресла.
+      </p>
+      <div class="hero__cta">
+        <a class="btn btn--lg" href="/booking">Записаться онлайн</a>
+        <a class="btn btn--lg btn--secondary" href="#works">Смотреть работы</a>
+      </div>
+    </div>
+    <div class="hero__art">
+      <div class="frame frame--nude"><span>Фото студии или работы мастера</span></div>
+      <div class="hero__badge" id="hero-rating">
+        <div class="skeleton skeleton-line"></div>
+      </div>
+    </div>
   </section>
 
-  <section>
-    <h2>Вход</h2>
-    <form id="login-form">
-      <label for="login">Телефон или почта</label>
-      <input id="login" name="login" required placeholder="+79210000010">
-      <label for="login-password">Пароль</label>
-      <input id="login-password" name="password" type="password" required>
-      <button type="submit">Войти</button>
-    </form>
-    <p class="hint">Пароль учётных записей стенда задаётся в <code>SEED_PASSWORD</code>.</p>
+  <!-- Четыре причины прийти -->
+  <div class="wrap">
+    <div class="strip" id="highlights">
+      <div class="skeleton skeleton-card"></div>
+      <div class="skeleton skeleton-card"></div>
+      <div class="skeleton skeleton-card"></div>
+      <div class="skeleton skeleton-card"></div>
+    </div>
+  </div>
+
+  <!-- Услуги -->
+  <section class="section" id="services">
+    <div class="wrap">
+      <p class="eyebrow">Услуги</p>
+      <h2>Что мы делаем</h2>
+      <p class="lead section__sub">Цена за работу целиком: снятие, уход и покрытие уже внутри.</p>
+
+      <div class="chips" id="categories"></div>
+
+      <div class="grid grid--2" id="services-list">
+        <div class="skeleton skeleton-card"></div>
+        <div class="skeleton skeleton-card"></div>
+        <div class="skeleton skeleton-card"></div>
+        <div class="skeleton skeleton-card"></div>
+      </div>
+    </div>
   </section>
 
-  <section>
-    <h2>Регистрация клиентки</h2>
-    <form id="register-form">
-      <label for="reg-name">Имя</label>
-      <input id="reg-name" name="full_name" required minlength="2">
-      <label for="reg-phone">Телефон</label>
-      <input id="reg-phone" name="phone" required placeholder="+79990001122">
-      <label for="reg-email">Почта (необязательно)</label>
-      <input id="reg-email" name="email" type="email">
-      <label for="reg-password">Пароль</label>
-      <input id="reg-password" name="password" type="password" required minlength="8">
-      <label><input id="reg-consent" type="checkbox"> Согласие на обработку персональных данных</label>
-      <button type="submit">Зарегистрироваться</button>
-    </form>
-    <p class="hint">Роль в запросе не принимается: регистрация всегда создаёт клиентку.</p>
+  <!-- Мастера -->
+  <section class="section section--alt" id="masters">
+    <div class="wrap">
+      <p class="eyebrow">Команда</p>
+      <h2>Мастера</h2>
+      <p class="lead section__sub">У каждой — своя специализация и своё расписание. Можно записаться к конкретной.</p>
+
+      <div class="grid grid--3" id="masters-list">
+        <div class="skeleton skeleton-card"></div>
+        <div class="skeleton skeleton-card"></div>
+        <div class="skeleton skeleton-card"></div>
+      </div>
+    </div>
   </section>
+
+  <!-- Работы -->
+  <section class="section" id="works">
+    <div class="wrap">
+      <p class="eyebrow">Портфолио</p>
+      <h2>Работы</h2>
+      <p class="lead section__sub">Снимаем без фильтров, при дневном свете.</p>
+
+      <div class="gallery" id="works-list">
+        <div class="skeleton skeleton-card"></div>
+        <div class="skeleton skeleton-card"></div>
+        <div class="skeleton skeleton-card"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Полоса записи -->
+  <div class="wrap">
+    <div class="band">
+      <div>
+        <h2>Свободные окна<br>на этой неделе</h2>
+        <p class="band__text" id="band-text">Выберите мастера и время — подтверждение придёт за минуту.</p>
+      </div>
+      <a class="btn btn--lg btn--inverse" href="/booking">Записаться</a>
+    </div>
+  </div>
 </main>
 
-<script type="module">
-import {
-  api, guard, saveSession, currentUser, renderNav, showOk, el, query, clearSession
-} from './app.js';
+<footer class="footer" id="contacts">
+  <div class="wrap">
+    <div class="footer__grid">
+      <div>
+        <div class="logo">Варвара<small>ногтевая студия</small></div>
+        <p class="footer__address" id="footer-address"></p>
+      </div>
+      <div>
+        <h4>Часы</h4>
+        <ul id="footer-hours"><li class="skeleton skeleton-line"></li></ul>
+      </div>
+      <div>
+        <h4>Связь</h4>
+        <ul id="footer-contacts"><li class="skeleton skeleton-line"></li></ul>
+      </div>
+      <div>
+        <h4>Услуги</h4>
+        <ul id="footer-categories"><li class="skeleton skeleton-line"></li></ul>
+      </div>
+    </div>
+    <div class="footer__legal">
+      <span id="footer-copy">© 2026 Студия «Варвара»</span>
+      <a href="/rules">Правила отмены и переноса</a>
+    </div>
+  </div>
+</footer>
 
-renderNav();
-
-function afterAuth(data, text) {
-  saveSession(data);
-  showOk(`${text}: ${data.user.full_name}, роль «${data.user.role}». Токен действует до ${new Date(data.expiresAt).toLocaleString('ru-RU')}.`);
-  renderSession();
-
-  const next = query().get('next');
-  if (next) setTimeout(() => { location.href = next; }, 700);
-}
-
-function renderSession() {
-  const user = currentUser();
-  const section = document.getElementById('session');
-  const body = document.getElementById('session-body');
-  section.hidden = !user;
-  if (!user) return;
-
-  body.innerHTML = '';
-  body.append(
-    el('p', {}, `${user.full_name} · ${user.phone ?? ''} · роль «${user.role}»`),
-    el('p', { className: 'hint' }, 'Ссылки в верхнем меню открывают остальные страницы.')
-  );
-
-  const check = el('button', { type: 'button', textContent: 'Проверить сеанс (/api/auth/me)' });
-  check.addEventListener('click', guard(async () => {
-    const me = await api('GET', '/api/auth/me');
-    showOk(`Сеанс живой: ${me.user.full_name}, роль «${me.user.role}»`);
-  }));
-
-  const drop = el('button', { type: 'button', textContent: 'Забыть токен локально' });
-  drop.addEventListener('click', () => { clearSession(); location.reload(); });
-
-  body.append(check, drop);
-}
-
-document.getElementById('login-form').addEventListener('submit', guard(async (event) => {
-  const form = new FormData(event.target);
-  const data = await api('POST', '/api/auth/login', {
-    login: form.get('login').trim(),
-    password: form.get('password')
-  });
-  afterAuth(data, 'Вход выполнен');
-}));
-
-document.getElementById('register-form').addEventListener('submit', guard(async (event) => {
-  const form = new FormData(event.target);
-  const data = await api('POST', '/api/auth/register', {
-    full_name: form.get('full_name').trim(),
-    phone: form.get('phone').trim(),
-    email: form.get('email')?.trim() || undefined,
-    password: form.get('password'),
-    consent_personal_data: document.getElementById('reg-consent').checked
-  });
-  afterAuth(data, 'Регистрация прошла');
-}));
-
-renderSession();
-</script>
+<script type="module" src="/js/landing.js"></script>
 </body>
 </html>
+

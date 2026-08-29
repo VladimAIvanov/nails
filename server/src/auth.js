@@ -113,11 +113,67 @@ export function revokeSession(token) {
     { now: nowIso(), hash: tokenHash(token) });
 }
 
+/* Пропуск в куке.
+
+   Кука с признаком HttpOnly недоступна скриптам страницы: даже если на сайт
+   попадёт чужой скрипт, вытащить из неё токен он не сможет — в отличие от
+   localStorage, который читается одной строкой. Поэтому интерфейс токен не
+   хранит вовсе: сервер ставит куку сам, браузер её сам и присылает.
+
+   SameSite=Lax: куку не пришлют при запросе с чужого сайта, а переход по
+   ссылке работает. Secure ставим только на защищённом соединении — иначе
+   браузер отбросит куку на локальном стенде без TLS. */
+export const SESSION_COOKIE = 'varvara_session';
+
+export function sessionCookie(token, expiresAt, { secure = false } = {}) {
+  const maxAge = Math.max(0, Math.round((Date.parse(expiresAt) - Date.now()) / 1000));
+  return [
+    `${SESSION_COOKIE}=${token}`,
+    'Path=/',
+    'HttpOnly',
+    'SameSite=Lax',
+    `Max-Age=${maxAge}`,
+    secure ? 'Secure' : null
+  ].filter(Boolean).join('; ');
+}
+
+export function clearSessionCookie({ secure = false } = {}) {
+  return [
+    `${SESSION_COOKIE}=`,
+    'Path=/',
+    'HttpOnly',
+    'SameSite=Lax',
+    'Max-Age=0',
+    secure ? 'Secure' : null
+  ].filter(Boolean).join('; ');
+}
+
+/* Разбор заголовка Cookie: «имя=значение; имя=значение». */
+function cookieValue(req, name) {
+  const raw = req.headers.cookie;
+  if (!raw) return null;
+  for (const part of raw.split(';')) {
+    const eq = part.indexOf('=');
+    if (eq === -1) continue;
+    if (part.slice(0, eq).trim() === name) return part.slice(eq + 1).trim();
+  }
+  return null;
+}
+
+/* Токен берётся из куки или из заголовка Authorization.
+
+   Кука — для страниц: её ставит сервер и хранит браузер. Заголовок — для
+   скриптов проверки и внешних клиентов, у которых куки нет. */
+export function tokenFromRequest(req) {
+  const header = req.headers.authorization ?? '';
+  if (header.startsWith('Bearer ')) return header.slice(7).trim() || null;
+  return cookieValue(req, SESSION_COOKIE) || null;
+}
+
 /* Сеанс действителен, когда сходятся три условия: не отозван вручную,
    не истёк по сроку и открыт уже после последней смены пароля. */
 export function currentUser(req) {
-  const header = req.headers.authorization ?? '';
-  const token = header.startsWith('Bearer ') ? header.slice(7).trim() : null;
+  const token = tokenFromRequest(req);
   if (!token) return null;
 
   const row = get(

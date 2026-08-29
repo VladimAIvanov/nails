@@ -12,7 +12,7 @@
     "reset": "node --env-file-if-exists=../.env src/reset.js",
     "doctor": "node --env-file-if-exists=../.env src/doctor.js",
     "start": "node --env-file-if-exists=../.env src/index.js",
-    "web": "node --env-file-if-exists=../.env ../web/serve.js",
     "dev": "node --env-file-if-exists=../.env --watch src/index.js"
   }
 }
+
