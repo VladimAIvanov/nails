@@ -237,6 +237,48 @@ a.steps__item:hover { border-color: var(--color-border-accent); color: var(--col
 .visit__actions { margin-top: var(--space-5); }
 .empty { text-align: left; }
 
+/* ── Профиль ───────────────────────────────────────────────────────────── */
+
+.profile__block { margin-bottom: var(--space-5); }
+
+.profile__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding-block: var(--space-3);
+  border-bottom: var(--border-width) solid var(--color-border-subtle);
+}
+.profile__row:last-child { border-bottom: 0; }
+
+.profile__link {
+  font-size: var(--text-caption);
+  color: var(--color-text-secondary);
+  word-break: break-all;
+  background: var(--color-surface-sunken);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-xs);
+}
+
+.switch {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding-block: var(--space-3);
+  border-bottom: var(--border-width) solid var(--color-border-subtle);
+  cursor: pointer;
+}
+.switch:last-child { border-bottom: 0; }
+.switch input {
+  width: var(--space-5);
+  height: var(--space-5);
+  margin-top: var(--space-1);
+  accent-color: var(--color-button);
+  flex-shrink: 0;
+}
+.switch__title { display: block; font-weight: var(--weight-medium); }
+.switch__hint { display: block; font-size: var(--text-sm); color: var(--color-text-muted); }
+
 /* ── Окно подтверждения ────────────────────────────────────────────────── */
 
 .modal {
@@ -249,5 +291,73 @@ a.steps__item:hover { border-color: var(--color-border-accent); color: var(--col
   background: var(--color-overlay);
 }
 .modal[hidden] { display: none; }
-.modal__box { width: 100%; max-width: var(--container-narrow); }
-.modal__actions { margin-top: var(--space-5); }
+.modal__box {
+  width: 100%;
+  max-width: var(--container-narrow);
+  /* Окно не должно вырастать выше экрана: иначе кнопки уезжают вниз
+     и до них не добраться. Содержимое прокручивается внутри. */
+  max-height: 90vh;
+  overflow-y: auto;
+}
+.modal__actions {
+  margin-top: var(--space-5);
+  position: sticky;
+  bottom: calc(var(--space-5) * -1);
+  padding-block: var(--space-3);
+  background: var(--color-surface);
+}
+
+/* ── Узкий экран ───────────────────────────────────────────────────────── */
+
+@media (max-width: 899px) {
+  /* Шаг-индикатор: подписи наезжали друг на друга и занимали две строки.
+     Оставляем номера, название пишем только у текущего шага — остальные
+     по-прежнему нажимаются и никуда не делись. */
+  .steps { gap: var(--space-1); flex-wrap: nowrap; }
+  .steps__item { padding: var(--space-1) var(--space-2); }
+  .steps__item .steps__title { display: none; }
+  .steps__item--current .steps__title { display: inline; }
+
+  /* Закреплённая полоса: итог сверху, кнопка во всю ширину под ним.
+     Содержимое страницы получает отступ снизу, чтобы полоса не накрывала
+     последнюю карточку. Полоса в две строки занимает около 160 px —
+     отступ считаем из токенов с запасом. */
+  .booking { padding-bottom: calc(var(--space-24) + var(--space-20)); }
+  .bar__in { flex-direction: column; align-items: stretch; gap: var(--space-2); }
+  .bar__side { margin-left: 0; flex-direction: column; align-items: stretch; gap: var(--space-2); }
+  .bar__hint { text-align: center; }
+  .bar .btn { width: 100%; }
+
+  /* Окна времени: две колонки вместо трёх и кнопки крупнее — попасть
+     пальцем в 106×44 сложно, в 160×52 просто. */
+  .slots__grid { grid-template-columns: repeat(2, 1fr); gap: var(--space-3); }
+  .slot { min-height: var(--control-lg); font-size: var(--text-lg); }
+  .slot--wide { grid-column: span 2; font-size: var(--text-base); }
+
+  /* Календарь: ячейка меньше 44 px — промах вместо выбора дня. */
+  .cal__cell { aspect-ratio: auto; min-height: var(--tap-min); }
+  .time__calendar { padding: var(--space-4); }
+
+  /* Подтверждение: сводка встаёт под форму, но раньше кнопки — сначала
+     проверяем визит, потом подтверждаем. */
+  .confirm { display: flex; flex-direction: column; }
+  .confirm__summary { order: -1; }
+  .hold { flex-direction: column; align-items: flex-start; gap: var(--space-1); }
+
+  /* Кабинет: вкладки и кнопка записи в одну строку не помещаются. */
+  .tabs { gap: var(--space-2); }
+  .tabs__action { margin-left: 0; width: 100%; }
+  .visit__actions .btn, .visit .btn { width: 100%; }
+
+  .modal { padding: var(--space-3); align-items: flex-end; }
+  .modal__box { max-height: 85vh; }
+  .modal__actions { flex-direction: column-reverse; align-items: stretch; }
+  .modal__actions .btn { width: 100%; }
+}
+
+@media (max-width: 599px) {
+  /* Совсем узкие телефоны: подписей шагов не остаётся вовсе, но номера
+     и переходы работают. */
+  .steps__item--current .steps__title { font-size: var(--text-caption); }
+  .slots__grid { gap: var(--space-2); }
+}

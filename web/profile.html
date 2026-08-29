@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Профиль — Варвара</title>
+  <link rel="stylesheet" href="/tokens.css">
+  <link rel="stylesheet" href="/css/base.css">
+  <link rel="stylesheet" href="/css/booking.css">
+</head>
+<body>
+
+<header id="header" class="header"></header>
+
+<main class="wrap wrap--narrow section">
+  <p class="eyebrow">Личный кабинет</p>
+  <h1 id="title">Профиль</h1>
+  <p class="lead section__sub">Ваши данные, напоминания и любимые мастера.</p>
+
+  <div id="msg"></div>
+
+  <!-- Данные -->
+  <section class="card stack profile__block">
+    <h3>Данные</h3>
+    <form id="me-form" novalidate>
+      <label class="field">
+        <span class="field__label">Имя</span>
+        <input class="field__input" name="full_name" type="text" required minlength="2" autocomplete="name">
+      </label>
+      <label class="field">
+        <span class="field__label">Почта <span class="muted">— для писем о визитах</span></span>
+        <input class="field__input" name="email" type="email" autocomplete="email" placeholder="не указана">
+      </label>
+      <p class="field__hint" id="phone-note"></p>
+      <button class="btn btn--sm" type="submit">Сохранить</button>
+    </form>
+  </section>
+
+  <!-- Напоминания -->
+  <section class="card stack profile__block">
+    <h3>Напоминания</h3>
+    <div id="prefs" class="stack">
+      <div class="skeleton skeleton-line"></div>
+      <div class="skeleton skeleton-line"></div>
+    </div>
+    <p class="caption" id="channels"></p>
+  </section>
+
+  <!-- Календарь -->
+  <section class="card stack profile__block">
+    <h3>Визиты в календаре</h3>
+    <p class="muted">Ссылку можно добавить в календарь телефона как подписку — визиты появятся сами.</p>
+    <div id="calendar" class="stack"></div>
+  </section>
+
+  <!-- Любимые мастера -->
+  <section class="card stack profile__block">
+    <h3>Любимые мастера</h3>
+    <div id="favorites" class="stack">
+      <div class="skeleton skeleton-line"></div>
+    </div>
+  </section>
+
+  <!-- Регулярные записи -->
+  <section class="card stack profile__block">
+    <h3>Регулярные записи</h3>
+    <div id="recurring" class="stack">
+      <div class="skeleton skeleton-line"></div>
+    </div>
+  </section>
+
+  <!-- Студия -->
+  <section class="card card--accent stack profile__block">
+    <h3>Студия</h3>
+    <div id="studio" class="stack">
+      <div class="skeleton skeleton-line"></div>
+    </div>
+  </section>
+
+  <!-- Согласия и безопасность -->
+  <section class="card stack profile__block">
+    <h3>Согласия и безопасность</h3>
+    <div id="consents" class="stack">
+      <div class="skeleton skeleton-line"></div>
+    </div>
+    <div class="row">
+      <a class="btn btn--secondary btn--sm" href="/password-change">Сменить пароль</a>
+      <a class="btn btn--ghost btn--sm" href="/sessions">Устройства и входы</a>
+    </div>
+  </section>
+</main>
+
+<script type="module" src="/js/profile.js"></script>
+</body>
+</html>

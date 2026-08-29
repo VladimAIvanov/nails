@@ -236,13 +236,13 @@ export function fillSelect(select, items, { value, label, empty }) {
   }
 }
 
+/* Клиентские черновые страницы удалены — их заменили настоящие экраны.
+   Осталась только страница студии: чистовой админки ещё нет. Ссылки ведут
+   на настоящие экраны, чтобы из черновика можно было выйти в сервис. */
 const PAGES = [
-  ['index.html', 'Вход'],
-  ['catalog.html', 'Услуги и мастера'],
-  ['slots.html', 'Свободное время'],
-  ['book.html', 'Создать запись'],
-  ['account.html', 'Кабинет'],
-  ['admin.html', 'Студия']
+  ['/', 'Сайт'],
+  ['/account', 'Кабинет'],
+  ['admin.html', 'Студия (черновик)']
 ];
 
 export function renderNav() {
@@ -261,7 +261,7 @@ export function renderNav() {
     out.addEventListener('click', async () => {
       try { await api('POST', '/api/auth/logout'); } catch { /* сеанс мог истечь */ }
       clearSession();
-      location.href = 'index.html';
+      location.href = '/';
     });
     who.append(out);
   } else {
@@ -271,13 +271,21 @@ export function renderNav() {
   document.body.prepend(nav);
 }
 
-/* Страницы кабинета и студии без входа бессмысленны. */
-export function requireSession() {
-  if (!token()) {
-    location.href = `index.html?next=${encodeURIComponent(location.pathname.split('/').pop())}`;
-    return false;
+/* Кто вошёл — спрашиваем у сервера.
+
+   Раньше черновик хранил пропуск в localStorage. Теперь его ставит сервер
+   кукой, и страница его не видит вовсе: узнать, кто перед нами, можно
+   только запросом. Без входа уводим на настоящую страницу входа. */
+export async function requireUser() {
+  try {
+    const { user } = await api('GET', '/api/auth/me');
+    localStorage.setItem(USER_KEY, JSON.stringify(user));
+    return user;
+  } catch {
+    location.href = '/login?next=/draft/admin.html';
+    return null;
   }
-  return true;
 }
 
 export const query = () => new URLSearchParams(location.search);
+

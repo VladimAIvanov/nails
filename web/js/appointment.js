@@ -179,4 +179,6 @@ await guard(async () => {
   await load();
   /* Пришли из календаря в режиме переноса — сразу спрашиваем подтверждение. */
   if (moveTo) askMove(moveTo);
+  /* Пришли из карточки в кабинете по кнопке «Отменить» — тоже сразу. */
+  else if (params.get('cancel') === '1' && ['pending', 'confirmed'].includes(visit.status)) askCancel();
 })();

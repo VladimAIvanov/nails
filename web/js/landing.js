@@ -34,6 +34,11 @@ async function loadStudio() {
     s.telegram_bot ? el('li', {}, el('a', { href: `https://t.me/${s.telegram_bot.replace('@', '')}`, textContent: s.telegram_bot })) : null
   );
 
+  /* Правило отмены пишем строкой из настроек студии, а не ссылкой на
+     отдельную страницу: страницы правил нет, а обещать её нельзя. */
+  document.getElementById('footer-rules').textContent =
+    `Отмена бесплатна не позднее чем за ${Math.round(s.free_cancellation_lead_min / 60)} ч до визита`;
+
   if (!s.online_booking_enabled) {
     document.getElementById('band-text').textContent =
       'Онлайн-запись временно выключена — позвоните в студию, вас запишут.';

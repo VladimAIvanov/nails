@@ -52,3 +52,14 @@ td.actions button { margin: 0 4px 0 0; padding: 2px 8px; }
 .status { font-size: 12px; border: 1px solid #bbb; padding: 1px 6px; border-radius: 8px; }
 .muted { color: #777; }
 pre { background: #f6f6f6; padding: 8px; overflow-x: auto; font-size: 12px; }
+
+/* Ширины полей: вынесены из разметки — страницы отдаются со строгой
+   политикой безопасности, инлайновые стили она запрещает. */
+.w-100 { width: 100px; }
+.w-120 { width: 120px; }
+.w-200 { width: 200px; }
+
+.w-80 { width: 80px; }
+.w-190 { width: 190px; }
+.w-220 { width: 220px; }
+

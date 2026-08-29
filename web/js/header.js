@@ -9,6 +9,7 @@ import { me, logout, el } from './api.js';
 
 const LINKS = [
   { href: '/account', text: 'Мои записи', forGuests: false },
+  { href: '/profile', text: 'Профиль', forGuests: false },
   { href: '/#services', text: 'Услуги', forGuests: true },
   { href: '/#masters', text: 'Мастера', forGuests: true },
   { href: '/#contacts', text: 'Контакты', forGuests: true }

@@ -21,7 +21,21 @@ let data = null;
 let settings = null;
 
 function card(a, { first = false } = {}) {
-  const open = el('a', { className: 'btn btn--secondary btn--sm', href: `/appointment?id=${a.id}`, textContent: 'Подробнее' });
+  const active = ['pending', 'confirmed'].includes(a.status);
+
+  /* Действия стоят прямо в карточке, как в прототипе: до переноса и отмены
+     не нужно сначала открывать детали. Сами действия по-прежнему проходят
+     через окно подтверждения на странице записи — они необратимы. */
+  const actions = active
+    ? [
+      el('a', { className: 'btn btn--secondary btn--sm', href: `/booking-time?mode=reschedule&appointment=${a.id}`, textContent: 'Перенести' }),
+      el('a', { className: 'btn btn--ghost btn--sm', href: `/appointment?id=${a.id}&cancel=1`, textContent: 'Отменить' }),
+      el('a', { className: 'btn btn--ghost btn--sm', href: `/appointment?id=${a.id}`, textContent: 'Подробнее' })
+    ]
+    : [
+      el('a', { className: 'btn btn--secondary btn--sm', href: `/booking?service_id=${a.service.id}`, textContent: 'Повторить' }),
+      el('a', { className: 'btn btn--ghost btn--sm', href: `/appointment?id=${a.id}`, textContent: 'Подробнее' })
+    ];
 
   return el('article', { className: `card visit${first ? ' visit--next' : ''}` },
     first ? el('p', { className: 'eyebrow', textContent: 'Ближайший визит' }) : null,
@@ -31,7 +45,7 @@ function card(a, { first = false } = {}) {
     el('p', { className: 'account__when', textContent: whenLocal(a.starts_at, settings.timezone) }),
     el('p', { className: 'muted', textContent: `${a.master.name} · ${money(a.price_kopecks)} · ${a.duration_min} мин` }),
     first && data.address ? el('p', { className: 'caption', textContent: data.address }) : null,
-    el('div', { className: 'row' }, open)
+    el('div', { className: 'row' }, ...actions)
   );
 }
 

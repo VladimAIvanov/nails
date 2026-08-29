@@ -384,6 +384,59 @@ a:hover { color: var(--color-text-link-hover); }
 .reset__step { margin-top: var(--space-6); margin-bottom: var(--space-2); font-size: var(--text-h4); font-family: var(--font-text); }
 .reset__contacts { display: flex; gap: var(--space-2); flex-wrap: wrap; margin-top: var(--space-3); }
 
+/* ── Узкий экран ───────────────────────────────────────────────────────── */
+
+/* Всё ниже применяется только к телефонам: правила выше написаны через
+   min-width, поэтому настольная версия этими блоками не затрагивается.
+
+   Правило одно: не прятать, а перестраивать. Всё, что доступно на широком
+   экране, доступно и здесь — просто иначе разложено. */
+
+@media (max-width: 899px) {
+  /* Шапка. Логотип не переносится в три строки, меню уезжает во вторую
+     строку и прокручивается внутри себя — пункты остаются на месте,
+     страница вбок не едет. */
+  .header__in { flex-wrap: wrap; gap: var(--space-3); padding-block: var(--space-2); }
+  .logo { font-size: var(--text-h4); }
+  .logo small { font-size: var(--text-overline); }
+
+  .header__nav {
+    display: flex;
+    order: 3;
+    width: 100%;
+    margin-left: 0;
+    gap: var(--space-4);
+    overflow-x: auto;
+    padding-bottom: var(--space-1);
+    scrollbar-width: none;
+  }
+  .header__nav::-webkit-scrollbar { display: none; }
+  .header__nav a { white-space: nowrap; font-size: var(--text-sm); }
+
+  /* Имя рядом с аватаром съедает всю строку; сам аватар остаётся и ведёт
+     в кабинет, где имя написано полностью. */
+  .who__name { display: none; }
+
+  /* Пальцем в кнопку высотой 36 px не попасть: на узком экране поднимаем
+     все цели нажатия до принятого минимума. */
+  .btn--sm, .chip, .tab { min-height: var(--tap-min); }
+
+  /* Значение под подписью, а не сбоку: длинные строки иначе сжимаются
+     в столбик по одному слову. */
+  .sum__row { flex-direction: column; gap: var(--space-1); }
+  .sum__row .status { align-self: flex-start; }
+
+  .auth { padding-block: var(--space-6); }
+  .auth__card { padding: var(--space-5); border-radius: var(--radius-lg); }
+
+  .footer__legal { flex-direction: column; gap: var(--space-2); }
+}
+
+@media (max-width: 599px) {
+  .section { padding-block: var(--space-10); }
+  .section__sub { margin-bottom: var(--space-5); }
+}
+
 /* ── Подвал ────────────────────────────────────────────────────────────── */
 
 .footer {
