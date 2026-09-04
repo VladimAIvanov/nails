@@ -5,7 +5,7 @@
 
    Несколько выбранных услуг сервер сохраняет несколькими записями подряд —
    поэтому здесь их может быть больше одной. */
-import { api, guard, el, money, duration, studio, whenLocal } from './api.js';
+import { api, guard, el, fill, money, duration, studio, whenLocal } from './api.js';
 import { renderHeader } from './header.js';
 import { read } from './store.js';
 
@@ -41,7 +41,9 @@ await guard(async () => {
     ? 'Визит подтверждён. Напоминание придёт заранее.'
     : 'Заявка принята — студия подтвердит её и пришлёт напоминание.';
 
-  document.getElementById('card').replaceChildren(
+  /* fill, а не replaceChildren: ниже есть условные строки, и родной
+     replaceChildren печатает null словом прямо на экране. */
+  fill(document.getElementById('card'),
     el('div', { className: 'sum__row' },
       el('div', {},
         el('div', { className: 'muted', textContent: 'Когда' }),
