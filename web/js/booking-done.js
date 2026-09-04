@@ -7,8 +7,9 @@
    поэтому здесь их может быть больше одной. */
 import { api, guard, el, money, duration, studio, whenLocal } from './api.js';
 import { renderHeader } from './header.js';
+import { read } from './store.js';
 
-renderHeader();
+const user = await renderHeader();
 
 const ids = (new URLSearchParams(location.search).get('id') ?? '')
   .split(',').map((s) => s.trim()).filter(Boolean);
@@ -16,7 +17,18 @@ if (ids.length === 0) location.href = '/account';
 
 await guard(async () => {
   const settings = await studio();
-  const visits = await Promise.all(ids.map((id) => api('GET', `/api/appointments/${id}`)));
+
+  /* Вошедшая клиентка перезапрашивает визит у сервера: показываем то, что
+     действительно сохранено, а не то, что унесли с прошлого экрана. Гостю
+     сервер этого не отдаст — он его не узнаёт, — поэтому у него на руках
+     ответ сервера на создание записи. Это тот же самый сохранённый визит,
+     просто без второго обращения. */
+  const saved = read().done;
+  const visits = user
+    ? await Promise.all(ids.map((id) => api('GET', `/api/appointments/${id}`)))
+    : (saved ?? []);
+
+  if (visits.length === 0) { location.href = '/'; return; }
   const first = visits[0];
   const total = visits.reduce((sum, a) => sum + a.price_kopecks, 0);
   const minutes = visits.reduce((sum, a) => sum + a.duration_min, 0);

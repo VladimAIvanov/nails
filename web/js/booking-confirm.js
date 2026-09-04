@@ -195,19 +195,31 @@ submit.addEventListener('click', async () => {
   submit.disabled = true;
 
   try {
+    const guest = user ? {} : {
+      full_name: document.getElementById('guest-name').value.trim(),
+      phone: document.getElementById('guest-phone').value.trim(),
+      consent_personal_data: document.getElementById('guest-consent').checked
+    };
+
     const data = await api('POST', '/api/appointments', {
       master_id: master.id,
       service_ids: state.serviceIds,
       starts_at: state.startsAt,
       comment: document.getElementById('comment').value.trim() || undefined,
-      hold_token: read().holdToken ?? undefined
+      hold_token: read().holdToken ?? undefined,
+      ...guest
     });
 
     clearInterval(ticker);
     /* Несколько услуг сервер сохраняет несколькими записями подряд —
        передаём все номера, чтобы экран успеха показал визит целиком. */
     const ids = data.appointments.map((a) => a.id).join(',');
+    /* Гостю экран успеха перезапросить визит не сможет — сервер не отдаёт
+       записи тому, кого не узнаёт. Кладём ответ сервера в черновик,
+       и «Готово» показывает его. */
+    const done = data.guest ? data.appointments : null;
     reset();
+    if (done) write({ done });
     location.href = `/booking-done?id=${ids}`;
   } catch (err) {
     submit.disabled = false;
@@ -222,12 +234,32 @@ await guard(async () => {
   settings = await studio();
 
   if (!user) {
+    /* Записаться можно и не заводя кабинет — так описано в паспорте
+       продукта. Спрашиваем ровно то, без чего студия не сможет принять
+       человека: как зовут, по какому номеру перезвонить и согласен ли он
+       на обработку этих двух строк. */
     document.getElementById('who').replaceChildren(
-      el('div', { className: 'note note--info' }, 'Чтобы завершить запись, нужно войти — так визит попадёт в ваш кабинет.'),
-      el('a', { className: 'btn', href: '/login?next=/booking-confirm', textContent: 'Войти' }),
-      el('a', { className: 'btn btn--secondary', href: '/register', textContent: 'Зарегистрироваться' })
+      el('label', { className: 'field' },
+        el('span', { className: 'field__label', textContent: 'Имя' }),
+        el('input', {
+          className: 'field__input', id: 'guest-name', type: 'text',
+          maxLength: 120, autocomplete: 'name', placeholder: 'Как к вам обращаться'
+        })),
+      el('label', { className: 'field' },
+        el('span', { className: 'field__label', textContent: 'Телефон' }),
+        el('input', {
+          className: 'field__input', id: 'guest-phone', type: 'tel',
+          autocomplete: 'tel', placeholder: '+7 921 000-00-00'
+        }),
+        el('span', { className: 'field__hint', textContent: 'По нему студия свяжется, если что-то изменится.' })),
+      el('label', { className: 'checkbox' },
+        el('input', { type: 'checkbox', id: 'guest-consent' }),
+        el('span', {}, 'Согласен на обработку персональных данных')),
+      el('p', { className: 'caption' },
+        'Кабинет при этом не заводится. Если он понадобится — ',
+        el('a', { href: '/register', textContent: 'зарегистрируйтесь' }),
+        ' по этому же телефону, и прошлые визиты окажутся в истории.')
     );
-    submit.disabled = true;
   } else {
     document.getElementById('who').replaceChildren(
       el('div', {}, el('div', { className: 'muted', textContent: 'Имя' }), el('div', { className: 'sum__value', textContent: user.full_name })),
@@ -248,6 +280,7 @@ await guard(async () => {
     + 'Напоминание придёт заранее.';
 
   renderSummary();
-  if (user) await holdSlot();
+  /* Окно держим и гостю: он заполняет форму столько же времени. */
+  await holdSlot();
 })();
 

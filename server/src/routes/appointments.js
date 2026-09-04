@@ -6,7 +6,10 @@
 import { all, get } from '../db.js';
 import { forbidden, notFound, badRequest } from '../http.js';
 import * as v from '../validate.js';
-import { requireUser, requireRole, isAdmin, actsAsClient } from '../auth.js';
+import { requireUser, requireRole, isAdmin, actsAsClient, currentUser } from '../auth.js';
+import { guestActor } from '../services/guest-booking.js';
+import { check as checkRate, hit as hitRate } from '../ratelimit.js';
+import { clientIp } from '../net.js';
 import { getSettings } from '../slots.js';
 import { nowIso, utcToLocal } from '../time.js';
 import {
@@ -57,13 +60,32 @@ export const SELECT_APPOINTMENT = `
 export const presentAppointment = present;
 
 export default function register(router) {
-  /* Создание записи клиентом.
+  /* Создание записи клиентом — вошедшим или не заводившим кабинет.
      Поля master_id, service_ids, starts_at, comment, hold_token — и всё.
      client_id не принимается: клиент записывает только себя. allow_overlap
-     не читается вовсе, поэтому передать его невозможно. */
+     не читается вовсе, поэтому передать его невозможно.
+
+     Гость добавляет к этому имя, телефон и согласие на обработку данных.
+     Сеанса ему не выдаётся: записался — остался гостем. Выдать пропуск
+     по одному номеру телефона значило бы пускать в чужой кабинет всякого,
+     кто этот номер знает.
+
+     Ограничение частоты у гостя своё, по адресу: у вошедшей клиентки за
+     спиной пароль, а здесь форму может заполнять кто угодно и сколько
+     угодно раз. */
   router.post('/api/appointments', async ({ body, req }) => {
-    const actor = requireRole(req, 'client');
     const settings = getSettings();
+    const signedIn = currentUser(req);
+    const ip = clientIp(req);
+
+    let actor;
+    if (signedIn) {
+      actor = requireRole(req, 'client');
+    } else {
+      checkRate('signup', `guest-booking:${ip}`);
+      actor = guestActor(body).actor;
+      hitRate('signup', `guest-booking:${ip}`);
+    }
 
     const result = createAppointment({
       actor,
@@ -77,7 +99,16 @@ export default function register(router) {
     });
 
     const rows = result.ids.map((id) => get(`${SELECT_APPOINTMENT} WHERE a.id = $id`, { id }));
-    return { status: 201, body: { appointments: rows.map((r) => present(r, settings.timezone)) } };
+    return {
+      status: 201,
+      body: {
+        appointments: rows.map((r) => present(r, settings.timezone)),
+        /* Гостю карточку визита показывает сам этот ответ: перезапросить
+           её по номеру он не сможет — чужие записи сервер не отдаёт,
+           а своим он никого не считает. */
+        guest: !signedIn
+      }
+    };
   });
 
   /* Создание записи мастером — вручную из своего расписания.
