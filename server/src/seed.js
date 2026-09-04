@@ -72,6 +72,7 @@ const APPOINTMENTS = [
    поломкой сервиса, а не жизнью студии. */
 const MASTERS = [
   { email: 'varvara@varvara.studio', name: 'Варвара', phone: '+79210000001', sort: 10,
+    alsoAdmin: true,
     services: ['man-cover', 'man', 'ext', 'design', 'repair', 'removal', 'strength'] },
   { email: 'lena@varvara.studio',    name: 'Лена',    phone: '+79210000002', sort: 20,
     services: ['ped', 'man-cover', 'man', 'ped-clean', 'paraffin', 'removal'] },
@@ -140,9 +141,19 @@ transaction((conn) => {
     VALUES (?, (SELECT id FROM services WHERE slug = ?))
   `);
 
+  /* Ровно тот случай, ради которого заведена таблица user_roles: владелица
+     студии сама принимает клиенток. Основная роль остаётся master — на неё
+     опирается внешний ключ master_profiles, — а admin добавляется списком.
+     Без этой строки демо-данные показывали обратное тому, что написано
+     в миграции 007: двух разных людей вместо одного с двумя ролями. */
+  const grantRole = conn.prepare(`
+    INSERT INTO user_roles (user_id, role) VALUES (?, ?) ON CONFLICT DO NOTHING
+  `);
+
   for (const m of MASTERS) {
     upsertUser.run('master', m.name, m.email, m.phone, hashPassword(DEMO_PASSWORD), nowIso());
     const id = findUser.get(m.email).id;
+    if (m.alsoAdmin) grantRole.run(id, 'admin');
     upsertProfile.run(id, m.sort);
     clearServices.run(id);
     for (const slug of m.services) linkService.run(id, slug);

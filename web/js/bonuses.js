@@ -4,7 +4,7 @@
    студия — сервер отвечает клиентке отказом, если она попробует сама.
    Поэтому здесь нет ни одной кнопки, которая обещала бы то, чего экран
    сделать не может. */
-import { api, guard, el, money, studio } from './api.js';
+import { api, guard, el, money, studio, actsAsClient } from './api.js';
 import { renderHeader } from './header.js';
 
 const user = await renderHeader();
@@ -41,6 +41,19 @@ function passCard(p) {
       ? el('a', { className: 'btn btn--secondary btn--sm', href: `/booking?service_id=${p.service_id}`, textContent: 'Записаться по абонементу' })
       : null
   );
+}
+
+/* Абонементы и баллы принадлежат клиентке. Сотруднику те же адреса
+   отвечают «Укажите client_id»: он смотрит чужие, а не свои. Экрана для
+   этого пока нет, поэтому вместо запроса — объяснение. */
+function staffNote() {
+  document.getElementById('passes').replaceChildren(
+    el('div', { className: 'note note--info' },
+      'Абонементы и баллы клиенток студия смотрит в их карточках. Этот экран показывает свои.')
+  );
+  /* Второй раздел убираем целиком: пустой заголовок «Баллы» читается как
+     страница, которая не догрузилась, а объяснение уже дано выше. */
+  document.getElementById('balance').closest('section')?.remove();
 }
 
 async function loadPasses() {
@@ -103,6 +116,10 @@ async function loadLoyalty() {
 
 // ── Загрузка ────────────────────────────────────────────────────────────────
 
-await guard(async () => { settings = await studio(); })();
-await guard(loadPasses)();
-await guard(loadLoyalty)();
+if (actsAsClient(user)) {
+  await guard(async () => { settings = await studio(); })();
+  await guard(loadPasses)();
+  await guard(loadLoyalty)();
+} else {
+  staffNote();
+}

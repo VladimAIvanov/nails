@@ -3,7 +3,7 @@
    Ближайший визит выделен — за ним человек сюда и приходит. Пустой кабинет
    не отдельная страница, а состояние этого же списка: текст и кнопка
    записаться вместо пустого места. */
-import { api, guard, el, money, studio, whenLocal } from './api.js';
+import { api, guard, el, money, studio, whenLocal, actsAsClient } from './api.js';
 import { renderHeader } from './header.js';
 
 const user = await renderHeader();
@@ -119,7 +119,26 @@ function render() {
   list.replaceChildren(...items.map((a, i) => card(a, { first: tab === 'upcoming' && i === items.length - 1 })));
 }
 
+/* Кабинет — экран клиентки. Сотрудник сюда попадает только по набранному
+   вручную адресу, и запрос за записями ему всё равно откажет. Говорим об
+   этом до запроса: красный отказ он исправить не может, а объяснение
+   со ссылкой — это то, чего от страницы ждут (правило 7). */
+function staffNote() {
+  document.getElementById('hello').textContent = 'Кабинет — для клиенток';
+  document.getElementById('hello-sub').textContent =
+    'У вашей учётной записи роль сотрудника: своих визитов здесь нет.';
+  document.querySelector('.tabs')?.remove();
+  document.getElementById('list').replaceChildren(
+    el('div', { className: 'note note--info' },
+      user.roles?.includes('admin')
+        ? el('span', {}, 'Записи всех клиенток студии — в ', el('a', { href: '/admin', textContent: 'админ-панели' }), '.')
+        : 'Своё расписание мастер увидит в кабинете мастера — он появится следующей итерацией.')
+  );
+}
+
 async function load() {
+  if (!actsAsClient(user)) return staffNote();
+
   settings = await studio();
   const [visits, list] = await Promise.all([
     api('GET', '/api/appointments/my?scope=all'),

@@ -5,7 +5,7 @@
    регистрации. Имя берётся из API, а не из разметки.
 
    Шапка липкая — остаётся выше содержимого при прокрутке (класс .header). */
-import { me, logout, el } from './api.js';
+import { me, logout, el, actsAsClient } from './api.js';
 
 /* Пункт «Админ-панель» показывается только по роли из базы — и это
    удобство, а не защита. Спрятанная ссылка никого не останавливает: адрес
@@ -13,7 +13,7 @@ import { me, logout, el } from './api.js';
    а данные закрыты проверкой на весь /api/admin (server/src/index.js). */
 const LINKS = [
   { href: '/admin', text: 'Админ-панель', forAdmins: true },
-  { href: '/account', text: 'Мои записи', forGuests: false },
+  { href: '/account', text: 'Мои записи', forGuests: false, forClients: true },
   { href: '/profile', text: 'Профиль', forGuests: false },
   { href: '/#services', text: 'Услуги', forGuests: true },
   { href: '/#masters', text: 'Мастера', forGuests: true },
@@ -55,7 +55,13 @@ export async function renderHeader() {
 function paint(mount, user, { loading }) {
   const nav = el('nav', { className: 'header__nav' },
     ...LINKS
-      .filter((l) => (l.forAdmins ? isAdmin(user) : user ? true : l.forGuests))
+      .filter((l) => {
+        if (l.forAdmins) return isAdmin(user);
+        if (!user) return l.forGuests;
+        /* Кабинет предлагаем только тем, кому он откроется: сотруднику
+           сервер откажет, а ссылка в шапке обещала бы обратное. */
+        return l.forClients ? actsAsClient(user) : true;
+      })
       .map((l) => el('a', { href: l.href, textContent: l.text }))
   );
 
@@ -71,7 +77,7 @@ function paint(mount, user, { loading }) {
     });
 
     side.append(
-      el('a', { href: '/account', className: 'who' },
+      el('a', { href: actsAsClient(user) ? '/account' : '/profile', className: 'who' },
         el('span', { className: 'avatar', textContent: initials(user.full_name) }),
         el('span', { className: 'who__name', textContent: user.full_name })),
       exit

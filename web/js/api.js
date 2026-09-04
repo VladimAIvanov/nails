@@ -38,6 +38,17 @@ export async function api(method, path, body) {
   return data;
 }
 
+/* Действует ли человек как клиентка. Повторяет правило сервера
+   (actsAsClient в server/src/auth.js): у сотрудников свои экраны, и часть
+   клиентских адресов им отвечает отказом — GET /api/appointments/my требует
+   роль client, GET /api/passes и GET /api/loyalty ждут от них client_id.
+
+   Проверяется наличие роли в списке, а не равенство основной: у владелицы
+   студии их две. Прав это не выдаёт и не отнимает — только решает, что
+   показывать. */
+export const actsAsClient = (user) =>
+  Boolean(user) && !user.roles?.some((r) => r === 'admin' || r === 'master');
+
 /* Кто сейчас вошёл. Ответ 401 — это не поломка, а «никто»: страница должна
    уметь показать себя и гостю. */
 export async function me() {
