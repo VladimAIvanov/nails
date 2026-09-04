@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Мастера — админ-панель «Варвара»</title>
+  <link rel="stylesheet" href="/tokens.css">
+  <link rel="stylesheet" href="/css/base.css">
+  <link rel="stylesheet" href="/css/admin.css">
+</head>
+<body>
+
+<div class="adm">
+  <aside id="side" class="side"></aside>
+
+  <div class="main">
+    <div class="bar">
+      <h1>Мастера</h1>
+      <div id="bar-side" class="bar__side"></div>
+    </div>
+
+    <div class="adm__body">
+      <div id="msg"></div>
+
+      <div class="adm__empty">
+        <h2>Раздел пока пустой</h2>
+        <p>
+          Здесь появится список мастеров с закреплёнными услугами и переключателями
+          «Принимает онлайн-записи» и «Работает по часам студии», а рядом — форма
+          добавления. Данные отдаёт <code>GET /api/admin/masters</code> —
+          подключим их следующим шагом.
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script type="module" src="/js/admin.js"></script>
+</body>
+</html>

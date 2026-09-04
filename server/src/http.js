@@ -121,11 +121,22 @@ function compile(pattern) {
 export function createRouter() {
   const routes = [];
 
+  /* Проверки, общие для целой группы адресов. Заводятся один раз при сборке
+     маршрутизатора и срабатывают до обработчика — на каждом адресе, чей путь
+     начинается с указанного префикса.
+
+     Так задумано ради нового кода, а не старого: административный адрес,
+     который завтра допишут в routes/admin.js, окажется закрыт сам, даже если
+     автор забудет про права. Проверка, скопированная в тридцать девять
+     обработчиков, этого не гарантирует — забыть можно в сороковом. */
+  const guards = [];
+
   const add = (method, pattern, handler) => {
     routes.push({ method, ...compile(pattern), handler, pattern });
   };
 
   return {
+    guard: (prefix, check) => guards.push({ prefix, check }),
     get: (p, h) => add('GET', p, h),
     post: (p, h) => add('POST', p, h),
     patch: (p, h) => add('PATCH', p, h),
@@ -142,7 +153,15 @@ export function createRouter() {
         if (route.method !== method) continue;
         const params = {};
         route.names.forEach((name, i) => { params[name] = decodeURIComponent(m[i + 1]); });
-        return { handler: route.handler, params };
+
+        const applicable = guards.filter((g) => pathname.startsWith(g.prefix));
+        if (applicable.length === 0) return { handler: route.handler, params };
+
+        const handler = async (ctx) => {
+          for (const g of applicable) g.check(ctx);
+          return route.handler(ctx);
+        };
+        return { handler, params };
       }
       if (pathExists) throw new HttpError(405, 'method_not_allowed', 'Метод не поддерживается');
       throw notFound('Адрес не найден');

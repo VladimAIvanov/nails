@@ -1,0 +1,169 @@
+/* Раскладка админ-панели. Взята с экранов прототипа: тёмное боковое меню
+   слева, полоса с названием раздела сверху, содержимое под ней.
+
+   Цвета, шрифты и размеры — только из tokens.css, как и на клиентских
+   страницах: панель должна выглядеть частью того же сервиса, а не отдельным
+   продуктом. Единственное отступление объяснено ниже.
+
+   Полупрозрачные оттенки белого на тёмной подложке меню в токенах не заведены
+   — их нет и в дизайн-системе прототипа. Подбирать похожий на глаз нельзя
+   (правило 4), поэтому они выводятся из существующего токена через color-mix.
+   Источник цвета остаётся один: поменяется --color-text-inverse — поменяется
+   и меню. */
+
+.adm {
+  display: grid;
+  grid-template-columns: 1fr;
+  min-height: 100vh;
+}
+
+/* ── Боковое меню ─────────────────────────────────────────────────────────── */
+
+.side {
+  background: var(--gradient-plum);
+  padding: var(--space-6) var(--space-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+.side__mark {
+  font-family: var(--font-display);
+  font-size: var(--text-h3);
+  font-weight: var(--weight-medium);
+  color: var(--color-text-inverse);
+  line-height: var(--line-tight);
+}
+
+.side__mark small {
+  display: block;
+  margin-top: var(--space-1);
+  font-family: var(--font-text);
+  font-size: var(--text-overline);
+  font-weight: var(--weight-semibold);
+  letter-spacing: var(--tracking-overline);
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--color-text-inverse) 55%, transparent);
+}
+
+.side__nav {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.side__i {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: var(--tap-min);
+  padding: var(--space-3) var(--space-4);
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: color-mix(in srgb, var(--color-text-inverse) 72%, transparent);
+  font-family: var(--font-text);
+  font-size: var(--text-base);
+  font-weight: var(--weight-medium);
+  text-align: left;
+  transition: background var(--duration-fast) var(--ease-standard),
+              color var(--duration-fast) var(--ease-standard);
+}
+
+.side__i:hover {
+  background: color-mix(in srgb, var(--color-text-inverse) 8%, transparent);
+  color: var(--color-text-inverse);
+}
+
+.side__i--on {
+  background: color-mix(in srgb, var(--color-text-inverse) 14%, transparent);
+  color: var(--color-text-inverse);
+  font-weight: var(--weight-semibold);
+}
+
+.side__foot {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  font-size: var(--text-sm);
+  color: color-mix(in srgb, var(--color-text-inverse) 70%, transparent);
+}
+
+.side__foot .avatar {
+  background: color-mix(in srgb, var(--color-text-inverse) 16%, transparent);
+  color: var(--color-text-inverse);
+}
+
+/* ── Полоса сверху и содержимое ───────────────────────────────────────────── */
+
+.main {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--color-bg);
+}
+
+.bar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+  padding: var(--space-4) var(--gutter);
+  border-bottom: var(--border-width) solid var(--color-border);
+  background: var(--color-surface);
+}
+
+.bar h1 {
+  font-size: var(--text-h2);
+  margin: 0;
+}
+
+.bar__side {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.bar__who {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+}
+
+.adm__body {
+  padding: var(--space-6) var(--gutter) var(--space-12);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+/* Заглушка раздела, который ещё не наполнен данными. Пустая страница без
+   объяснения читается как поломка — правило 7 действует и здесь. */
+.adm__empty {
+  padding: var(--space-10) var(--space-6);
+  text-align: center;
+  border: var(--border-width) dashed var(--color-border-strong);
+  border-radius: var(--radius-xl);
+  background: var(--color-surface);
+  color: var(--color-text-secondary);
+}
+
+.adm__empty h2 {
+  margin-bottom: var(--space-2);
+  font-size: var(--text-h3);
+  color: var(--color-text);
+}
+
+.adm__empty p {
+  margin: 0 auto;
+  max-width: 52ch;
+  font-size: var(--text-sm);
+}
+
+@media (min-width: 900px) {
+  .adm { grid-template-columns: 248px 1fr; }
+  .side { padding: var(--space-7) var(--space-5); }
+  .side__foot { margin-top: auto; }
+  .bar { padding-inline: var(--space-8); min-height: 76px; }
+  .adm__body { padding: var(--space-7) var(--space-8) var(--space-10); }
+}

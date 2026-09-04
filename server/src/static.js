@@ -11,6 +11,7 @@
    ничего больше: чужие домены, инлайновые скрипты и фреймы закрыты. */
 import { readFile, stat } from 'node:fs/promises';
 import { extname, join, normalize, resolve, sep } from 'node:path';
+import { currentUser, hasRole } from './auth.js';
 
 const WEB_ROOT = resolve(import.meta.dirname, '..', '..', 'web');
 
@@ -48,6 +49,36 @@ const PAGE_HEADERS = {
   'content-security-policy': PAGE_CSP
 };
 
+/* Раздел администратора закрыт на сервере, а не спрятанной ссылкой.
+
+   Закрывать нужно и страницу, и адреса API: если проверять только запросы
+   к данным, клиентка откроет /admin и увидит каркас панели с пустыми
+   таблицами. Это не утечка данных, но и не тот ответ, который сервис должен
+   давать: человек решит, что панель сломалась, а не что она не для него.
+
+   Проверок здесь две, и это разные проверки. Гость ещё не назвался — его
+   отправляем на вход и запоминаем, куда он шёл. Клиентка назвалась, но роли
+   у неё нет — это отказ, и он показывается страницей с объяснением. */
+function isAdminPage(pathname) {
+  return pathname === '/admin' || pathname === '/admin.html' || pathname.startsWith('/admin/');
+}
+
+/** Отдаёт страницу из папки web с указанным кодом ответа. */
+async function sendPage(req, res, name, status) {
+  const file = join(WEB_ROOT, name);
+  if (!(await exists(file))) return false;
+
+  const page = await readFile(file);
+  res.writeHead(status, {
+    'content-type': TYPES['.html'],
+    'content-length': page.length,
+    'cache-control': 'no-store',
+    ...PAGE_HEADERS
+  });
+  res.end(req.method === 'HEAD' ? undefined : page);
+  return true;
+}
+
 /* Путь из запроса складывается с корнем и проверяется: выйти из папки web
    последовательностью «..» нельзя. */
 function safePath(pathname) {
@@ -62,6 +93,27 @@ function safePath(pathname) {
  */
 export async function servePage(req, res, pathname) {
   if (req.method !== 'GET' && req.method !== 'HEAD') return false;
+
+  if (isAdminPage(pathname)) {
+    const user = currentUser(req);
+
+    if (!user) {
+      res.writeHead(302, {
+        location: `/login?next=${encodeURIComponent(pathname)}`,
+        'cache-control': 'no-store',
+        ...PAGE_HEADERS
+      });
+      res.end();
+      return true;
+    }
+
+    if (!hasRole(user, 'admin')) {
+      if (await sendPage(req, res, 'forbidden.html', 403)) return true;
+      res.writeHead(403, { 'content-type': 'text/plain; charset=utf-8', ...PAGE_HEADERS });
+      res.end('Этот раздел только для администраторов');
+      return true;
+    }
+  }
 
   let file = safePath(pathname);
   if (!file) {
@@ -83,13 +135,7 @@ export async function servePage(req, res, pathname) {
     body = await readFile(file);
   } catch {
     /* Своя страница 404, если она есть; иначе короткий текст. */
-    const notFound = join(WEB_ROOT, '404.html');
-    if (await exists(notFound)) {
-      const page = await readFile(notFound);
-      res.writeHead(404, { 'content-type': TYPES['.html'], 'content-length': page.length, ...PAGE_HEADERS });
-      res.end(req.method === 'HEAD' ? undefined : page);
-      return true;
-    }
+    if (await sendPage(req, res, '404.html', 404)) return true;
     return false;
   }
 

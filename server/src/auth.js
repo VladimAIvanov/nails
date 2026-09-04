@@ -22,7 +22,7 @@ const SESSION_TTL_DAYS = {
 
 /* Роли берутся из базы: и список user_roles, и основная роль в users.
    Ни то ни другое из запроса не приходит. */
-function rolesOf(userId) {
+export function rolesOf(userId) {
   return all(
     `SELECT role FROM user_roles WHERE user_id = $id
      UNION SELECT role FROM users WHERE id = $id`,

@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Раздел недоступен — Варвара</title>
+  <link rel="stylesheet" href="/tokens.css">
+  <link rel="stylesheet" href="/css/base.css">
+  <link rel="stylesheet" href="/css/booking.css">
+</head>
+<body>
+
+<header id="header" class="header"></header>
+
+<main class="wrap wrap--narrow auth">
+  <div class="auth__card">
+    <p class="eyebrow">Ошибка 403</p>
+    <h1 class="auth__title">Этот раздел только для администраторов</h1>
+    <p class="auth__sub">
+      Вы вошли, но прав на панель студии у вашей учётной записи нет. Всё, что нужно
+      для записи и просмотра своих визитов, — в личном кабинете.
+    </p>
+
+    <div id="msg"></div>
+
+    <div class="row">
+      <a class="btn" href="/account">Мои записи</a>
+      <a class="btn btn--secondary" href="/booking">Записаться</a>
+      <a class="btn btn--ghost" href="/">На главную</a>
+    </div>
+
+    <p class="auth__foot">
+      Если панель нужна вам по работе, роль назначает владелица студии.
+    </p>
+  </div>
+</main>
+
+<script type="module" src="/js/forbidden.js"></script>
+</body>
+</html>

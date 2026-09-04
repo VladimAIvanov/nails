@@ -14,9 +14,19 @@ renderHeader();
 const form = document.getElementById('form');
 
 /* Куда возвращаться после входа: либо туда, откуда попросили войти,
-   либо в кабинет. */
-const next = new URLSearchParams(location.search).get('next');
-const target = next && next.startsWith('/') ? next : '/account';
+   либо в кабинет — а администратора в панель.
+
+   Адрес возврата берётся из строки запроса, поэтому его нельзя принимать
+   на веру: «//чужой-сайт» начинается со слеша и выглядит как свой путь,
+   а браузер уводит по нему на чужой домен. Пропускаем только один слеш. */
+const asked = new URLSearchParams(location.search).get('next');
+const next = asked && asked.startsWith('/') && !asked.startsWith('//') ? asked : null;
+
+/* Форма входа одна на всех. Отдельного адреса для сотрудников нет и не будет:
+   вторая форма не добавила бы защиты, а восстановление и смену пароля
+   пришлось бы поддерживать в двух местах. Кто перед нами, решает сервер —
+   по ролям из базы, а не по адресу, с которого открыли форму. */
+const home = (user) => (user.roles?.includes('admin') ? '/admin' : '/account');
 
 form.addEventListener('submit', guard(async () => {
   clearFieldErrors(form);
@@ -33,6 +43,6 @@ form.addEventListener('submit', guard(async () => {
     return;
   }
 
-  await api('POST', '/api/auth/login', { login, password });
-  location.href = target;
+  const { user } = await api('POST', '/api/auth/login', { login, password });
+  location.href = next ?? home(user);
 }, 'msg', form));

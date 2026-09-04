@@ -4,17 +4,28 @@ import { badRequest, conflict, unauthorized } from '../http.js';
 import * as v from '../validate.js';
 import {
   hashPassword, verifyPassword, createSession, revokeSession, requireUser, purgeExpiredSessions,
-  sessionCookie, clearSessionCookie, tokenFromRequest
+  sessionCookie, clearSessionCookie, tokenFromRequest, rolesOf
 } from '../auth.js';
 import { check as checkRate, hit as hitRate, clear as clearRate, purge as purgeRates } from '../ratelimit.js';
 import { clientIp, isSecure } from '../net.js';
 import { nowIso } from '../time.js';
 
 /* Наружу отдаём только то, что нужно интерфейсу. Хеша пароля здесь нет
-   и быть не может — поле в выборку не попадает. */
+   и быть не может — поле в выборку не попадает.
+
+   Ролей две штуки не по недосмотру. `role` — основная, на неё опирается
+   целостность данных в базе. `roles` — полный список: по нему интерфейс
+   решает, куда вести человека после входа и показывать ли пункт меню.
+   Владелица студии одновременно администратор и мастер, и по одному
+   полю `role` её от обычного мастера не отличить.
+
+   Права этот список не выдаёт: их сервер проверяет сам, по базе. Даже если
+   страница нарисует себе меню администратора, каждый запрос к /api/admin
+   всё равно упрётся в проверку роли. */
 const publicUser = (u) => ({
   id: u.id,
   role: u.role,
+  roles: u.roles ?? rolesOf(u.id),
   full_name: u.full_name ?? u.fullName,
   phone: u.phone,
   email: u.email ?? null

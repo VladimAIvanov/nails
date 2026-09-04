@@ -6,6 +6,7 @@ import { db, dbFile } from './db.js';
 import {
   createRouter, readJson, send, sendRaw, corsHeaders, HttpError, SECURITY_HEADERS
 } from './http.js';
+import { requireRole } from './auth.js';
 import { isSecure, trustedProxies } from './net.js';
 import { servePage } from './static.js';
 import * as env from './env.js';
@@ -29,6 +30,16 @@ registerExtras(router);
 registerStudio(router);
 registerManage(router);
 registerProfile(router);
+
+/* Права на административные адреса проверяются здесь, одной строкой на
+   всю группу. Обработчики в routes/admin.js и routes/manage.js по-прежнему
+   вызывают requireRole сами — но не ради защиты, а потому что им нужен сам
+   пользователь: кто именно завёл услугу, кто подтвердил запись. Защита —
+   вот эта строка, и новый адрес получает её, ничего для этого не делая.
+
+   requireRole проверяет наличие роли в списке, а не равенство единственному
+   значению: у владелицы студии их две — admin и master. */
+router.guard('/api/admin/', ({ req }) => requireRole(req, 'admin'));
 
 /* Путь к файлу базы наружу не отдаётся: это имя пользователя ОС и
    структура каталогов сервера. Для диагностики есть npm run doctor. */

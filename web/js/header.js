@@ -7,13 +7,22 @@
    Шапка липкая — остаётся выше содержимого при прокрутке (класс .header). */
 import { me, logout, el } from './api.js';
 
+/* Пункт «Админ-панель» показывается только по роли из базы — и это
+   удобство, а не защита. Спрятанная ссылка никого не останавливает: адрес
+   /admin вводится руками. Не пускает туда сервер (server/src/static.js),
+   а данные закрыты проверкой на весь /api/admin (server/src/index.js). */
 const LINKS = [
+  { href: '/admin', text: 'Админ-панель', forAdmins: true },
   { href: '/account', text: 'Мои записи', forGuests: false },
   { href: '/profile', text: 'Профиль', forGuests: false },
   { href: '/#services', text: 'Услуги', forGuests: true },
   { href: '/#masters', text: 'Мастера', forGuests: true },
   { href: '/#contacts', text: 'Контакты', forGuests: true }
 ];
+
+/* Роли приходят списком, и проверяется наличие нужной, а не равенство
+   единственному значению: у владелицы студии их две — admin и master. */
+const isAdmin = (user) => Boolean(user?.roles?.includes('admin'));
 
 const initials = (name) => (name ?? '')
   .split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]).join('').toUpperCase() || '·';
@@ -46,7 +55,7 @@ export async function renderHeader() {
 function paint(mount, user, { loading }) {
   const nav = el('nav', { className: 'header__nav' },
     ...LINKS
-      .filter((l) => (user ? true : l.forGuests))
+      .filter((l) => (l.forAdmins ? isAdmin(user) : user ? true : l.forGuests))
       .map((l) => el('a', { href: l.href, textContent: l.text }))
   );
 
