@@ -8,6 +8,7 @@
    Пропуск сервер ставит кукой сам. Здесь его не читают и не хранят. */
 import { api, guard, showError, clearFieldErrors } from './api.js';
 import { renderHeader } from './header.js';
+import { renderExternalLogin } from './external-login.js';
 
 renderHeader();
 
@@ -27,6 +28,8 @@ const next = asked && asked.startsWith('/') && !asked.startsWith('//') ? asked :
    пришлось бы поддерживать в двух местах. Кто перед нами, решает сервер —
    по ролям из базы, а не по адресу, с которого открыли форму. */
 const home = (user) => (user.roles?.includes('admin') ? '/admin' : '/account');
+
+renderExternalLogin('external', next);
 
 form.addEventListener('submit', guard(async () => {
   clearFieldErrors(form);

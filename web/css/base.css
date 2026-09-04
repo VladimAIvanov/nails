@@ -488,3 +488,19 @@ a:hover { color: var(--color-text-link-hover); }
   line-height: var(--space-4);
   vertical-align: middle;
 }
+
+/* Разделитель «или» между формой с паролем и входом через внешний сервис. */
+.or {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-block: var(--space-5);
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+}
+.or::before, .or::after {
+  content: '';
+  flex: 1;
+  height: var(--border-width);
+  background: var(--color-border);
+}

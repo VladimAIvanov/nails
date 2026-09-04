@@ -7,6 +7,10 @@
    на форме как есть. */
 import { api, guard, showError, clearFieldErrors } from './api.js';
 import { renderHeader } from './header.js';
+import { renderExternalLogin } from './external-login.js';
+
+/* Через Яндекс регистрироваться не нужно: первый вход сам заводит кабинет. */
+renderExternalLogin('external');
 
 renderHeader();
 

@@ -50,10 +50,20 @@ export default function register(router) {
      выдаётся новый токен, чтобы человека не выбросило из приложения. */
   router.post('/api/profile/password', async ({ body, req, res }) => {
     const actor = requireUser(req);
-    const current = v.str(body.current_password, 'current_password', { max: 200 });
     const next = v.password(body.new_password, 'new_password');
-
     const user = get('SELECT password_hash FROM users WHERE id = $id', { id: actor.id });
+
+    /* Пароля может не быть вовсе: человек вошёл через Яндекс и внутри сервиса
+       пароль не заводил. Спрашивать у него «текущий пароль» не у чего, и
+       отказывать тоже незачем — он уже вошёл, пропуск это и подтверждает.
+       Так у него появляется второй способ входа, не отменяющий первый. */
+    if (user.password_hash === null) {
+      run('UPDATE users SET password_hash = $hash, password_changed_at = $now, updated_at = $now WHERE id = $id',
+        { hash: hashPassword(next), now: nowIso(), id: actor.id });
+      return { body: { ok: true, sessions_closed: 0, first_password: true } };
+    }
+
+    const current = v.str(body.current_password, 'current_password', { max: 200 });
     if (!verifyPassword(current, user.password_hash)) {
       throw unauthorized('Текущий пароль неверен');
     }

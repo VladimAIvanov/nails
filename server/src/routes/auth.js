@@ -8,6 +8,7 @@ import {
 } from '../auth.js';
 import { check as checkRate, hit as hitRate, clear as clearRate, purge as purgeRates } from '../ratelimit.js';
 import { clientIp, isSecure } from '../net.js';
+import { yandexProfile, linkOrCreate } from '../services/external-login.js';
 import { nowIso } from '../time.js';
 
 /* Наружу отдаём только то, что нужно интерфейсу. Хеша пароля здесь нет
@@ -140,6 +141,56 @@ export default function register(router) {
     return { body: { ok: true } };
   });
 
+  /* Вход через Яндекс.
+
+     Почту в теле запроса сервер не принимает — и это главное в обработчике.
+     Адрес, который поверил бы браузеру на слово, был бы не входом через
+     Яндекс, а входом под кем угодно: достаточно прислать чужую почту.
+     Поэтому почту и имя достаёт сам сервер — сейчас из заглушки, после
+     публикации из ответа Яндекса на одноразовый код.
+
+     Ограничение частоты общее с обычным входом: перебирать здесь нечего,
+     но адрес всё равно заводит учётные записи, и делать это тысячами
+     подряд незачем. */
+  router.post('/api/auth/yandex', async ({ body, req, res }) => {
+    const ip = clientIp(req);
+    checkRate('login', `yandex:${ip}`);
+
+    const profile = await yandexProfile(body.code ?? null);
+    hitRate('login', `yandex:${ip}`);
+
+    const { user, created, linked } = linkOrCreate({
+      provider: profile.provider,
+      providerId: profile.provider_id,
+      email: profile.email,
+      fullName: profile.full_name
+    });
+
+    purgeExpiredSessions();
+    const session = createSession(user.id, {
+      userAgent: req.headers['user-agent'] ?? null,
+      ip: clientIp(req) || null
+    });
+    withSession(res, req, session);
+
+    return {
+      status: created ? 201 : 200,
+      body: {
+        user: publicUser(user),
+        /* Экрану полезно знать, что именно произошло: завели кабинет,
+           привязали вход к существующему или просто узнали своего. */
+        created,
+        linked,
+        stub: profile.stub === true,
+        ...session
+      }
+    };
+  });
+
+  /* Показывать ли кнопку. Отдельного адреса ради одного признака заводить
+     не хочется, но и рисовать кнопку, которая всегда отвечает отказом,
+     тоже нельзя — поэтому признак приезжает вместе с настройками студии
+     (см. GET /api/studio, поле external_login). */
   router.get('/api/auth/me', async ({ req }) => ({ body: { user: publicUser(requireUser(req)) } }));
 }
 
