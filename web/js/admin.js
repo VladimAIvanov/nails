@@ -80,8 +80,11 @@ export async function renderAdmin() {
       location.href = '/';
     });
 
+    /* Ссылка ведёт на лендинг, а не в кабинет. Кабинет — экран клиентки:
+       GET /api/appointments/my требует роль client и администратору отвечает
+       403. Выводить человека по ссылке на страницу с ошибкой нельзя. */
     bar.append(
-      el('a', { href: '/account', className: 'bar__who', textContent: 'Как клиент' }),
+      el('a', { href: '/', className: 'bar__who', textContent: 'На сайт' }),
       exit
     );
   }
