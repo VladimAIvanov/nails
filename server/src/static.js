@@ -63,6 +63,24 @@ function isAdminPage(pathname) {
   return pathname === '/admin' || pathname === '/admin.html' || pathname.startsWith('/admin/');
 }
 
+/* Страницы кабинета: смотреть там нечего, пока человек не назвался.
+
+   Данные они и раньше не выдавали — все запросы к API отвечают гостю 401.
+   Но сама страница приходила с кодом 200, и гость успевал увидеть каркас
+   пустого кабинета до того, как её скрипт уводил на вход. Разница между
+   «сразу на вход» и «мигнуло и на вход» невелика, но первое — то, что
+   человек ожидает, а второе выглядит сбоем.
+
+   Страниц записи в списке нет намеренно: по ним гость проходит до конца
+   и оформляет визит, не заводя кабинет. */
+const PRIVATE_PAGES = new Set([
+  '/account', '/profile', '/notifications', '/bonuses', '/sessions',
+  '/appointment', '/password-change'
+]);
+
+const isPrivatePage = (pathname) =>
+  PRIVATE_PAGES.has(pathname.replace(/\.html$/, '').replace(/\/+$/, '') || '/');
+
 /** Отдаёт страницу из папки web с указанным кодом ответа. */
 async function sendPage(req, res, name, status) {
   const file = join(WEB_ROOT, name);
@@ -94,7 +112,7 @@ function safePath(pathname) {
 export async function servePage(req, res, pathname) {
   if (req.method !== 'GET' && req.method !== 'HEAD') return false;
 
-  if (isAdminPage(pathname)) {
+  if (isAdminPage(pathname) || isPrivatePage(pathname)) {
     const user = currentUser(req);
 
     if (!user) {
@@ -107,7 +125,7 @@ export async function servePage(req, res, pathname) {
       return true;
     }
 
-    if (!hasRole(user, 'admin')) {
+    if (isAdminPage(pathname) && !hasRole(user, 'admin')) {
       if (await sendPage(req, res, 'forbidden.html', 403)) return true;
       res.writeHead(403, { 'content-type': 'text/plain; charset=utf-8', ...PAGE_HEADERS });
       res.end('Этот раздел только для администраторов');
