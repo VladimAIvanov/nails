@@ -9,6 +9,19 @@ import { nowIso, utcToLocal } from '../time.js';
 
 const STATUSES = ['pending', 'confirmed', 'done', 'cancelled', 'no_show'];
 
+/* «1 запись», «2 записи», «5 записей». Сообщение об отказе читает человек,
+   и «5 запись» в нём выглядит как недоделка. */
+function plural(n, one, few, many) {
+  const last = n % 10;
+  const two = n % 100;
+  if (last === 1 && two !== 11) return `${n} ${one}`;
+  if (last >= 2 && last <= 4 && (two < 12 || two > 14)) return `${n} ${few}`;
+  return `${n} ${many}`;
+}
+
+/* Перечисление того, что держит строку: «3 записи и 1 абонемент». */
+const listLinks = (parts) => parts.filter(Boolean).join(', ').replace(/, ([^,]*)$/, ' и $1');
+
 export default function register(router) {
   /* Все записи студии с фильтрами — экран «Записи» в панели. */
   router.get('/api/admin/appointments', async ({ req, query }) => {
@@ -201,38 +214,101 @@ export default function register(router) {
     return { body: get('SELECT * FROM services WHERE id = $id', { id }) };
   });
 
-  /* Удаление услуги, по которой были записи, запрещено внешним ключом
-     (ON DELETE RESTRICT): история визитов и выручка не должны исчезать.
-     В таком случае услугу снимают с публикации через is_active. */
+  /* Что произойдёт по кнопке «Удалить», решает сервер, а не тот, кто нажал.
+
+     Администратор не обязан помнить, есть ли по услуге записи, — и не должен
+     получать отказ с советом «сделайте PATCH is_active=false»: это не ответ
+     человеку, а инструкция программисту. Поэтому здесь два исхода, и оба
+     успешные: строку без ссылок сервер удаляет, строку с историей отключает
+     и объясняет, почему.
+
+     Справочник отвечает на вопрос, что студия предлагает сейчас; записи —
+     что происходило раньше. Стереть услугу значит оставить прошлые визиты
+     без названия: у них снимок цены и длительности, но не имени. */
   router.delete('/api/admin/services/:id', async ({ params, req }) => {
     requireRole(req, 'admin');
     const id = v.idParam(params.id);
-    if (!get('SELECT id FROM services WHERE id = $id', { id })) throw notFound('Услуга не найдена');
+    const service = get('SELECT id, title, is_active FROM services WHERE id = $id', { id });
+    if (!service) throw notFound('Услуга не найдена');
 
-    try {
-      run('DELETE FROM services WHERE id = $id', { id });
-    } catch (err) {
-      if (/FOREIGN KEY/i.test(err.message)) {
-        throw conflict('По услуге есть записи, удалить нельзя. Снимите её с публикации: PATCH is_active=false');
+    /* Три таблицы держат услугу намертво (ON DELETE RESTRICT): записи,
+       регулярные серии и абонементы. Считаем их до попытки удаления —
+       иначе в объяснении будет нечего назвать. */
+    const links = get(
+      `SELECT (SELECT COUNT(*) FROM appointments     WHERE service_id = $id) AS appointments,
+              (SELECT COUNT(*) FROM recurring_series WHERE service_id = $id) AS recurring,
+              (SELECT COUNT(*) FROM passes           WHERE service_id = $id) AS passes`,
+      { id }
+    );
+    const held = links.appointments + links.recurring + links.passes;
+
+    if (held === 0) {
+      try {
+        run('DELETE FROM services WHERE id = $id', { id });
+        return {
+          body: {
+            deleted: true,
+            disabled: false,
+            id,
+            message: `Услуга «${service.title}» удалена: на неё никто не ссылался`
+          }
+        };
+      } catch (err) {
+        /* Ссылка нашлась там, где мы не считали. Это не повод показывать
+           человеку ошибку базы: исход тот же — отключаем. */
+        if (!/FOREIGN KEY/i.test(err.message)) throw err;
       }
-      throw err;
     }
-    return { body: { ok: true, deleted: id } };
+
+    run('UPDATE services SET is_active = 0, updated_at = $now WHERE id = $id', { now: nowIso(), id });
+
+    const what = listLinks([
+      links.appointments ? plural(links.appointments, 'запись', 'записи', 'записей') : null,
+      links.recurring ? plural(links.recurring, 'регулярная серия', 'регулярные серии', 'регулярных серий') : null,
+      links.passes ? plural(links.passes, 'абонемент', 'абонемента', 'абонементов') : null
+    ]);
+
+    return {
+      body: {
+        deleted: false,
+        disabled: true,
+        id,
+        references: links,
+        message: what
+          ? `Удалить услугу «${service.title}» нельзя: на неё ссылается история студии — ${what}. Иначе прошлые визиты потеряют название. Услуга отключена: клиентам она больше не видна, а сами визиты остались как были`
+          : `Услугу «${service.title}» удалить не вышло: на неё ещё что-то ссылается. Она отключена — клиентам не видна, в списке студии осталась`
+      }
+    };
   });
 
   // ── Мастера ───────────────────────────────────────────────────────────────
 
+  /* Список мастеров вместе с закреплёнными услугами.
+
+     Раньше отдавался только счётчик, и экрану правки приходилось бы
+     дозапрашивать состав по каждому мастеру — да ещё клиентским адресом,
+     который отключённые услуги не показывает. Здесь нужны все: снятая
+     с публикации услуга всё равно остаётся закреплённой за мастером. */
   router.get('/api/admin/masters', async ({ req }) => {
     requireRole(req, 'admin');
+    const masters = all(
+      `SELECT u.id, u.full_name, u.email, u.phone, u.is_active,
+              mp.accepts_online_booking, mp.uses_studio_hours, mp.sort_order,
+              (SELECT COUNT(*) FROM master_services ms WHERE ms.master_id = mp.user_id) AS services_count
+         FROM master_profiles mp JOIN users u ON u.id = mp.user_id
+        ORDER BY mp.sort_order`
+    );
+
+    const links = all(
+      'SELECT master_id, service_id FROM master_services WHERE is_active = 1 ORDER BY service_id'
+    );
+
     return {
       body: {
-        masters: all(
-          `SELECT u.id, u.full_name, u.email, u.phone, u.is_active,
-                  mp.accepts_online_booking, mp.uses_studio_hours, mp.sort_order,
-                  (SELECT COUNT(*) FROM master_services ms WHERE ms.master_id = mp.user_id) AS services_count
-             FROM master_profiles mp JOIN users u ON u.id = mp.user_id
-            ORDER BY mp.sort_order`
-        )
+        masters: masters.map((m) => ({
+          ...m,
+          service_ids: links.filter((l) => l.master_id === m.id).map((l) => l.service_id)
+        }))
       }
     };
   });
@@ -330,27 +406,64 @@ export default function register(router) {
     };
   });
 
-  /* Мастера с записями удалить нельзя — тот же ON DELETE RESTRICT.
-     Правильный способ «уволить» — снять активность. */
+  /* С мастером ровно то же, что и с услугой: решает сервер.
+
+     Разница одна — у мастера бывают предстоящие визиты, и про них нужно
+     сказать отдельно. Отключённый мастер исчезает из выбора при записи,
+     но уже записанные к нему клиентки никуда не деваются: с ними придётся
+     разбираться руками, и администратор должен об этом узнать. */
   router.delete('/api/admin/masters/:id', async ({ params, req }) => {
     requireRole(req, 'admin');
     const id = v.idParam(params.id);
-    if (!get('SELECT user_id FROM master_profiles WHERE user_id = $id', { id })) {
-      throw notFound('Мастер не найден');
+    const master = get(
+      `SELECT u.id, u.full_name FROM master_profiles mp
+         JOIN users u ON u.id = mp.user_id WHERE mp.user_id = $id`,
+      { id }
+    );
+    if (!master) throw notFound('Мастер не найден');
+
+    const links = get(
+      `SELECT (SELECT COUNT(*) FROM appointments WHERE master_id = $id) AS appointments,
+              (SELECT COUNT(*) FROM appointments
+                WHERE master_id = $id AND status IN ('pending', 'confirmed')
+                  AND starts_at >= $now) AS upcoming`,
+      { id, now: nowIso() }
+    );
+
+    if (links.appointments === 0) {
+      try {
+        transaction(() => {
+          run('DELETE FROM master_profiles WHERE user_id = $id', { id });
+          run('DELETE FROM users WHERE id = $id', { id });
+        });
+        return {
+          body: {
+            deleted: true,
+            disabled: false,
+            id,
+            message: `Мастер ${master.full_name} удалён из списка: записей за ним не числилось`
+          }
+        };
+      } catch (err) {
+        if (!/FOREIGN KEY/i.test(err.message)) throw err;
+      }
     }
 
-    try {
-      transaction(() => {
-        run('DELETE FROM master_profiles WHERE user_id = $id', { id });
-        run('DELETE FROM users WHERE id = $id', { id });
-      });
-    } catch (err) {
-      if (/FOREIGN KEY/i.test(err.message)) {
-        throw conflict('У мастера есть записи, удалить нельзя. Отключите его: PATCH is_active=false');
+    run('UPDATE users SET is_active = 0, updated_at = $now WHERE id = $id', { now: nowIso(), id });
+
+    const upcoming = links.upcoming
+      ? ` Предстоящих визитов: ${links.upcoming} — их нужно перенести или отменить вручную.`
+      : '';
+
+    return {
+      body: {
+        deleted: false,
+        disabled: true,
+        id,
+        references: links,
+        message: `Удалить мастера ${master.full_name} нельзя: за ним числится история студии — ${plural(links.appointments, 'запись', 'записи', 'записей')}. Иначе прошлые визиты потеряют исполнителя. Мастер отключён: при записи его больше не предложат.${upcoming}`
       }
-      throw err;
-    }
-    return { body: { ok: true, deleted: id } };
+    };
   });
 }
 

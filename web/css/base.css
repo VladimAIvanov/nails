@@ -7,6 +7,13 @@
 
 *, *::before, *::after { box-sizing: border-box; }
 
+/* Атрибут hidden прячет элемент единственным способом — браузер ставит ему
+   display:none. Любое собственное правило с display это перебивает, и
+   элемент остаётся на экране, хотя скрипт считает его спрятанным.
+   На этом уже спотыкались с окном подтверждения (в booking.css так и
+   осталось точечное .modal[hidden]); правило ниже закрывает случай целиком. */
+[hidden] { display: none !important; }
+
 html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
 
 body {

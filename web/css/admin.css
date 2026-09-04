@@ -167,3 +167,157 @@
   .bar { padding-inline: var(--space-8); min-height: 76px; }
   .adm__body { padding: var(--space-7) var(--space-8) var(--space-10); }
 }
+
+/* ── Две колонки: список слева, форма справа ──────────────────────────────── */
+/* Раскладка экранов «Услуги» и «Мастера» из прототипа (класс .two в
+   site/assets/admin-kit.css). На телефоне колонки складываются в одну,
+   и форма уезжает под список: сначала смотрят, что есть, потом правят. */
+
+.two {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-5);
+  align-items: start;
+}
+
+/* ── Карточка справочника ─────────────────────────────────────────────────── */
+
+.rec {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-4);
+  padding: var(--space-4);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+}
+
+/* Отключённая строка гасится, но остаётся читаемой: администратор должен
+   видеть её в списке, чтобы вернуть в работу. */
+.rec--off { background: var(--color-surface-sunken); border-style: dashed; }
+.rec--off .rec__title { color: var(--color-text-muted); }
+
+.rec--editing { border-color: var(--color-border-accent); box-shadow: var(--shadow-sm); }
+
+.rec__main { flex: 1; min-width: 0; }
+.rec__title { font-size: var(--text-h4); font-weight: var(--weight-semibold); }
+.rec__sub { margin-top: var(--space-1); font-size: var(--text-sm); color: var(--color-text-secondary); }
+.rec__price {
+  font-weight: var(--weight-semibold);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.rec__side {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+/* Пометки строки: «отключена», «не в онлайн-записи», «нет мастера». */
+.tag {
+  display: inline-block;
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-pill);
+  font-size: var(--text-caption);
+  font-weight: var(--weight-semibold);
+  background: var(--color-done-bg);
+  color: var(--color-done);
+  border: var(--border-width) solid var(--color-done-border);
+}
+.tag--warn { background: var(--color-pending-bg); color: var(--color-pending); border-color: var(--color-pending-border); }
+.tag--off { background: var(--color-error-bg); color: var(--color-error); border-color: var(--color-error-border); }
+.tags { display: flex; gap: var(--space-2); flex-wrap: wrap; margin-top: var(--space-2); }
+
+/* ── Переключатель ────────────────────────────────────────────────────────── */
+/* Тот же орган управления, что в прототипе (D.Switch). Собран из чекбокса:
+   так он работает с клавиатуры и озвучивается программой чтения экрана. */
+
+.switch { display: inline-flex; align-items: center; gap: var(--space-2); cursor: pointer; }
+.switch input { position: absolute; opacity: 0; width: 0; height: 0; }
+
+.switch__track {
+  position: relative;
+  width: var(--space-10);
+  height: var(--space-6);
+  flex: none;
+  border-radius: var(--radius-pill);
+  background: var(--color-border-strong);
+  transition: background var(--duration-fast) var(--ease-standard);
+}
+
+.switch__track::after {
+  content: '';
+  position: absolute;
+  top: var(--space-1);
+  left: var(--space-1);
+  width: var(--space-4);
+  height: var(--space-4);
+  border-radius: var(--radius-circle);
+  background: var(--color-surface);
+  transition: transform var(--duration-fast) var(--ease-standard);
+}
+
+.switch input:checked + .switch__track { background: var(--color-button); }
+.switch input:checked + .switch__track::after { transform: translateX(var(--space-4)); }
+.switch input:focus-visible + .switch__track { box-shadow: 0 0 0 3px var(--color-focus-ring); }
+.switch input:disabled + .switch__track { opacity: .5; }
+.switch__label { font-size: var(--text-sm); color: var(--color-text-secondary); }
+
+/* ── Форма справочника ────────────────────────────────────────────────────── */
+
+.form__grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 var(--space-3); }
+.form__grid .field { grid-column: span 2; }
+.form__grid .field--half { grid-column: span 1; }
+
+/* Список услуг мастера: отметки в две колонки, с прокруткой — их бывает
+   больше десятка, и форма не должна вытеснять список за край экрана. */
+.picks {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-1);
+  max-height: 260px;
+  overflow-y: auto;
+  padding: var(--space-3);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-sunken);
+}
+.picks .checkbox { margin-bottom: 0; }
+
+@media (min-width: 1100px) {
+  .two { grid-template-columns: 1.6fr 1fr; }
+}
+
+/* ── Узкий экран ──────────────────────────────────────────────────────────── */
+/* Панелью пользуются и с телефона: администратор смотрит записи в дороге.
+   Проверено на 375px — до этих правил меню занимало весь первый экран,
+   а название услуги в карточке переносилось по одному слову в строку. */
+
+@media (max-width: 899px) {
+  /* Меню из колонки становится полосой сверху. */
+  .side {
+    flex-direction: row;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--space-3);
+    padding: var(--space-3) var(--gutter);
+  }
+  .side__mark { font-size: var(--text-h4); }
+  .side__mark small { display: none; }
+  .side__nav { flex-direction: row; flex-wrap: wrap; gap: var(--space-2); margin-left: auto; }
+  .side__i { min-height: var(--control-sm); padding: var(--space-2) var(--space-3); }
+  /* Имя вошедшего убираем: в полосе рядом уже есть «Выйти», а место на
+     телефоне дороже повторного напоминания, кто ты. */
+  .side__foot { display: none; }
+}
+
+@media (max-width: 699px) {
+  /* Карточка складывается в столбик: цена и кнопки уходят под название,
+     а не отжимают его до одного слова в строке. */
+  .rec { flex-direction: column; align-items: stretch; }
+  .rec__side { justify-content: flex-start; }
+  .form__grid { grid-template-columns: 1fr; }
+  .form__grid .field, .form__grid .field--half { grid-column: span 1; }
+}

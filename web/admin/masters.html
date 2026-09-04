@@ -21,20 +21,88 @@
 
     <div class="adm__body">
       <div id="msg"></div>
+      <p class="muted" id="count">Загружаем…</p>
 
-      <div class="adm__empty">
-        <h2>Раздел пока пустой</h2>
-        <p>
-          Здесь появится список мастеров с закреплёнными услугами и переключателями
-          «Принимает онлайн-записи» и «Работает по часам студии», а рядом — форма
-          добавления. Данные отдаёт <code>GET /api/admin/masters</code> —
-          подключим их следующим шагом.
-        </p>
+      <div class="two">
+        <div class="stack" id="list">
+          <div class="skeleton skeleton-card"></div>
+          <div class="skeleton skeleton-card"></div>
+        </div>
+
+        <div class="card">
+          <h2 id="form-title">Новый мастер</h2>
+
+          <form id="form" novalidate>
+            <div class="form__grid">
+              <label class="field">
+                <span class="field__label">Имя</span>
+                <input class="field__input" name="full_name" type="text" maxlength="120"
+                       placeholder="Лена" required>
+              </label>
+
+              <label class="field field--half">
+                <span class="field__label">Почта</span>
+                <input class="field__input" name="email" type="email"
+                       placeholder="lena@varvara.studio" required>
+                <span class="field__hint">Это логин: сотрудники входят по почте.</span>
+              </label>
+
+              <label class="field field--half">
+                <span class="field__label">Телефон</span>
+                <input class="field__input" name="phone" type="tel"
+                       placeholder="+7 921 000-00-02" required>
+              </label>
+
+              <label class="field" id="password-field">
+                <span class="field__label">Пароль для первого входа</span>
+                <input class="field__input" name="password" type="password"
+                       minlength="8" placeholder="минимум 8 символов">
+                <span class="field__hint">Мастер сменит его сам на странице «Сменить пароль».</span>
+              </label>
+
+              <label class="field field--half">
+                <span class="field__label">Порядок в списке</span>
+                <input class="field__input" name="sort_order" type="number"
+                       min="0" max="10000" step="10" placeholder="100">
+              </label>
+            </div>
+
+            <label class="switch">
+              <input type="checkbox" name="accepts_online_booking" checked>
+              <span class="switch__track"></span>
+              <span class="switch__label">Принимает онлайн-записи</span>
+            </label>
+
+            <label class="switch">
+              <input type="checkbox" name="uses_studio_hours" checked>
+              <span class="switch__track"></span>
+              <span class="switch__label">Работает по часам студии</span>
+            </label>
+
+            <p class="field__label">Какие услуги выполняет</p>
+            <div class="picks" id="picks"></div>
+            <p class="field__hint">
+              По этим отметкам клиент видит мастера при выборе услуги. Снять отметку —
+              значит убрать его из выбора для этой услуги.
+            </p>
+
+            <div class="row">
+              <button class="btn" id="submit" type="submit">Добавить мастера</button>
+              <button class="btn btn--ghost" id="cancel" type="button" hidden>Отмена</button>
+              <button class="btn btn--ghost" id="remove" type="button" hidden>Удалить</button>
+            </div>
+
+            <p class="field__hint">
+              Мастера с записями сервер не удалит: история визитов не должна потерять
+              исполнителя. Он будет отключён, и об этом придёт сообщение.
+            </p>
+          </form>
+        </div>
       </div>
     </div>
   </div>
 </div>
 
-<script type="module" src="/js/admin.js"></script>
+<script type="module" src="/js/admin-masters.js"></script>
 </body>
 </html>

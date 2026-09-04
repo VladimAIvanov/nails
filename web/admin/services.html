@@ -21,19 +21,86 @@
 
     <div class="adm__body">
       <div id="msg"></div>
+      <p class="muted" id="count">Загружаем…</p>
 
-      <div class="adm__empty">
-        <h2>Раздел пока пустой</h2>
-        <p>
-          Здесь появится прайс: карточки услуг с ценой, длительностью и переключателем
-          «Показывать в онлайн-записи», а рядом — форма добавления. Данные отдаёт
-          <code>GET /api/admin/services</code> — подключим их следующим шагом.
-        </p>
+      <div class="two">
+        <div class="stack" id="list">
+          <div class="skeleton skeleton-card"></div>
+          <div class="skeleton skeleton-card"></div>
+        </div>
+
+        <div class="card">
+          <h2 id="form-title">Новая услуга</h2>
+
+          <form id="form" novalidate>
+            <div class="form__grid">
+              <label class="field">
+                <span class="field__label">Название</span>
+                <input class="field__input" name="title" type="text" maxlength="120"
+                       placeholder="Маникюр с покрытием" required>
+              </label>
+
+              <label class="field">
+                <span class="field__label">Код услуги</span>
+                <input class="field__input" name="slug" type="text" maxlength="40"
+                       placeholder="man-cover" required>
+                <span class="field__hint">Латиницей. Подставляется из названия, менять не обязательно. У созданной услуги код уже не меняется.</span>
+              </label>
+
+              <label class="field">
+                <span class="field__label">Описание</span>
+                <input class="field__input" name="description" type="text" maxlength="500"
+                       placeholder="Аппаратный, гель-лак">
+              </label>
+
+              <label class="field">
+                <span class="field__label">Категория</span>
+                <select class="field__input" name="category_id" required></select>
+              </label>
+
+              <label class="field field--half">
+                <span class="field__label">Длительность, мин</span>
+                <input class="field__input" name="duration_min" type="number"
+                       min="5" max="600" step="5" placeholder="90" required>
+              </label>
+
+              <label class="field field--half">
+                <span class="field__label">Цена, ₽</span>
+                <input class="field__input" name="price" type="number"
+                       min="0" step="10" placeholder="3200" required>
+              </label>
+
+              <label class="field field--half">
+                <span class="field__label">Уборка после, мин</span>
+                <input class="field__input" name="buffer_after_min" type="number"
+                       min="0" max="120" step="5" placeholder="15">
+                <span class="field__hint">Пусто — берётся общее время студии.</span>
+              </label>
+            </div>
+
+            <label class="checkbox">
+              <input type="checkbox" name="is_online_bookable" checked>
+              <span>Показывать в онлайн-записи</span>
+            </label>
+
+            <div class="row">
+              <button class="btn" id="submit" type="submit">Добавить услугу</button>
+              <button class="btn btn--ghost" id="cancel" type="button" hidden>Отмена</button>
+              <button class="btn btn--ghost" id="remove" type="button" hidden>Удалить</button>
+            </div>
+
+            <p class="field__hint">
+              Удалить получится только услугу, на которую никто не ссылается. Если по ней
+              есть записи, сервер её отключит и скажет об этом: история визитов не должна
+              терять названия.
+            </p>
+          </form>
+        </div>
       </div>
     </div>
   </div>
 </div>
 
-<script type="module" src="/js/admin.js"></script>
+<script type="module" src="/js/admin-services.js"></script>
 </body>
 </html>
