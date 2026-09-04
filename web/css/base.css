@@ -473,3 +473,18 @@ a:hover { color: var(--color-text-link-hover); }
 }
 
 
+
+/* Счётчик непрочитанного рядом с пунктом меню. Значение приходит с сервера
+   вместе со списком уведомлений — в разметке его нет и быть не должно. */
+.nav-count {
+  display: inline-block;
+  margin-left: var(--space-1);
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-pill);
+  background: var(--color-button);
+  color: var(--color-button-text);
+  font-size: var(--text-caption);
+  font-weight: var(--weight-semibold);
+  line-height: var(--space-4);
+  vertical-align: middle;
+}

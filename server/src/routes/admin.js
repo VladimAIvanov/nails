@@ -5,7 +5,7 @@ import * as v from '../validate.js';
 import { requireRole, hashPassword } from '../auth.js';
 import { getSettings } from '../slots.js';
 import { createAppointment, confirmAppointment } from '../services/appointments.js';
-import { nowIso, utcToLocal } from '../time.js';
+import { nowIso, utcToLocal, localDayRangeUtc } from '../time.js';
 
 const STATUSES = ['pending', 'confirmed', 'done', 'cancelled', 'no_show'];
 
@@ -29,17 +29,31 @@ export default function register(router) {
     const settings = getSettings();
 
     const status = query.get('status') ? v.oneOf(query.get('status'), 'status', STATUSES) : null;
-    const date = query.get('date') ? v.date(query.get('date')) : null;
+
+    /* Сутки берутся по поясу студии, а не по UTC. Раньше здесь сравнивались
+       первые десять символов starts_at — это ответ на вопрос «что сегодня
+       по Гринвичу». Для Москвы совпадает почти всегда, но «почти» — не то
+       слово, которое хочется видеть в расписании. */
+    const day = query.get('date') ? v.date(query.get('date')) : null;
+    const range = day ? localDayRangeUtc(day, settings.timezone) : null;
     const masterId = query.get('master_id') ? v.idParam(query.get('master_id'), 'master_id') : null;
     const search = query.get('search') ? v.str(query.get('search'), 'search', { max: 100 }) : null;
     const limit = query.get('limit') ? v.int(query.get('limit'), 'limit', { min: 1, max: 200 }) : 50;
 
     const rows = all(
       `SELECT a.id, a.public_number, a.starts_at, a.ends_at, a.duration_min, a.price_kopecks,
-              a.status, a.source, a.created_at,
+              a.status, a.source, a.created_at, a.allow_overlap, a.service_id,
               s.title AS service_title, mu.full_name AS master_name, a.master_id,
               cu.id AS client_id, cu.full_name AS client_name, cu.phone AS client_phone,
-              l.title AS status_title, l.color_token
+              l.title AS status_title, l.color_token,
+              /* Кто и почему изменил запись в последний раз. Администратор
+                 меняет чужие планы, и след этих изменений должен быть виден
+                 в списке, а не только в карточке. */
+              (SELECT g.comment FROM appointment_status_log g
+                WHERE g.appointment_id = a.id ORDER BY g.id DESC LIMIT 1) AS last_note,
+              (SELECT bu.full_name FROM appointment_status_log g
+                 LEFT JOIN users bu ON bu.id = g.changed_by_id
+                WHERE g.appointment_id = a.id ORDER BY g.id DESC LIMIT 1) AS last_by
          FROM appointments a
          JOIN services s ON s.id = a.service_id
          JOIN users mu ON mu.id = a.master_id
@@ -47,21 +61,22 @@ export default function register(router) {
          JOIN appointment_status_labels l ON l.status = a.status
         WHERE ($status IS NULL OR a.status = $status)
           AND ($master IS NULL OR a.master_id = $master)
-          AND ($date IS NULL OR substr(a.starts_at, 1, 10) = $date)
+          AND ($from IS NULL OR (a.starts_at >= $from AND a.starts_at < $to))
           AND ($search IS NULL OR cu.full_name LIKE '%' || $search || '%'
                                OR cu.phone LIKE '%' || $search || '%')
-        ORDER BY a.starts_at DESC
+        ORDER BY a.starts_at
         LIMIT $limit`,
-      { status, master: masterId, date, search, limit }
+      { status, master: masterId, from: range?.from ?? null, to: range?.to ?? null, search, limit }
     );
 
     const summary = get(
       `SELECT COUNT(*) AS total,
               SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) AS pending,
+              SUM(CASE WHEN status = 'cancelled' THEN 1 ELSE 0 END) AS cancelled,
               SUM(CASE WHEN status = 'confirmed' THEN price_kopecks ELSE 0 END) AS expected_kopecks
          FROM appointments
-        WHERE ($date IS NULL OR substr(starts_at, 1, 10) = $date)`,
-      { date }
+        WHERE ($from IS NULL OR (starts_at >= $from AND starts_at < $to))`,
+      { from: range?.from ?? null, to: range?.to ?? null }
     );
 
     return {
@@ -69,6 +84,7 @@ export default function register(router) {
         summary: {
           total: summary.total,
           pending: summary.pending ?? 0,
+          cancelled: summary.cancelled ?? 0,
           expected_revenue_kopecks: summary.expected_kopecks ?? 0
         },
         appointments: rows.map((r) => ({
@@ -83,7 +99,11 @@ export default function register(router) {
           status_title: r.status_title,
           status_color: r.color_token,
           source: r.source,
+          allow_overlap: r.allow_overlap === 1,
+          last_note: r.last_note,
+          last_by: r.last_by,
           service: r.service_title,
+          service_id: r.service_id,
           master: { id: r.master_id, name: r.master_name },
           client: { id: r.client_id, name: r.client_name, phone: r.client_phone }
         }))

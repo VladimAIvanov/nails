@@ -22,18 +22,139 @@
     <div class="adm__body">
       <div id="msg"></div>
 
-      <div class="adm__empty">
-        <h2>Раздел пока пустой</h2>
-        <p>
-          Здесь появятся все записи студии: сводка сверху и таблица с фильтрами
-          по статусу, дате и мастеру. Данные отдаёт <code>GET /api/admin/appointments</code> —
-          подключим их следующим шагом.
-        </p>
+      <div class="daybar">
+        <div class="row">
+          <button class="btn btn--secondary btn--sm" id="prev" type="button" aria-label="Предыдущий день">←</button>
+          <button class="btn btn--secondary btn--sm" id="today" type="button">Сегодня</button>
+          <button class="btn btn--secondary btn--sm" id="next" type="button" aria-label="Следующий день">→</button>
+          <input class="field__input daybar__date" id="date" type="date">
+        </div>
+
+        <div class="row">
+          <select class="field__input daybar__filter" id="master-filter" aria-label="Мастер"></select>
+          <label class="checkbox daybar__toggle">
+            <input type="checkbox" id="show-cancelled">
+            <span>Показывать отменённые</span>
+          </label>
+        </div>
+      </div>
+
+      <h2 id="day-title" class="day-title">…</h2>
+
+      <div class="kpis" id="tiles"></div>
+
+      <div class="two">
+        <div class="stack" id="list">
+          <div class="skeleton skeleton-card"></div>
+          <div class="skeleton skeleton-card"></div>
+        </div>
+
+        <div class="stack">
+          <div class="card">
+            <h2>Записать клиента</h2>
+            <p class="field__hint">
+              Время указывается по часам студии. Если оно занято, сервер об этом скажет
+              и предложит свободные окна — записать поверх можно, но только подтвердив.
+            </p>
+
+            <form id="new-form" novalidate>
+              <label class="field">
+                <span class="field__label">Клиентка</span>
+                <input class="field__input" id="client-search" type="search"
+                       placeholder="Имя или телефон" autocomplete="off">
+                <select class="field__input" name="client_id" required></select>
+              </label>
+
+              <label class="field">
+                <span class="field__label">Мастер</span>
+                <select class="field__input" name="master_id" required></select>
+              </label>
+
+              <label class="field">
+                <span class="field__label">Услуга</span>
+                <select class="field__input" name="service_id" required></select>
+              </label>
+
+              <div class="form__grid">
+                <label class="field field--half">
+                  <span class="field__label">День</span>
+                  <input class="field__input" name="date" type="date" required>
+                </label>
+                <label class="field field--half">
+                  <span class="field__label">Время</span>
+                  <input class="field__input" name="time" type="time" step="300" required>
+                </label>
+              </div>
+
+              <label class="field">
+                <span class="field__label">Комментарий</span>
+                <input class="field__input" name="comment" type="text" maxlength="1000"
+                       placeholder="Договорились по телефону">
+              </label>
+
+              <div id="overlap"></div>
+
+              <button class="btn" type="submit">Записать</button>
+            </form>
+          </div>
+
+          <div class="card">
+            <h2>Заблокировать время</h2>
+            <p class="field__hint">
+              Перерыв, выходной, отпуск. Мастер остаётся в списке и доступен на другие даты —
+              недоступны только эти часы. Уже назначенные визиты блокировка не отменяет.
+            </p>
+
+            <form id="block-form" novalidate>
+              <label class="field">
+                <span class="field__label">Кого</span>
+                <select class="field__input" name="master_id"></select>
+              </label>
+
+              <div class="form__grid">
+                <label class="field">
+                  <span class="field__label">День</span>
+                  <input class="field__input" name="date" type="date" required>
+                </label>
+                <label class="field field--half">
+                  <span class="field__label">С</span>
+                  <input class="field__input" name="from" type="time" step="300" value="10:00" required>
+                </label>
+                <label class="field field--half">
+                  <span class="field__label">До</span>
+                  <input class="field__input" name="to" type="time" step="300" value="21:00" required>
+                </label>
+              </div>
+
+              <label class="field">
+                <span class="field__label">Причина</span>
+                <select class="field__input" name="kind">
+                  <option value="break">Перерыв</option>
+                  <option value="holiday">Выходной</option>
+                  <option value="vacation">Отпуск</option>
+                  <option value="sick">Больничный</option>
+                  <option value="other">Другое</option>
+                </select>
+              </label>
+
+              <label class="field">
+                <span class="field__label">Пояснение</span>
+                <input class="field__input" name="reason" type="text" maxlength="200"
+                       placeholder="Обучение, приём у врача…">
+              </label>
+
+              <button class="btn btn--secondary" type="submit">Заблокировать</button>
+            </form>
+
+            <h3 class="block-title">Заблокировано в этот день</h3>
+            <div class="stack" id="blocks"></div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
 </div>
 
-<script type="module" src="/js/admin.js"></script>
+<script type="module" src="/js/admin-appointments.js"></script>
 </body>
 </html>

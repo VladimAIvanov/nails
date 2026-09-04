@@ -5,7 +5,7 @@
    регистрации. Имя берётся из API, а не из разметки.
 
    Шапка липкая — остаётся выше содержимого при прокрутке (класс .header). */
-import { me, logout, el, actsAsClient } from './api.js';
+import { api, me, logout, el, actsAsClient } from './api.js';
 
 /* Пункт «Админ-панель» показывается только по роли из базы — и это
    удобство, а не защита. Спрятанная ссылка никого не останавливает: адрес
@@ -14,6 +14,7 @@ import { me, logout, el, actsAsClient } from './api.js';
 const LINKS = [
   { href: '/admin', text: 'Админ-панель', forAdmins: true },
   { href: '/account', text: 'Мои записи', forGuests: false, forClients: true },
+  { href: '/notifications', text: 'Уведомления', forGuests: false, forClients: true },
   { href: '/profile', text: 'Профиль', forGuests: false },
   { href: '/#services', text: 'Услуги', forGuests: true },
   { href: '/#masters', text: 'Мастера', forGuests: true },
@@ -49,6 +50,25 @@ export async function renderHeader() {
   }
 
   paint(mount, user, { loading: false });
+
+  /* Счётчик непрочитанного. Число приходит с сервера вместе со списком —
+     отдельного адреса ради одного числа нет, и в разметке его тоже нет:
+     захардкоженный счётчик врёт с первой же секунды.
+
+     Запрашивается после отрисовки шапки, а не до: шапка не должна ждать
+     уведомлений, чтобы появиться. Отказ здесь молчаливый — из-за счётчика
+     страница ломаться не должна, а сообщение об ошибке покажет сам экран
+     уведомлений, когда человек на него зайдёт. */
+  if (actsAsClient(user)) {
+    try {
+      const { unread } = await api('GET', '/api/notifications?limit=1');
+      if (unread > 0) {
+        const link = mount.querySelector('a[href="/notifications"]');
+        link?.append(el('span', { className: 'nav-count', textContent: String(unread) }));
+      }
+    } catch { /* счётчик — не повод ломать страницу */ }
+  }
+
   return user;
 }
 

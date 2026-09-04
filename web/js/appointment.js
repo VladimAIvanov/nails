@@ -6,7 +6,7 @@
 
    Чужая запись сюда не откроется: сервер отвечает 403, и этот ответ
    показывается текстом. Проверку делает он, а не экран. */
-import { api, guard, el, money, duration, studio, whenLocal, showError, showOk, clearMsg } from './api.js';
+import { api, guard, el, fill, money, duration, studio, whenLocal, showError, showOk, clearMsg } from './api.js';
 import { renderHeader } from './header.js';
 
 const user = await renderHeader();
@@ -48,7 +48,7 @@ function line(label, value) {
 function render() {
   document.getElementById('title').textContent = `Запись №${visit.number ?? visit.id}`;
 
-  document.getElementById('card').replaceChildren(
+  fill(document.getElementById('card'),
     el('div', { className: 'sum__row' },
       el('div', {},
         el('div', { className: 'muted', textContent: 'Когда' }),

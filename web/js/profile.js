@@ -4,7 +4,7 @@
    Экран из прототипа (вкладка «Профиль» в кабинете и экран профиля
    мини-приложения). Ничего не хранит: все переключатели читаются и
    пишутся на сервере, состояние на экране — отражение ответа. */
-import { api, guard, el, studio, showOk, showError } from './api.js';
+import { api, guard, el, fill, studio, showOk, showError } from './api.js';
 import { renderHeader } from './header.js';
 
 const user = await renderHeader();
@@ -231,7 +231,7 @@ function renderStudio() {
   const hours = settings.working_hours ?? [];
   const sample = hours[0];
 
-  document.getElementById('studio').replaceChildren(
+  fill(document.getElementById('studio'),
     el('div', { className: 'sum__value', textContent: `${settings.city}, ${settings.address_line}` }),
     settings.address_note ? el('p', { className: 'muted', textContent: settings.address_note }) : null,
     sample ? el('p', { className: 'muted', textContent: `Работаем ${sample.starts_at_local}–${sample.ends_at_local}` }) : null,
@@ -257,7 +257,7 @@ async function loadConsents() {
   const latest = new Map();
   for (const c of consents) if (!latest.has(c.kind)) latest.set(c.kind, c);
 
-  document.getElementById('consents').replaceChildren(
+  fill(document.getElementById('consents'),
     ...[...latest.values()].map((c) => el('div', { className: 'profile__row' },
       el('div', {},
         el('div', { className: 'sum__value', textContent: CONSENTS[c.kind] ?? c.kind }),

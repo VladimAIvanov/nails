@@ -167,6 +167,46 @@ export function whenLocal(iso, timezone) {
   }).format(new Date(iso));
 }
 
+/* Местное время студии в UTC. Нужно там, где человек вводит время руками:
+   форма блокировки и оформление записи из панели. API принимает только UTC
+   с суффиксом Z, а администратор думает часами студии, а не Гринвича.
+
+   Смещение считается через Intl по названию пояса из GET /api/studio: своей
+   таблицы поясов на странице нет и быть не должно. Второй проход уточняет
+   границу перевода часов — там первая оценка попадает в соседнее правило. */
+function zoneOffsetMs(instant, timeZone) {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone, hour12: false,
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', second: '2-digit'
+  }).formatToParts(instant);
+
+  const p = Object.fromEntries(parts.map((x) => [x.type, x.value]));
+  const asUtc = Date.UTC(+p.year, +p.month - 1, +p.day, +p.hour % 24, +p.minute, +p.second);
+  return asUtc - instant.getTime();
+}
+
+/** («2026-09-07», «10:00», «Europe/Moscow») → «2026-09-07T07:00:00Z». */
+export function toUtcIso(date, time, timeZone) {
+  const guess = new Date(`${date}T${time}:00Z`);
+  const first = zoneOffsetMs(guess, timeZone);
+  const once = new Date(guess.getTime() - first);
+  const second = zoneOffsetMs(once, timeZone);
+  const exact = second === first ? once : new Date(guess.getTime() - second);
+  return `${exact.toISOString().slice(0, 19)}Z`;
+}
+
+/** Момент в местную дату и время студии: для полей формы и подписей. */
+export function localParts(iso, timeZone) {
+  const parts = new Intl.DateTimeFormat('ru-RU', {
+    timeZone, hour12: false,
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit'
+  }).formatToParts(new Date(iso));
+  const p = Object.fromEntries(parts.map((x) => [x.type, x.value]));
+  return { date: `${p.year}-${p.month}-${p.day}`, time: `${p.hour}:${p.minute}` };
+}
+
 let studioCache = null;
 export async function studio() {
   studioCache ??= await api('GET', '/api/studio');
@@ -181,6 +221,20 @@ export function el(tag, props = {}, ...children) {
     node.append(child instanceof Node ? child : document.createTextNode(String(child)));
   }
   return node;
+}
+
+/** Содержимое узла с пропуском пустых мест.
+
+   Родной replaceChildren на null не ругается — он превращает его в текст
+   «null» и рисует прямо на странице. Ловится это только глазами: ошибки нет,
+   верстка цела, просто посреди карточки записи стоит слово null. Так и было
+   найдено — на странице визита под адресом.
+
+   Внутри el() такой фильтр есть с самого начала, поэтому запись вида
+   «условие ? el(…) : null» безопасна только внутри el. На верхнем уровне
+   нужен этот. */
+export function fill(node, ...children) {
+  node.replaceChildren(...children.flat().filter((c) => c !== null && c !== undefined && c !== false));
 }
 
 /** Заглушки на время загрузки: серые прямоугольники вместо пустоты. */

@@ -19,6 +19,7 @@ import registerExtras from './routes/extras.js';
 import registerStudio from './routes/studio.js';
 import registerManage from './routes/manage.js';
 import registerProfile from './routes/profile.js';
+import registerInbox from './routes/inbox.js';
 
 const router = createRouter();
 registerAuth(router);
@@ -30,6 +31,7 @@ registerExtras(router);
 registerStudio(router);
 registerManage(router);
 registerProfile(router);
+registerInbox(router);
 
 /* Права на административные адреса проверяются здесь, одной строкой на
    всю группу. Обработчики в routes/admin.js и routes/manage.js по-прежнему

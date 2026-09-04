@@ -1,4 +1,4 @@
-import { api, guard, studio, el, money, duration } from '/js/api.js';
+import { api, guard, studio, el, fill, money, duration } from '/js/api.js';
 import { renderHeader } from '/js/header.js';
 
 renderHeader();
@@ -29,7 +29,7 @@ async function loadStudio() {
     ...off.map((d) => el('li', {}, `${WEEKDAYS[d]} — выходной`))
   );
 
-  document.getElementById('footer-contacts').replaceChildren(
+  fill(document.getElementById('footer-contacts'),
     s.phone ? el('li', {}, el('a', { href: `tel:${s.phone.replace(/[^+\d]/g, '')}`, textContent: s.phone })) : null,
     s.telegram_bot ? el('li', {}, el('a', { href: `https://t.me/${s.telegram_bot.replace('@', '')}`, textContent: s.telegram_bot })) : null
   );

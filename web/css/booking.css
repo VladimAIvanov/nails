@@ -388,3 +388,25 @@ a.steps__item:hover { border-color: var(--color-border-accent); color: var(--col
   .steps__item--current .steps__title { font-size: var(--text-caption); }
   .slots__grid { gap: var(--space-2); }
 }
+
+/* ── Уведомления кабинета ─────────────────────────────────────────────────── */
+/* Непрочитанное выделяется подложкой и полосой слева, а не жирным шрифтом:
+   текст сообщения нужно читать, и жирным он читается хуже. */
+
+.notice { display: flex; flex-direction: column; gap: var(--space-3); }
+
+.notice--new {
+  background: var(--color-surface-accent);
+  border-color: var(--color-border-accent);
+  border-left-width: var(--space-1);
+}
+
+.notice__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.notice__text { margin: 0; color: var(--color-text-secondary); }

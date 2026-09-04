@@ -13,6 +13,7 @@ import { nowIso, addMinutes } from '../time.js';
 import {
   scheduleForAppointment, cancelScheduled, rescheduleNotifications, channelsFor
 } from './notifications.js';
+import { notifyClient, whenText } from './inbox.js';
 import { usePassFor, awardPointsFor, consumeMaterialsFor, matchWaitlist } from './studio.js';
 import { isAdmin, isMaster, isMasterOnly, actsAsClient, hasRole } from '../auth.js';
 
@@ -173,6 +174,34 @@ export function createAppointment({ actor, input }) {
      откатилась, — хуже, чем отсутствие сообщения. */
   const notifications = scheduleForAppointment(ids[0]);
 
+  /* Осознанное наложение задевает чужой визит: у мастера в это время уже
+     кто-то записан, и этот кто-то должен узнать, что рядом появился ещё один.
+     Ищем пересечения по факту — по времени в базе, а не по признаку
+     allow_overlap: признак стоит на новой записи, а предупредить нужно
+     владельцев старых. */
+  if (perms.allowOverlap === 1) {
+    const endsAt = addMinutes(input.startsAt, need.total);
+    const touched = all(
+      `SELECT a.id, a.client_id, a.starts_at
+         FROM appointments a
+        WHERE a.master_id = $master
+          AND a.status IN ('pending', 'confirmed')
+          AND a.starts_at < $ends AND a.ends_at > $starts`,
+      { master: perms.masterId, starts: input.startsAt, ends: endsAt }
+    ).filter((row) => !ids.includes(row.id));
+
+    for (const other of touched) {
+      notifyClient({
+        actorId: actor.id,
+        clientId: other.client_id,
+        kind: 'slot_overlapped',
+        appointmentId: other.id,
+        text: `Студия назначила ещё один визит на ваше время: ${whenText(other.starts_at, settings.timezone)}. `
+          + 'Ваша запись сохранена — если что-то изменится, с вами свяжутся.'
+      });
+    }
+  }
+
   return {
     ids, allowOverlap: perms.allowOverlap === 1, status, services: need.services, notifications
   };
@@ -212,6 +241,18 @@ export function rescheduleAppointment({ actor, id, startsAt }) {
 
   // напоминания пересобираются от нового времени
   rescheduleNotifications(id);
+
+  /* Перенос — это одно посещение с новым временем, поэтому и сообщение одно:
+     «было — стало». Если бы перенос делался отменой и созданием заново,
+     здесь пришлось бы слать два, и человек бы решил, что визитов было два. */
+  notifyClient({
+    actorId: actor.id,
+    clientId: row.client_id,
+    kind: 'appointment_moved',
+    appointmentId: id,
+    text: `Запись на ${whenText(row.starts_at, settings.timezone)} перенесена `
+      + `на ${whenText(startsAt, settings.timezone)}.`
+  });
 
   return get('SELECT * FROM appointments WHERE id = $id', { id });
 }
@@ -263,6 +304,15 @@ export function cancelAppointment({ actor, id, reason }) {
     run('UPDATE waitlist_entries SET notified_at = $now WHERE id = $id',
       { now: nowIso(), id: entry.id });
   }
+
+  notifyClient({
+    actorId: actor.id,
+    clientId: row.client_id,
+    kind: 'appointment_cancelled',
+    appointmentId: id,
+    text: `Визит ${whenText(row.starts_at, settings.timezone)} отменён студией.`
+      + (reason ? ` Причина: ${reason}.` : '')
+  });
 
   return {
     id, status: 'cancelled', late_cancellation: isLate,

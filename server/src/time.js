@@ -31,6 +31,22 @@ export function localToUtc(dateStr, timeStr, timeZone) {
 }
 
 /* Момент -> части местного времени студии. */
+/**
+ * Сутки студии в UTC: [начало, конец). Нужны везде, где спрашивают «что
+ * сегодня»: в базе время лежит в UTC, и сравнение по первым десяти символам
+ * строки отвечает на вопрос про день по Гринвичу, а не про день студии.
+ * Для Москвы разница вылезает только у визитов до трёх ночи, но правило
+ * «время считаем и показываем по поясу студии» не должно иметь исключений.
+ */
+export function localDayRangeUtc(date, timeZone) {
+  const next = new Date(`${date}T00:00:00Z`);
+  next.setUTCDate(next.getUTCDate() + 1);
+  return {
+    from: toIso(localToUtc(date, '00:00', timeZone)),
+    to: toIso(localToUtc(next.toISOString().slice(0, 10), '00:00', timeZone))
+  };
+}
+
 export function utcToLocal(instant, timeZone) {
   const parts = new Intl.DateTimeFormat('ru-RU', {
     timeZone,
