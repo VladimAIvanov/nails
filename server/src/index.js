@@ -84,10 +84,12 @@ const handler = async (req, res) => {
   /* HSTS ставится только на защищённом соединении: на открытом он
      бессмысленен, а браузер запомнит правило и для локальной разработки. */
   if (isSecure(req)) {
-    res.corsHeaders = {
-      ...res.corsHeaders,
-      'strict-transport-security': 'max-age=31536000; includeSubDomains'
-    };
+    /* setHeader, а не подмешивание в corsHeaders: страницы отдаёт static.js,
+       он пишет заголовки сам и этот набор не видит. Заголовок, поставленный
+       так, Node сливает с любым writeHead — значит он появится и на API,
+       и на страницах. А страницы тут важнее: HSTS запрещает браузеру ходить
+       на этот адрес по открытому HTTP, и ходит браузер именно на них. */
+    res.setHeader('strict-transport-security', 'max-age=31536000; includeSubDomains');
   }
 
   /* Предварительный запрос браузера перед межсайтовым обращением.
