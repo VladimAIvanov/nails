@@ -8,7 +8,7 @@ import {
   createRouter, readJson, send, sendRaw, corsHeaders, HttpError, SECURITY_HEADERS
 } from './http.js';
 import { requireRole } from './auth.js';
-import { isSecure, trustedProxies } from './net.js';
+import { isSecure, trustedProxies, trustProxyNotes } from './net.js';
 import { servePage } from './static.js';
 import * as env from './env.js';
 import registerAuth from './routes/auth.js';
@@ -134,6 +134,10 @@ const handler = async (req, res) => {
     console.log(`${req.method} ${req.url} → ${status} (${Date.now() - started} мс)`);
   }
 };
+
+for (const note of trustProxyNotes) {
+  console.warn(`[окружение] ${note}`);
+}
 
 /* Миграции применяются здесь, до первого запроса. На сервере команду
    `npm run migrate` набирать некому: обновление происходит само, а контейнер
