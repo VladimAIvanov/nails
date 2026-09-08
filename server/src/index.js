@@ -4,6 +4,7 @@ import { createServer as createHttpsServer } from 'node:https';
 import { readFileSync } from 'node:fs';
 import { db, dbFile } from './db.js';
 import { applyMigrations } from './migrations.js';
+import { bootstrapAdmin } from './admin-bootstrap.js';
 import {
   createRouter, readJson, send, sendRaw, corsHeaders, HttpError, SECURITY_HEADERS
 } from './http.js';
@@ -156,6 +157,16 @@ try {
 } catch (err) {
   console.error(`\nОтказ запуска: не удалось применить миграции.\n  ${err.message}\n`);
   process.exit(1);
+}
+
+/* Первый администратор на чистой базе — из окружения, см. admin-bootstrap.js.
+   Отказ здесь запуск не валит: сервис без администратора работает, клиенты
+   записываются, и ронять его из-за короткого пароля было бы хуже проблемы. */
+try {
+  const { note } = bootstrapAdmin();
+  if (note) console.log(`[администратор] ${note}`);
+} catch (err) {
+  console.error(`[администратор] не удалось завести: ${err.message}`);
 }
 
 const server = ownTls
