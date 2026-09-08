@@ -109,10 +109,10 @@ export function checkDataDirectory(file) {
 
   try {
     if (statSync(file).size === 0) {
-      return [`Файл базы ${file} пуст — выполните npm run migrate.`];
+      return [`Файл базы ${file} пуст — схема появится при применении миграций.`];
     }
   } catch {
-    return [`Файл базы ${file} ещё не создан — выполните npm run migrate.`];
+    return [`Файл базы ${file} ещё не создан — появится при применении миграций.`];
   }
 
   return [];

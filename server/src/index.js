@@ -3,6 +3,7 @@ import { createServer as createHttpServer } from 'node:http';
 import { createServer as createHttpsServer } from 'node:https';
 import { readFileSync } from 'node:fs';
 import { db, dbFile } from './db.js';
+import { applyMigrations } from './migrations.js';
 import {
   createRouter, readJson, send, sendRaw, corsHeaders, HttpError, SECURITY_HEADERS
 } from './http.js';
@@ -133,6 +134,25 @@ const handler = async (req, res) => {
     console.log(`${req.method} ${req.url} → ${status} (${Date.now() - started} мс)`);
   }
 };
+
+/* Миграции применяются здесь, до первого запроса. На сервере команду
+   `npm run migrate` набирать некому: обновление происходит само, а контейнер
+   при каждом деплое собирается заново. Применённое записано в
+   schema_migrations и второй раз не выполняется, поэтому обычный запуск на
+   готовой базе не делает ничего и ничего не стоит.
+
+   Отказ здесь намеренно валит запуск: сервер с недокаченной схемой отвечал бы
+   ошибками на половину адресов, и разбираться пришлось бы по ним, а не по
+   понятному сообщению при старте. */
+try {
+  const { applied } = applyMigrations();
+  if (applied.length > 0) {
+    console.log(`Миграции применены при запуске: ${applied.join(', ')}`);
+  }
+} catch (err) {
+  console.error(`\nОтказ запуска: не удалось применить миграции.\n  ${err.message}\n`);
+  process.exit(1);
+}
 
 const server = ownTls
   ? createHttpsServer({ key: readFileSync(tlsKey), cert: readFileSync(tlsCert) }, handler)
