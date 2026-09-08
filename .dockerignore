@@ -55,6 +55,7 @@ archive-*/
 Dockerfile
 .dockerignore
 docker-compose*.yml
+docker-compose*.yaml
 
 # ── Локальное ──────────────────────────────────────────────────────────────
 security-review.local.md
