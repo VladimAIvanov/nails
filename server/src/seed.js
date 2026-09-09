@@ -1,17 +1,44 @@
-/* Демонстрационные данные из прототипа: три мастера, шесть услуг, портфолио,
+/* Демонстрационные данные из прототипа: три мастера, десять услуг, портфолио,
    тексты лендинга. Скрипт идемпотентен — повторный запуск ничего не дублирует.
 
-   Пароли здесь демонстрационные и заданы одной константой: это локальный
-   стенд, а не рабочая установка. */
+   Про пароли — см. комментарий ниже: у каждой учётной записи свой,
+   случайный, и по умолчанию он нигде не показывается. */
 import { db, transaction } from './db.js';
 import { nowIso, toIso } from './time.js';
+import { randomBytes } from 'node:crypto';
 import { hashPassword } from './auth.js';
 import * as env from './env.js';
 
-/* Пароль для стенда берётся из окружения: в коде секретов быть не должно.
-   Значение по умолчанию задано в .env.example и предназначено только для
-   локальной установки — на сервере переменную нужно задать своей. */
-const DEMO_PASSWORD = env.text('SEED_PASSWORD', 'varvara-demo');
+/* Пароли демонстрационных учётных записей.
+
+   Раньше здесь был один пароль на всех, и на локальном стенде это было
+   удобно. Для опубликованного сервиса — нет: общий пароль, да ещё и
+   напечатанный в README, означает, что войти администратором сможет любой,
+   кто прочитал документацию.
+
+   Теперь у каждой учётной записи свой случайный пароль. Он нигде не
+   сохраняется и по умолчанию не печатается: на боевом сервере эти записи
+   нужны как данные — мастера, к которым записываются, — а входить под ними
+   не нужно никому.
+
+   Для локального стенда список выводится по требованию:
+   SEED_SHOW_PASSWORDS=true npm run seed
+   Тогда пароли печатаются таблицей — их видно один раз, при загрузке. */
+const showPasswords = env.flag('SEED_SHOW_PASSWORDS');
+
+/* Пары «логин — пароль» для показа. Наполняется по ходу, печатается в конце
+   и только если попросили. */
+const issued = [];
+
+/**
+ * Случайный пароль для одной учётной записи.
+ * @param {string} login по какому логину входить — телефон или почта
+ */
+function newPassword(login) {
+  const value = randomBytes(12).toString('base64url');
+  issued.push({ login, value });
+  return hashPassword(value);
+}
 
 
 const CATEGORIES = [
@@ -121,13 +148,19 @@ transaction((conn) => {
   const upsertUser = conn.prepare(`
     INSERT INTO users (role, full_name, email, phone, password_hash, password_changed_at)
     VALUES (?, ?, ?, ?, ?, ?)
-    ON CONFLICT (email) DO UPDATE SET full_name = excluded.full_name
+    ON CONFLICT (email) DO UPDATE SET
+      full_name = excluded.full_name,
+      /* Пароль перезаписывается и при повторном запуске — иначе список,
+         который печатает SEED_SHOW_PASSWORDS, врал бы: пароли сгенерированы,
+         показаны, но в базу не попали. Напечатанное должно работать. */
+      password_hash = excluded.password_hash,
+      password_changed_at = excluded.password_changed_at
   `);
   const findUser = conn.prepare('SELECT id FROM users WHERE email = ?');
 
   // Владелица: роль admin, отдельный профиль мастера ей не заводится.
   upsertUser.run('admin', 'Варвара Администратор', 'admin@varvara.studio',
-    '+79210000000', hashPassword(DEMO_PASSWORD), nowIso());
+    '+79210000000', newPassword('admin@varvara.studio'), nowIso());
   const ownerId = findUser.get('admin@varvara.studio').id;
   conn.prepare('UPDATE studio_settings SET owner_user_id = ? WHERE id = 1').run(ownerId);
 
@@ -151,7 +184,7 @@ transaction((conn) => {
   `);
 
   for (const m of MASTERS) {
-    upsertUser.run('master', m.name, m.email, m.phone, hashPassword(DEMO_PASSWORD), nowIso());
+    upsertUser.run('master', m.name, m.email, m.phone, newPassword(m.email), nowIso());
     const id = findUser.get(m.email).id;
     if (m.alsoAdmin) grantRole.run(id, 'admin');
     upsertProfile.run(id, m.sort);
@@ -189,7 +222,10 @@ transaction((conn) => {
   const upsertClient = conn.prepare(`
     INSERT INTO users (role, full_name, phone, password_hash, password_changed_at)
     VALUES ('client', ?, ?, ?, ?)
-    ON CONFLICT (phone) DO UPDATE SET full_name = excluded.full_name
+    ON CONFLICT (phone) DO UPDATE SET
+      full_name = excluded.full_name,
+      password_hash = excluded.password_hash,
+      password_changed_at = excluded.password_changed_at
   `);
   const findByPhone = conn.prepare('SELECT id FROM users WHERE phone = ?');
   const addPrefs = conn.prepare(
@@ -197,7 +233,7 @@ transaction((conn) => {
   );
   const clientIds = [];
   for (const c of CLIENTS) {
-    upsertClient.run(c.name, c.phone, c.registered ? hashPassword(DEMO_PASSWORD) : null,
+    upsertClient.run(c.name, c.phone, c.registered ? newPassword(c.phone) : null,
       c.registered ? nowIso() : null);
     const id = findByPhone.get(c.phone).id;
     addPrefs.run(id); // как после регистрации: иначе каналы связи не определены
@@ -288,7 +324,15 @@ console.log('Сиды загружены:');
 console.log(`  пользователей ${c.users} (клиентов ${c.clients}, мастеров ${c.masters}, владелица 1)`);
 console.log(`  услуг ${c.services}, связей мастер-услуга ${c.links}, интервалов графика ${c.hours}`);
 console.log(`  записей ${c.appts}, блоков лендинга ${c.blocks}, работ в портфолио ${c.works}`);
-console.log(`\n  Демо-пароль для всех учётных записей: ${DEMO_PASSWORD}`);
+if (showPasswords) {
+  console.log('\n  Пароли учётных записей стенда — у каждой свой, показываются один раз:');
+  const pad = Math.max(...issued.map((i) => i.login.length));
+  for (const { login, value } of issued) console.log(`    ${login.padEnd(pad)}  ${value}`);
+} else {
+  console.log('\n  У каждой учётной записи свой случайный пароль, он нигде не сохранён.');
+  console.log('  Войти под демо-записями нельзя — для боевого сервера так и нужно.');
+  console.log('  Для локального стенда: SEED_SHOW_PASSWORDS=true npm run seed');
+}
 
 db.close();
 
