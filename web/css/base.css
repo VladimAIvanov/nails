@@ -117,6 +117,19 @@ a:hover { color: var(--color-text-link-hover); }
   color: var(--color-text);
   line-height: var(--line-tight);
 }
+
+/* Раскладка со знаком — только в шапке. Тот же класс .logo стоит в подвале
+   лендинга, но там внутри просто текст: flex развернул бы название и
+   подпись в строку вместо двух этажей. */
+.header .logo { display: flex; align-items: center; gap: var(--space-2); }
+
+/* Знак задаётся по высоте, ширина считается сама: пропорции логотипа
+   менять нельзя, а высота должна совпадать с высотой надписи. */
+.logo__mark {
+  height: var(--space-10);
+  width: auto;
+  flex: none;
+}
 .logo small {
   display: block;
   font-family: var(--font-text);

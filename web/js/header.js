@@ -111,9 +111,23 @@ function paint(mount, user, { loading }) {
 
   mount.replaceChildren(
     el('div', { className: 'wrap header__in' },
+      /* Логотип студии: знак картинкой, название — нашей типографикой.
+         Знак вырезан из присланного файла; надпись из него не берётся
+         намеренно — набранная шрифтом дизайн-системы, она остаётся резкой
+         на любом экране и в любом размере, а растровая замылилась бы. */
       el('a', { href: '/', className: 'logo' },
-        'Варвара',
-        el('small', { textContent: 'ногтевая студия' })),
+        el('img', {
+          className: 'logo__mark',
+          src: '/img/logo-mark.png',
+          alt: '',
+          width: 214,
+          height: 236,
+          loading: 'eager',
+          decoding: 'async'
+        }),
+        el('span', { className: 'logo__text' },
+          'Варвара',
+          el('small', { textContent: 'ногтевая студия' }))),
       nav,
       side)
   );
