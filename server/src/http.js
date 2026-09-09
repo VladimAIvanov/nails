@@ -49,6 +49,9 @@ export const unauthorized = (message = 'Требуется вход') => new Htt
 export const forbidden = (message = 'Недостаточно прав') => new HttpError(403, 'forbidden', message);
 export const notFound = (message = 'Не найдено') => new HttpError(404, 'not_found', message);
 export const conflict = (message, details) => new HttpError(409, 'conflict', message, details);
+/* Отказ не наш, а того, к кому мы обратились. Отдельный код нужен, чтобы
+   не выдавать чужой сбой за свою ошибку и за ошибку человека. */
+export const badGateway = (message, details) => new HttpError(502, 'bad_gateway', message, details);
 
 const MAX_BODY = 64 * 1024;
 

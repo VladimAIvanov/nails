@@ -3,7 +3,7 @@ import { all, get } from '../db.js';
 import { badRequest, notFound } from '../http.js';
 import * as v from '../validate.js';
 import { freeSlots, getSettings } from '../slots.js';
-import { stubEnabled } from '../services/external-login.js';
+import { yandexConfigured } from '../services/external-login.js';
 
 /* Цены отдаются целым числом в копейках — как и хранятся.
    Форматированием занимается интерфейс. */
@@ -112,9 +112,10 @@ export default function register(router) {
         telegram_bot: s.telegram_bot_username,
         online_booking_enabled: s.online_booking_enabled === 1,
         /* Какие внешние входы сейчас работают. Пустой список — кнопок нет.
-           Пока сюда попадает только Яндекс и только с включённой заглушкой:
-           настоящее приложение регистрируется после публикации. */
-        external_login: stubEnabled() ? ['yandex'] : [],
+           Яндекс считается работающим, только если заданы все три настройки:
+           идентификатор, секрет и адрес возврата. Кнопка, которая всегда
+           отвечает отказом, хуже отсутствующей. */
+        external_login: yandexConfigured() ? ['yandex'] : [],
         free_cancellation_lead_min: s.free_cancellation_lead_min,
         reminder_lead_min: s.reminder_lead_min,
         working_hours: hours

@@ -2,13 +2,16 @@
 import { get, run, transaction } from '../db.js';
 import { badRequest, conflict, unauthorized } from '../http.js';
 import * as v from '../validate.js';
+import { randomBytes } from 'node:crypto';
 import {
   hashPassword, verifyPassword, createSession, revokeSession, requireUser, purgeExpiredSessions,
-  sessionCookie, clearSessionCookie, tokenFromRequest, rolesOf
+  sessionCookie, clearSessionCookie, tokenFromRequest, cookieValue, rolesOf
 } from '../auth.js';
 import { check as checkRate, hit as hitRate, clear as clearRate, purge as purgeRates } from '../ratelimit.js';
 import { clientIp, isSecure } from '../net.js';
-import { yandexProfile, linkOrCreate } from '../services/external-login.js';
+import {
+  yandexProfile, linkOrCreate, yandexConfigured, authorizeUrl
+} from '../services/external-login.js';
 import { nowIso } from '../time.js';
 
 /* Наружу отдаём только то, что нужно интерфейсу. Хеша пароля здесь нет
@@ -37,6 +40,50 @@ const publicUser = (u) => ({
    проверки и внешних клиентов, у которых куки нет. */
 const withSession = (res, req, session) => {
   res.setHeader('set-cookie', sessionCookie(session.token, session.expiresAt, { secure: isSecure(req) }));
+};
+
+/* ── Вход через Яндекс: вспомогательное ─────────────────────────────────────
+
+   Сюда приходит браузер человека, а не скрипт, поэтому ответы здесь —
+   перенаправления, а не JSON. */
+
+const STATE_COOKIE = 'varvara_oauth_state';
+const NEXT_COOKIE = 'varvara_oauth_next';
+
+/* Одноразовые куки живут десять минут: столько человек может смотреть
+   на экран согласия. Дольше — уже не тот заход. */
+const OAUTH_TTL = 600;
+
+const oauthCookie = (name, value, req) => [
+  `${name}=${encodeURIComponent(value)}`,
+  'Path=/',
+  'HttpOnly',
+  'SameSite=Lax',
+  `Max-Age=${OAUTH_TTL}`,
+  isSecure(req) ? 'Secure' : null
+].filter(Boolean).join('; ');
+
+const clearOauthCookies = (req) =>
+  [STATE_COOKIE, NEXT_COOKIE].map((name) => [
+    `${name}=`, 'Path=/', 'HttpOnly', 'SameSite=Lax', 'Max-Age=0',
+    isSecure(req) ? 'Secure' : null
+  ].filter(Boolean).join('; '));
+
+/* Адрес возврата принимаем только свой. «//чужой-сайт» начинается со слеша
+   и выглядит как путь, а браузер уводит по нему на чужой домен. */
+const safeNext = (value) =>
+  (value && value.startsWith('/') && !value.startsWith('//') ? value : null);
+
+const redirect = (location) => ({
+  status: 302,
+  raw: { contentType: 'text/plain; charset=utf-8', body: 'Переход', headers: { location } }
+});
+
+/* Возврат на экран входа с причиной. Текст показывает страница — сервер
+   называет только повод, чтобы формулировка жила в одном месте. */
+const backToLogin = (res, reason, req) => {
+  if (req) res.setHeader('set-cookie', clearOauthCookies(req));
+  return redirect(`/login?yandex=${reason}`);
 };
 
 export default function register(router) {
@@ -141,25 +188,76 @@ export default function register(router) {
     return { body: { ok: true } };
   });
 
-  /* Вход через Яндекс.
+  /* Вход через Яндекс: два адреса вместо одного.
 
-     Почту в теле запроса сервер не принимает — и это главное в обработчике.
-     Адрес, который поверил бы браузеру на слово, был бы не входом через
-     Яндекс, а входом под кем угодно: достаточно прислать чужую почту.
-     Поэтому почту и имя достаёт сам сервер — сейчас из заглушки, после
-     публикации из ответа Яндекса на одноразовый код.
+     Почту в теле запроса сервер не принимает — и это главное здесь. Адрес,
+     который поверил бы браузеру на слово, был бы не входом через Яндекс,
+     а входом под кем угодно: достаточно прислать чужую почту. Поэтому почту
+     и имя достаёт сам сервер, обменяв одноразовый код на токен.
+
+     Первый адрес уводит человека на страницу согласия Яндекса. */
+  router.get('/api/auth/yandex/start', async ({ req, res, query }) => {
+    if (!yandexConfigured()) return backToLogin(res, 'off');
+
+    /* Случайная строка, которая уедет к Яндексу и вернётся обратно. Её
+       двойник лежит в куке, недоступной чужому сайту. Совпали — значит
+       вернулся тот же человек и с той же вкладки, а не кто-то, подсунувший
+       ему ссылку с чужим кодом. */
+    const state = randomBytes(24).toString('base64url');
+    const next = safeNext(query.get('next'));
+
+    res.setHeader('set-cookie', [
+      oauthCookie(STATE_COOKIE, state, req),
+      oauthCookie(NEXT_COOKIE, next ?? '', req)
+    ]);
+
+    return redirect(authorizeUrl(state));
+  });
+
+  /* Второй адрес — тот самый, что записан в кабинете Яндекса. Его строка
+     сверяется посимвольно, поэтому менять этот путь нельзя, не поменяв
+     запись в кабинете: при несовпадении Яндекс не ругается, а молча уводит
+     человека по первому адресу из списка.
+
+     Отвечает он не данными, а перенаправлением: сюда приходит браузер
+     человека, а не скрипт. Любой отказ заканчивается возвратом на экран
+     входа с понятным сообщением — белого экрана не остаётся ни в одной ветке.
 
      Ограничение частоты общее с обычным входом: перебирать здесь нечего,
-     но адрес всё равно заводит учётные записи, и делать это тысячами
-     подряд незачем. */
-  router.post('/api/auth/yandex', async ({ body, req, res }) => {
+     но адрес заводит учётные записи, и делать это тысячами подряд незачем. */
+  router.get('/api/auth/yandex/callback', async ({ req, res, query }) => {
+    const state = query.get('state');
+    const expected = cookieValue(req, STATE_COOKIE);
+    const next = safeNext(cookieValue(req, NEXT_COOKIE));
+
+    /* Человек нажал «Отмена» или Яндекс вернул ошибку вместо кода. */
+    const failure = query.get('error');
+    if (failure) {
+      return backToLogin(res, failure === 'access_denied' ? 'denied' : 'error', req);
+    }
+
+    if (!state || !expected || state !== expected) {
+      return backToLogin(res, 'state', req);
+    }
+
+    const code = query.get('code');
+    if (!code) return backToLogin(res, 'error', req);
+
     const ip = clientIp(req);
     checkRate('login', `yandex:${ip}`);
 
-    const profile = await yandexProfile(body.code ?? null);
+    let profile;
+    try {
+      profile = await yandexProfile(code);
+    } catch (err) {
+      /* Причина уходит в лог сервера, человеку достаётся понятная строка.
+         Показывать ему ответ чужого сервиса незачем, а нам он нужен. */
+      console.error('[яндекс]', err.message);
+      return backToLogin(res, 'error', req);
+    }
     hitRate('login', `yandex:${ip}`);
 
-    const { user, created, linked } = linkOrCreate({
+    const { user } = linkOrCreate({
       provider: profile.provider,
       providerId: profile.provider_id,
       email: profile.email,
@@ -171,20 +269,16 @@ export default function register(router) {
       userAgent: req.headers['user-agent'] ?? null,
       ip: clientIp(req) || null
     });
-    withSession(res, req, session);
 
-    return {
-      status: created ? 201 : 200,
-      body: {
-        user: publicUser(user),
-        /* Экрану полезно знать, что именно произошло: завели кабинет,
-           привязали вход к существующему или просто узнали своего. */
-        created,
-        linked,
-        stub: profile.stub === true,
-        ...session
-      }
-    };
+    /* Пропуск и уборка одноразовых кук — одним заголовком: второй вызов
+       setHeader заменил бы первый, и куки состояния остались бы висеть. */
+    res.setHeader('set-cookie', [
+      sessionCookie(session.token, session.expiresAt, { secure: isSecure(req) }),
+      ...clearOauthCookies(req)
+    ]);
+
+    const home = rolesOf(user.id).includes('admin') ? '/admin' : '/account';
+    return redirect(next ?? home);
   });
 
   /* Показывать ли кнопку. Отдельного адреса ради одного признака заводить

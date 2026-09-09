@@ -6,7 +6,7 @@
    такой человек и верен ли пароль.
 
    Пропуск сервер ставит кукой сам. Здесь его не читают и не хранят. */
-import { api, guard, showError, clearFieldErrors } from './api.js';
+import { api, guard, showError, clearFieldErrors, el } from './api.js';
 import { renderHeader } from './header.js';
 import { renderExternalLogin } from './external-login.js';
 
@@ -30,6 +30,32 @@ const next = asked && asked.startsWith('/') && !asked.startsWith('//') ? asked :
 const home = (user) => (user.roles?.includes('admin') ? '/admin' : '/account');
 
 renderExternalLogin('external', next);
+
+/* Возврат от Яндекса, который не дошёл до конца. Сервер называет только
+   повод — формулировка живёт здесь, в одном месте, рядом с остальными
+   сообщениями экрана.
+
+   Без этого человек, нажавший «Отмена» на экране согласия, возвращался бы
+   на страницу входа без единого слова о том, что произошло, — и решил бы,
+   что сломался сервис, а не что он сам отказался. */
+const YANDEX_REASONS = {
+  denied: 'Вход через Яндекс не завершён: вы отказались на его странице. '
+    + 'Можно попробовать снова или войти по паролю.',
+  error: 'Вход через Яндекс не завершён — он не ответил или ответил отказом. '
+    + 'Попробуйте ещё раз или войдите по паролю.',
+  state: 'Вход через Яндекс не завершён: страница слишком долго ждала. '
+    + 'Начните заново.',
+  off: 'Вход через Яндекс сейчас не настроен. Войдите по паролю.'
+};
+
+const yandexReason = new URLSearchParams(location.search).get('yandex');
+if (yandexReason && YANDEX_REASONS[yandexReason]) {
+  /* Не через showError: тот подписывает сообщение словами «Проверьте поля»,
+     а поля здесь ни при чём — человек отказался на чужой странице. */
+  document.getElementById('msg').replaceChildren(
+    el('div', { className: 'note note--info', textContent: YANDEX_REASONS[yandexReason] })
+  );
+}
 
 form.addEventListener('submit', guard(async () => {
   clearFieldErrors(form);

@@ -149,7 +149,7 @@ export function clearSessionCookie({ secure = false } = {}) {
 }
 
 /* Разбор заголовка Cookie: «имя=значение; имя=значение». */
-function cookieValue(req, name) {
+export function cookieValue(req, name) {
   const raw = req.headers.cookie;
   if (!raw) return null;
   for (const part of raw.split(';')) {
