@@ -33,7 +33,7 @@ cd server && npm run doctor
 ## Порядок развёртывания
 
 ```bash
-git clone <репозиторий> && cd varvara_nail_service
+git clone <репозиторий> && cd nails
 cp .env.example .env          # заполнить значения
 cd server
 npm run doctor                # проверка окружения

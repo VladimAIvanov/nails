@@ -34,11 +34,11 @@ node --version
 ### 1. Забрать репозиторий
 
 ```bash
-git clone https://github.com/VladimAIvanov/varvara_nail_service.git
+git clone https://github.com/VladimAIvanov/nails.git
 ```
 
 ```bash
-cd varvara_nail_service
+cd nails
 ```
 
 ### 2. Создать базу
