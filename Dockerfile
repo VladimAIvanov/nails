@@ -32,7 +32,7 @@ COPY web ./web
 #
 # Путь дословно, он понадобится при настройке тома: /app/storage
 RUN mkdir -p /app/storage
-ENV SQLITE_PATH=/app/storage/varvara.db
+ENV SQLITE_PATH=/app/storage/nogotochki.db
 
 # Сервис запускается не от root: если приложение когда-нибудь пробьют,
 # у процесса не должно быть прав на весь контейнер. Пользователь node уже

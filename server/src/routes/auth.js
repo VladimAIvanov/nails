@@ -47,8 +47,8 @@ const withSession = (res, req, session) => {
    Сюда приходит браузер человека, а не скрипт, поэтому ответы здесь —
    перенаправления, а не JSON. */
 
-const STATE_COOKIE = 'varvara_oauth_state';
-const NEXT_COOKIE = 'varvara_oauth_next';
+const STATE_COOKIE = 'nogotochki_oauth_state';
+const NEXT_COOKIE = 'nogotochki_oauth_next';
 
 /* Одноразовые куки живут десять минут: столько человек может смотреть
    на экран согласия. Дольше — уже не тот заход. */

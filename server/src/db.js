@@ -16,14 +16,14 @@ const runtimeNotes = checkRuntime();
 const { DatabaseSync } = await checkSqliteModule();
 
 /* SQLITE_PATH задаётся относительно корня проекта, а не текущей папки:
-   скрипты запускаются из server/, и путь «server/data/varvara.db» иначе
-   разворачивался бы в server/server/data/varvara.db. */
+   скрипты запускаются из server/, и путь «server/data/nogotochki.db» иначе
+   разворачивался бы в server/server/data/nogotochki.db. */
 const projectRoot = resolve(import.meta.dirname, '..', '..');
 
 const configuredPath = env.text('SQLITE_PATH');
 const file = configuredPath
   ? resolve(projectRoot, configuredPath)
-  : resolve(import.meta.dirname, '..', 'data', 'varvara.db');
+  : resolve(import.meta.dirname, '..', 'data', 'nogotochki.db');
 
 const dirNotes = checkDataDirectory(file);
 

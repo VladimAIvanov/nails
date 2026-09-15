@@ -27,11 +27,11 @@ services:
     # открывается, миграции создают чистую базу с нуля. Отличить одно от
     # другого можно только вторым развёртыванием.
     volumes:
-      - varvara-data:/app/storage
+      - nogotochki-data:/app/storage
 
     environment:
       # Куда класть базу — внутрь тома, а не рядом с кодом.
-      - SQLITE_PATH=/app/storage/varvara.db
+      - SQLITE_PATH=/app/storage/nogotochki.db
 
       # Порт приложения. Задан здесь, чтобы не указывать его в панели.
       - PORT=3000
@@ -82,4 +82,4 @@ services:
 # Именованный том. Живёт на диске сервера отдельно от контейнеров и
 # переживает их пересоздание.
 volumes:
-  varvara-data:
+  nogotochki-data:

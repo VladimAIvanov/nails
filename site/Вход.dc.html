@@ -16,7 +16,7 @@
 </helmet>
 <div style="display:flex;align-items:center;gap:24px;height:40px;padding:0 24px;background:#33202A;color:rgba(255,255,255,.7);font-family:'Manrope',sans-serif;font-size:12.5px">
 <span style="font-weight:600;color:#fff;letter-spacing:.08em;text-transform:uppercase;font-size:10px;margin-right:4px">Ноготочки сайт</span>
-<a href="./Варвара - Сайт.dc.html" style="color:inherit;border:0">Сайт</a>
+<a href="./Ноготочки - Сайт.dc.html" style="color:inherit;border:0">Сайт</a>
 <a href="./Кабинет.dc.html" style="color:inherit;border:0">Кабинет клиента</a>
 <a href="./Клиент.dc.html" style="color:inherit;border:0">Мини-апп клиента</a>
 <a href="./Админ-панель.dc.html" style="color:inherit;border:0">Админ-панель / мастер</a>
@@ -48,7 +48,7 @@
 <div style="margin-bottom:20px">
 <div style="font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:#7D6D62;margin-bottom:10px">Какая вы мастер</div>
 <div style="display:flex;gap:8px">
-<x-import component-from-global-scope="DesignSystem_f8f42b.Chip" selected="{{ isVarvara }}" onClick="{{ pickVarvara }}" hint-size="auto,36px">Варвара</x-import>
+<x-import component-from-global-scope="DesignSystem_f8f42b.Chip" selected="{{ isAnna }}" onClick="{{ pickAnna }}" hint-size="auto,36px">Анна</x-import>
 <x-import component-from-global-scope="DesignSystem_f8f42b.Chip" selected="{{ isLena }}" onClick="{{ pickLena }}" hint-size="auto,36px">Лена</x-import>
 <x-import component-from-global-scope="DesignSystem_f8f42b.Chip" selected="{{ isAya }}" onClick="{{ pickAya }}" hint-size="auto,36px">Ая</x-import>
 </div>
@@ -71,11 +71,11 @@
 </x-dc>
 <script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:600,&quot;height&quot;:760}}">
 class Component extends DCLogic {
-  state = { role: 'client', master: 'varvara', login: '', password: '' };
+  state = { role: 'client', master: 'anna', login: '', password: '' };
 
   renderVals() {
     const roleLabels = { client: 'клиент', master: 'мастер', admin: 'администратор' };
-    const masterNames = { varvara: 'Варвара', lena: 'Лена', aya: 'Ая' };
+    const masterNames = { anna: 'Анна', lena: 'Лена', aya: 'Ая' };
     const dest = () => {
       if (this.state.role === 'client') return './Кабинет.dc.html';
       if (this.state.role === 'master') return './Админ-панель.dc.html?role=' + this.state.master;
@@ -85,13 +85,13 @@ class Component extends DCLogic {
       isClient: this.state.role === 'client',
       isMaster: this.state.role === 'master',
       isAdmin: this.state.role === 'admin',
-      isVarvara: this.state.master === 'varvara',
+      isAnna: this.state.master === 'anna',
       isLena: this.state.master === 'lena',
       isAya: this.state.master === 'aya',
       pickClient: () => this.setState({ role: 'client' }),
       pickMaster: () => this.setState({ role: 'master' }),
       pickAdmin: () => this.setState({ role: 'admin' }),
-      pickVarvara: () => this.setState({ master: 'varvara' }),
+      pickAnna: () => this.setState({ master: 'anna' }),
       pickLena: () => this.setState({ master: 'lena' }),
       pickAya: () => this.setState({ master: 'aya' }),
       login: this.state.login,
@@ -99,7 +99,7 @@ class Component extends DCLogic {
       password: this.state.password,
       setPassword: (v) => this.setState({ password: v }),
       loginLabel: this.state.role === 'client' ? 'Телефон' : 'Логин',
-      loginPlaceholder: this.state.role === 'client' ? '+7 ___ ___-__-__' : (this.state.role === 'master' ? masterNames[this.state.master].toLowerCase() : 'admin') + '@varvara.studio',
+      loginPlaceholder: this.state.role === 'client' ? '+7 ___ ___-__-__' : (this.state.role === 'master' ? masterNames[this.state.master].toLowerCase() : 'admin') + '@nogotochki.studio',
       roleLabel: this.state.role === 'master' ? masterNames[this.state.master] : roleLabels[this.state.role],
       enter: () => { window.location.href = dest(); }
     };

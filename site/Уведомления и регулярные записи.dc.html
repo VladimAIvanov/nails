@@ -17,7 +17,7 @@
 
 <div style="display:flex;align-items:center;gap:24px;height:40px;padding:0 24px;background:var(--plum-800);color:rgba(255,255,255,.7);font-family:'Manrope',sans-serif;font-size:12.5px;flex-wrap:wrap">
 <span style="font-weight:600;color:var(--text-inverse);letter-spacing:.08em;text-transform:uppercase;font-size:10px;margin-right:4px">Ноготочки сайт</span>
-<a href="./Варвара - Сайт.dc.html" style="color:inherit;border:0">Сайт</a>
+<a href="./Ноготочки - Сайт.dc.html" style="color:inherit;border:0">Сайт</a>
 <a href="./Кабинет.dc.html" style="color:inherit;border:0">Кабинет клиента</a>
 <a href="./Клиент.dc.html" style="color:inherit;border:0">Мини-апп клиента</a>
 <a href="./Админ-панель.dc.html" style="color:inherit;border:0">Админ-панель / мастер</a>
@@ -185,7 +185,7 @@ class Component extends DCLogic {
     return {
       channels: [
         { title: 'Пуш в приложении', note: 'Быстрее всего, если приложение установлено', on: true },
-        { title: 'Telegram', note: 'Бот @varvara_nails_bot', on: true },
+        { title: 'Telegram', note: 'Бот @nogotochki_bot', on: true },
         { title: 'Письмо на почту', note: 'Со ссылкой на отмену и файлом для календаря', on: false },
         { title: 'SMS', note: 'Запасной канал, работает всегда', on: false }
       ],
@@ -198,21 +198,21 @@ class Component extends DCLogic {
       intervals: ['Каждую неделю', 'Раз в две недели', 'Раз в три недели', 'Раз в месяц'],
       weekdays: ['Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота'],
       series: [
-        { date: '2 сентября, вт', note: '18:00 · Маникюр с покрытием · Варвара', status: 'confirmed' },
-        { date: '16 сентября, вт', note: '18:00 · Маникюр с покрытием · Варвара', status: 'confirmed' },
+        { date: '2 сентября, вт', note: '18:00 · Маникюр с покрытием · Анна', status: 'confirmed' },
+        { date: '16 сентября, вт', note: '18:00 · Маникюр с покрытием · Анна', status: 'confirmed' },
         { date: '30 сентября, вт', note: '18:00 — время занято, нужен перенос', status: 'cancelled' },
-        { date: '14 октября, вт', note: '18:00 · Маникюр с покрытием · Варвара', status: 'confirmed' },
-        { date: '28 октября, вт', note: '18:00 · Маникюр с покрытием · Варвара', status: 'pending' }
+        { date: '14 октября, вт', note: '18:00 · Маникюр с покрытием · Анна', status: 'confirmed' },
+        { date: '28 октября, вт', note: '18:00 · Маникюр с покрытием · Анна', status: 'pending' }
       ],
       cancel: {
         when: '24 августа · 18:00',
         service: 'Маникюр с покрытием',
-        master: 'Варвара',
+        master: 'Анна',
         price: '3 200 ₽'
       },
       queue: [
         { when: 'сегодня 10:24', who: 'Марина К.', kind: 'Запись подтверждена', channel: 'Пуш', state: 'Отправлено' },
-        { when: 'сегодня 10:24', who: 'Варвара', kind: 'Новая запись', channel: 'Telegram', state: 'Отправлено' },
+        { when: 'сегодня 10:24', who: 'Анна', kind: 'Новая запись', channel: 'Telegram', state: 'Отправлено' },
         { when: '23 авг 16:00', who: 'Марина К.', kind: 'Напоминание за сутки', channel: 'Пуш', state: 'Запланировано' },
         { when: '24 авг 16:00', who: 'Марина К.', kind: 'Напоминание за 2 часа', channel: 'Telegram', state: 'Запланировано' },
         { when: 'вчера 19:02', who: 'Ольга П.', kind: 'Напоминание за 2 часа', channel: 'SMS', state: 'Не доставлено' }

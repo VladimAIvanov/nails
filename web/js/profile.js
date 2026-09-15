@@ -87,24 +87,24 @@ async function loadPrefs() {
       showOk(value ? `Включили: ${title.toLowerCase()}` : `Выключили: ${title.toLowerCase()}`);
     }));
 
-  /* «Новые окна у Варвары» из прототипа: это подписка на освободившееся
+  /* «Новые окна у мастера» из прототипа: это подписка на освободившееся
      время у мастера, а не канал связи. Состояние — наличие активной строки. */
   const masters = (await api('GET', '/api/masters')).masters;
-  const varvara = masters.find((m) => m.name === 'Варвара') ?? masters[0];
-  const active = subs.subscriptions.find((s) => s.master_id === varvara?.id);
+  const master = masters[0];
+  const active = subs.subscriptions.find((s) => s.master_id === master?.id);
 
-  if (varvara) {
+  if (master) {
     rows.push(toggle(
-      `Новые окна у мастера ${varvara.name}`,
+      `Новые окна у мастера ${master.name}`,
       'Сообщим, когда освободится время',
       Boolean(active),
       async (value) => {
         if (value) {
-          await api('POST', '/api/profile/slot-subscriptions', { master_id: varvara.id });
+          await api('POST', '/api/profile/slot-subscriptions', { master_id: master.id });
           showOk('Подписались на новые окна');
         } else {
           const current = (await api('GET', '/api/profile/slot-subscriptions'))
-            .subscriptions.find((s) => s.master_id === varvara.id);
+            .subscriptions.find((s) => s.master_id === master.id);
           if (current) await api('DELETE', `/api/profile/slot-subscriptions/${current.id}`);
           showOk('Подписка отключена');
         }

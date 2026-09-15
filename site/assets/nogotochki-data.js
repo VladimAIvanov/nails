@@ -1,4 +1,4 @@
-window.VARVARA_DATA = {
+window.NOGOTOCHKI_DATA = {
   services: [
     { id: 'man-cover', title: 'Маникюр с покрытием', description: 'Аппаратный, гель-лак', duration: '1 ч 30 мин', price: 3200, cat: 'Маникюр' },
     { id: 'man', title: 'Маникюр без покрытия', description: 'Аппаратный, уход за кутикулой', duration: '50 мин', price: 1900, cat: 'Маникюр' },
@@ -8,7 +8,7 @@ window.VARVARA_DATA = {
     { id: 'repair', title: 'Ремонт ногтя', duration: '15 мин', price: 400, cat: 'Маникюр' }
   ],
   masters: [
-    { id: 'varvara', name: 'Варвара', role: 'Маникюр, наращивание, дизайн', rating: 4.9, reviews: 128 },
+    { id: 'anna', name: 'Анна', role: 'Маникюр, наращивание, дизайн', rating: 4.9, reviews: 128 },
     { id: 'lena', name: 'Лена', role: 'Педикюр, маникюр', rating: 4.8, reviews: 96 },
     { id: 'aya', name: 'Ая', role: 'Дизайн, наращивание', rating: 5.0, reviews: 41 }
   ],
@@ -28,9 +28,9 @@ window.VARVARA_DATA = {
   ],
   monthNames: ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'],
   bookings: [
-    { id: 1, when: 'Сегодня, 15 августа · 18:00', service: 'Маникюр с покрытием', master: 'Варвара', price: '3 200 ₽', status: 'confirmed', address: 'ул. Рубинштейна, 24' },
+    { id: 1, when: 'Сегодня, 15 августа · 18:00', service: 'Маникюр с покрытием', master: 'Анна', price: '3 200 ₽', status: 'confirmed', address: 'ул. Рубинштейна, 24' },
     { id: 2, when: '17 августа · 12:30', service: 'Педикюр с покрытием', master: 'Лена', price: '3 800 ₽', status: 'pending', address: 'ул. Рубинштейна, 24' },
     { id: 3, when: '2 августа · 15:00', service: 'Наращивание', master: 'Ая', price: '5 500 ₽', status: 'done' },
-    { id: 4, when: '26 июля · 11:00', service: 'Маникюр с покрытием', master: 'Варвара', price: '3 200 ₽', status: 'cancelled' }
+    { id: 4, when: '26 июля · 11:00', service: 'Маникюр с покрытием', master: 'Анна', price: '3 200 ₽', status: 'cancelled' }
   ]
 };

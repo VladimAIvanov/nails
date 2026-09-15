@@ -19,9 +19,9 @@ INSERT INTO studio_settings (
   booking_horizon_days, min_lead_time_min, pending_ttl_min,
   default_buffer_min, slot_step_min, guest_booking_mode
 ) VALUES (
-  1, 'Варвара', 'Санкт-Петербург', 'ул. Рубинштейна, 24',
-  'Второй этаж, домофон 24', 'Europe/Moscow', '+79210000000', 'hello@varvara.studio',
-  'varvara_nails_bot', 'disconnected',
+  1, 'Анна', 'Санкт-Петербург', 'ул. Рубинштейна, 24',
+  'Второй этаж, домофон 24', 'Europe/Moscow', '+79210000000', 'hello@nogotochki.studio',
+  'nogotochki_bot', 'disconnected',
   1, 0,
   120, 1, 240,
   30, 60, 720,

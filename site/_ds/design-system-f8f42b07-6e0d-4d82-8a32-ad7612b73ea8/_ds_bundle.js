@@ -927,11 +927,11 @@ Object.assign(__ds_scope, { TopBar });
 
 // ui_kits/admin/admin-data.js
 try { (() => {
-window.VARVARA_ADMIN = {
+window.NOGOTOCHKI_ADMIN = {
   day: '15 августа, суббота',
   masters: [{
-    id: 'varvara',
-    name: 'Варвара',
+    id: 'anna',
+    name: 'Анна',
     role: 'Маникюр, наращивание'
   }, {
     id: 'lena',
@@ -944,7 +944,7 @@ window.VARVARA_ADMIN = {
   }],
   appointments: [{
     id: 1,
-    master: 'varvara',
+    master: 'anna',
     start: '10:00',
     min: 90,
     client: 'Марина К.',
@@ -953,7 +953,7 @@ window.VARVARA_ADMIN = {
     status: 'confirmed'
   }, {
     id: 2,
-    master: 'varvara',
+    master: 'anna',
     start: '12:00',
     min: 180,
     client: 'Ольга П.',
@@ -962,7 +962,7 @@ window.VARVARA_ADMIN = {
     status: 'confirmed'
   }, {
     id: 3,
-    master: 'varvara',
+    master: 'anna',
     start: '18:00',
     min: 90,
     client: 'Марина К.',
@@ -1021,7 +1021,7 @@ window.VARVARA_ADMIN = {
     client: 'Марина К.',
     phone: '+7 921 000-00-00',
     service: 'Маникюр с покрытием',
-    master: 'Варвара',
+    master: 'Анна',
     price: '3 200 ₽',
     status: 'pending',
     source: 'Telegram'
@@ -1061,7 +1061,7 @@ window.VARVARA_ADMIN = {
     client: 'Ольга П.',
     phone: '+7 905 444-44-44',
     service: 'Наращивание',
-    master: 'Варвара',
+    master: 'Анна',
     price: '5 500 ₽',
     status: 'confirmed',
     source: 'Telegram'
@@ -1071,7 +1071,7 @@ window.VARVARA_ADMIN = {
     client: 'Даша И.',
     phone: '+7 906 555-55-55',
     service: 'Маникюр с покрытием',
-    master: 'Варвара',
+    master: 'Анна',
     price: '3 200 ₽',
     status: 'done',
     source: 'Telegram'
@@ -1116,7 +1116,7 @@ function DayView({
   onSelect
 }) {
   const D = window.DesignSystem_f8f42b;
-  const A = window.VARVARA_ADMIN;
+  const A = window.NOGOTOCHKI_ADMIN;
   const times = Array.from({
     length: ADM_ROWS
   }, (_, i) => ADM_START + i * 30).filter((_, i) => i % 2 === 0);
@@ -1186,7 +1186,7 @@ function DayView({
 }
 function ListView() {
   const D = window.DesignSystem_f8f42b;
-  const A = window.VARVARA_ADMIN;
+  const A = window.NOGOTOCHKI_ADMIN;
   const [f, setF] = React.useState('Все');
   const map = {
     'Все': null,
@@ -1238,7 +1238,7 @@ function ListView() {
 }
 function ServicesView() {
   const D = window.DesignSystem_f8f42b;
-  const data = window.VARVARA_DATA;
+  const data = window.NOGOTOCHKI_DATA;
   return /*#__PURE__*/React.createElement("div", {
     className: "two"
   }, /*#__PURE__*/React.createElement("div", {
@@ -1358,7 +1358,7 @@ function SettingsView() {
     style: {
       marginTop: 6
     }
-  }, "@varvara_nails_bot \xB7 \u043F\u043E\u0434\u043A\u043B\u044E\u0447\u0451\u043D"), /*#__PURE__*/React.createElement("div", {
+  }, "@nogotochki_bot \xB7 \u043F\u043E\u0434\u043A\u043B\u044E\u0447\u0451\u043D"), /*#__PURE__*/React.createElement("div", {
     style: {
       marginTop: 12
     }
@@ -1384,7 +1384,7 @@ function MyBookingsScreen({
   onBook
 }) {
   const D = window.DesignSystem_f8f42b;
-  const data = window.VARVARA_DATA;
+  const data = window.NOGOTOCHKI_DATA;
   const upcoming = data.bookings.filter(b => b.status === 'confirmed' || b.status === 'pending');
   const past = data.bookings.filter(b => b.status === 'done' || b.status === 'cancelled');
   return /*#__PURE__*/React.createElement("div", {
@@ -1640,7 +1640,7 @@ function ServicesScreen({
   onNext
 }) {
   const D = window.DesignSystem_f8f42b;
-  const data = window.VARVARA_DATA;
+  const data = window.NOGOTOCHKI_DATA;
   const cats = ['Все', 'Маникюр', 'Педикюр', 'Наращивание', 'Дизайн'];
   const list = cat === 'Все' ? data.services : data.services.filter(s => s.cat === cat);
   return /*#__PURE__*/React.createElement("div", {
@@ -1691,7 +1691,7 @@ function MastersScreen({
   onNext
 }) {
   const D = window.DesignSystem_f8f42b;
-  const data = window.VARVARA_DATA;
+  const data = window.NOGOTOCHKI_DATA;
   return /*#__PURE__*/React.createElement("div", {
     className: "scr"
   }, /*#__PURE__*/React.createElement("div", {
@@ -1751,7 +1751,7 @@ function TimeScreen({
   onNext
 }) {
   const D = window.DesignSystem_f8f42b;
-  const data = window.VARVARA_DATA;
+  const data = window.NOGOTOCHKI_DATA;
   return /*#__PURE__*/React.createElement("div", {
     className: "scr"
   }, /*#__PURE__*/React.createElement("div", {
@@ -1914,7 +1914,7 @@ Object.assign(window, {
 
 // ui_kits/telegram_mini_app/data.js
 try { (() => {
-window.VARVARA_DATA = {
+window.NOGOTOCHKI_DATA = {
   services: [{
     id: 'man-cover',
     title: 'Маникюр с покрытием',
@@ -1961,8 +1961,8 @@ window.VARVARA_DATA = {
     cat: 'Маникюр'
   }],
   masters: [{
-    id: 'varvara',
-    name: 'Варвара',
+    id: 'anna',
+    name: 'Анна',
     role: 'Маникюр, наращивание, дизайн',
     rating: 4.9,
     reviews: 128
@@ -2067,7 +2067,7 @@ window.VARVARA_DATA = {
     id: 1,
     when: 'Сегодня, 15 августа · 18:00',
     service: 'Маникюр с покрытием',
-    master: 'Варвара',
+    master: 'Анна',
     price: '3 200 ₽',
     status: 'confirmed',
     address: 'ул. Рубинштейна, 24'
@@ -2090,7 +2090,7 @@ window.VARVARA_DATA = {
     id: 4,
     when: '26 июля · 11:00',
     service: 'Маникюр с покрытием',
-    master: 'Варвара',
+    master: 'Анна',
     price: '3 200 ₽',
     status: 'cancelled'
   }]
@@ -2106,7 +2106,7 @@ function BookingModal({
   onClose
 }) {
   const D = window.DesignSystem_f8f42b;
-  const data = window.VARVARA_DATA;
+  const data = window.NOGOTOCHKI_DATA;
   const [step, setStep] = React.useState(0);
   const [service, setService] = React.useState(data.services[0]);
   const [master, setMaster] = React.useState(data.masters[0]);
@@ -2259,7 +2259,7 @@ Object.assign(window, {
 
 // ui_kits/website/site.jsx
 try { (() => {
-/* Секции лендинга «Варвара». */
+/* Секции лендинга «Ноготочки». */
 
 function Header({
   onBook
@@ -2342,7 +2342,7 @@ function Services({
   onBook
 }) {
   const D = window.DesignSystem_f8f42b;
-  const data = window.VARVARA_DATA;
+  const data = window.NOGOTOCHKI_DATA;
   const [cat, setCat] = React.useState('Все');
   const cats = ['Все', 'Маникюр', 'Педикюр', 'Наращивание', 'Дизайн'];
   const list = cat === 'Все' ? data.services : data.services.filter(s => s.cat === cat);
@@ -2386,7 +2386,7 @@ function Masters({
   onBook
 }) {
   const D = window.DesignSystem_f8f42b;
-  const data = window.VARVARA_DATA;
+  const data = window.NOGOTOCHKI_DATA;
   return /*#__PURE__*/React.createElement("section", {
     className: "sec sec--alt",
     id: "masters"
@@ -2466,7 +2466,7 @@ function Footer() {
       marginTop: 16,
       maxWidth: '32ch'
     }
-  }, "\u0421\u0430\u043D\u043A\u0442-\u041F\u0435\u0442\u0435\u0440\u0431\u0443\u0440\u0433, \u0443\u043B. \u0420\u0443\u0431\u0438\u043D\u0448\u0442\u0435\u0439\u043D\u0430, 24, \u0432\u0442\u043E\u0440\u043E\u0439 \u044D\u0442\u0430\u0436.")), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("h4", null, "\u0427\u0430\u0441\u044B"), /*#__PURE__*/React.createElement("ul", null, /*#__PURE__*/React.createElement("li", null, "\u041F\u043D\u2013\u0421\u0431 10:00\u201321:00"), /*#__PURE__*/React.createElement("li", null, "\u0412\u0441 \u0432\u044B\u0445\u043E\u0434\u043D\u043E\u0439"))), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("h4", null, "\u0421\u0432\u044F\u0437\u044C"), /*#__PURE__*/React.createElement("ul", null, /*#__PURE__*/React.createElement("li", null, "+7 921 000-00-00"), /*#__PURE__*/React.createElement("li", null, "@varvara_nails_bot"), /*#__PURE__*/React.createElement("li", null, "hello@varvara.studio"))), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("h4", null, "\u0423\u0441\u043B\u0443\u0433\u0438"), /*#__PURE__*/React.createElement("ul", null, /*#__PURE__*/React.createElement("li", null, "\u041C\u0430\u043D\u0438\u043A\u044E\u0440"), /*#__PURE__*/React.createElement("li", null, "\u041F\u0435\u0434\u0438\u043A\u044E\u0440"), /*#__PURE__*/React.createElement("li", null, "\u041D\u0430\u0440\u0430\u0449\u0438\u0432\u0430\u043D\u0438\u0435"), /*#__PURE__*/React.createElement("li", null, "\u0414\u0438\u0437\u0430\u0439\u043D")))), /*#__PURE__*/React.createElement("div", {
+  }, "\u0421\u0430\u043D\u043A\u0442-\u041F\u0435\u0442\u0435\u0440\u0431\u0443\u0440\u0433, \u0443\u043B. \u0420\u0443\u0431\u0438\u043D\u0448\u0442\u0435\u0439\u043D\u0430, 24, \u0432\u0442\u043E\u0440\u043E\u0439 \u044D\u0442\u0430\u0436.")), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("h4", null, "\u0427\u0430\u0441\u044B"), /*#__PURE__*/React.createElement("ul", null, /*#__PURE__*/React.createElement("li", null, "\u041F\u043D\u2013\u0421\u0431 10:00\u201321:00"), /*#__PURE__*/React.createElement("li", null, "\u0412\u0441 \u0432\u044B\u0445\u043E\u0434\u043D\u043E\u0439"))), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("h4", null, "\u0421\u0432\u044F\u0437\u044C"), /*#__PURE__*/React.createElement("ul", null, /*#__PURE__*/React.createElement("li", null, "+7 921 000-00-00"), /*#__PURE__*/React.createElement("li", null, "@nogotochki_bot"), /*#__PURE__*/React.createElement("li", null, "hello@nogotochki.studio"))), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("h4", null, "\u0423\u0441\u043B\u0443\u0433\u0438"), /*#__PURE__*/React.createElement("ul", null, /*#__PURE__*/React.createElement("li", null, "\u041C\u0430\u043D\u0438\u043A\u044E\u0440"), /*#__PURE__*/React.createElement("li", null, "\u041F\u0435\u0434\u0438\u043A\u044E\u0440"), /*#__PURE__*/React.createElement("li", null, "\u041D\u0430\u0440\u0430\u0449\u0438\u0432\u0430\u043D\u0438\u0435"), /*#__PURE__*/React.createElement("li", null, "\u0414\u0438\u0437\u0430\u0439\u043D")))), /*#__PURE__*/React.createElement("div", {
     className: "ftr__legal"
   }, /*#__PURE__*/React.createElement("span", null, "\xA9 2026 \u0421\u0442\u0443\u0434\u0438\u044F \xAB\u0412\u0430\u0440\u0432\u0430\u0440\u0430\xBB"), /*#__PURE__*/React.createElement("span", null, "\u041F\u043E\u043B\u0438\u0442\u0438\u043A\u0430 \u043E\u0431\u0440\u0430\u0431\u043E\u0442\u043A\u0438 \u0434\u0430\u043D\u043D\u044B\u0445"))));
 }

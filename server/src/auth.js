@@ -123,7 +123,7 @@ export function revokeSession(token) {
    SameSite=Lax: куку не пришлют при запросе с чужого сайта, а переход по
    ссылке работает. Secure ставим только на защищённом соединении — иначе
    браузер отбросит куку на локальном стенде без TLS. */
-export const SESSION_COOKIE = 'varvara_session';
+export const SESSION_COOKIE = 'nogotochki_session';
 
 export function sessionCookie(token, expiresAt, { secure = false } = {}) {
   const maxAge = Math.max(0, Math.round((Date.parse(expiresAt) - Date.now()) / 1000));

@@ -8,7 +8,7 @@ const rub = (s) => Number(String(s).replace(/\D/g, '')) || 0;
 
 function RoleSwitch({ role, setRole }) {
   const D = window.DesignSystem_f8f42b;
-  const A = window.VARVARA_ADMIN;
+  const A = window.NOGOTOCHKI_ADMIN;
   return (
     <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', rowGap: 8, justifyContent: 'flex-end' }}>
       <span className="v-caption" style={{ marginRight: 2 }}>Показать как:</span>
@@ -20,7 +20,7 @@ function RoleSwitch({ role, setRole }) {
 
 function Sidebar({ view, setView, role }) {
   const D = window.DesignSystem_f8f42b;
-  const A = window.VARVARA_ADMIN;
+  const A = window.NOGOTOCHKI_ADMIN;
   const isOwner = role === 'owner';
   const items = isOwner
     ? [['day', 'calendar-days', 'Расписание'], ['list', 'list', 'Записи'], ['services', 'sparkles', 'Услуги'], ['settings', 'settings', 'Настройки']]
@@ -36,14 +36,14 @@ function Sidebar({ view, setView, role }) {
           </button>
         ))}
       </nav>
-      <div className="side__foot"><D.Avatar name={isOwner ? 'Варвара' : master.name} size={32} />{isOwner ? 'Варвара · владелица' : master.name + ' · мастер'}</div>
+      <div className="side__foot"><D.Avatar name={isOwner ? 'Анна' : master.name} size={32} />{isOwner ? 'Анна · владелица' : master.name + ' · мастер'}</div>
     </aside>
   );
 }
 
 function DayView({ role, onSelect }) {
   const D = window.DesignSystem_f8f42b;
-  const A = window.VARVARA_ADMIN;
+  const A = window.NOGOTOCHKI_ADMIN;
   const isOwner = role === 'owner';
   const masters = isOwner ? A.masters : A.masters.filter((m) => m.id === role);
   const appts = isOwner ? A.appointments : A.appointments.filter((a) => a.master === role);
@@ -87,7 +87,7 @@ function DayView({ role, onSelect }) {
 
 function ListView({ role }) {
   const D = window.DesignSystem_f8f42b;
-  const A = window.VARVARA_ADMIN;
+  const A = window.NOGOTOCHKI_ADMIN;
   const isOwner = role === 'owner';
   const masterName = isOwner ? null : A.masters.find((m) => m.id === role).name;
   const [f, setF] = React.useState('Все');
@@ -127,7 +127,7 @@ function ListView({ role }) {
 
 function ServicesView() {
   const D = window.DesignSystem_f8f42b;
-  const data = window.VARVARA_DATA;
+  const data = window.NOGOTOCHKI_DATA;
   return (
     <div className="two">
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -187,7 +187,7 @@ function SettingsView() {
         </D.Card>
         <D.Card variant="accent">
           <div className="v-h4">Бот записи</div>
-          <p className="v-body-sm" style={{ marginTop: 6 }}>@varvara_nails_bot · подключён</p>
+          <p className="v-body-sm" style={{ marginTop: 6 }}>@nogotochki_bot · подключён</p>
           <div style={{ marginTop: 12 }}><D.Button variant="secondary" size="sm">Настроить бота</D.Button></div>
         </D.Card>
       </div>
@@ -197,7 +197,7 @@ function SettingsView() {
 
 function initialRole() {
   const p = new URLSearchParams(window.location.search).get('role');
-  const A = window.VARVARA_ADMIN;
+  const A = window.NOGOTOCHKI_ADMIN;
   if (p === 'owner') return 'owner';
   if (p && A.masters.some((m) => m.id === p)) return p;
   return 'owner';

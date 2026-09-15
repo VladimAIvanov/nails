@@ -1,8 +1,8 @@
 /* Общий код страниц: сеанс, обращения к API, вывод ошибок, мелкое
    форматирование. Никаких библиотек — то же правило, что и на бэкенде. */
 
-const TOKEN_KEY = 'varvara.token';
-const USER_KEY = 'varvara.user';
+const TOKEN_KEY = 'nogotochki.token';
+const USER_KEY = 'nogotochki.user';
 
 // ── Сеанс ───────────────────────────────────────────────────────────────────
 

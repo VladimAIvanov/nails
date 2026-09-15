@@ -3,7 +3,7 @@
 
 function ServicesScreen({ cat, setCat, service, onPick, onNext }) {
   const D = window.DesignSystem_f8f42b;
-  const data = window.VARVARA_DATA;
+  const data = window.NOGOTOCHKI_DATA;
   const cats = ['Все', 'Маникюр', 'Педикюр', 'Наращивание', 'Дизайн'];
   const list = cat === 'Все' ? data.services : data.services.filter((s) => s.cat === cat);
   return (
@@ -35,7 +35,7 @@ function ServicesScreen({ cat, setCat, service, onPick, onNext }) {
 
 function MastersScreen({ master, onPick, onNext }) {
   const D = window.DesignSystem_f8f42b;
-  const data = window.VARVARA_DATA;
+  const data = window.NOGOTOCHKI_DATA;
   return (
     <div className="scr">
       <div className="stepwrap"><D.Stepper steps={['Услуга', 'Мастер', 'Время', 'Готово']} current={1} /></div>
@@ -66,7 +66,7 @@ function MastersScreen({ master, onPick, onNext }) {
 
 function TimeScreen({ day, setDay, time, setTime, service, onNext }) {
   const D = window.DesignSystem_f8f42b;
-  const data = window.VARVARA_DATA;
+  const data = window.NOGOTOCHKI_DATA;
   return (
     <div className="scr">
       <div className="stepwrap"><D.Stepper steps={['Услуга', 'Мастер', 'Время', 'Готово']} current={2} /></div>
@@ -126,7 +126,7 @@ function DoneScreen({ service, master, day, time, onMy }) {
 
 function MyBookingsScreen({ onBook }) {
   const D = window.DesignSystem_f8f42b;
-  const data = window.VARVARA_DATA;
+  const data = window.NOGOTOCHKI_DATA;
   const upcoming = data.bookings.filter((b) => b.status === 'confirmed' || b.status === 'pending');
   const past = data.bookings.filter((b) => b.status === 'done' || b.status === 'cancelled');
   return (
@@ -166,7 +166,7 @@ function ProfileScreen() {
         </div>
         <D.Card>
           <div className="prof__row"><span>Напоминать в Telegram</span><D.Switch defaultChecked /></div>
-          <div className="prof__row"><span>Новые окна у Варвары</span><D.Switch /></div>
+          <div className="prof__row"><span>Новые окна у Анны</span><D.Switch /></div>
           <div className="prof__row"><span>Акции и новинки</span><D.Switch /></div>
         </D.Card>
         <D.Card variant="accent">
@@ -181,7 +181,7 @@ function ProfileScreen() {
         </D.Card>
         <div className="v-overline">Любимые мастера</div>
         <div className="list">
-          <D.MasterCard name="Варвара" role="Маникюр, наращивание, дизайн" rating={4.9} reviews={128} action={<D.Chip interactive={false} icon="heart">в избранном</D.Chip>} />
+          <D.MasterCard name="Анна" role="Маникюр, наращивание, дизайн" rating={4.9} reviews={128} action={<D.Chip interactive={false} icon="heart">в избранном</D.Chip>} />
         </div>
       </div>
     </div>

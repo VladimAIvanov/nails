@@ -8,7 +8,7 @@
    Правило то же, что и раньше: ничего лишнего здесь не держим. Услуги и
    мастер — идентификаторами, названия и цены каждый экран берёт из API. */
 
-const KEY = 'varvara.booking';
+const KEY = 'nogotochki.booking';
 
 const empty = () => ({
   serviceIds: [],

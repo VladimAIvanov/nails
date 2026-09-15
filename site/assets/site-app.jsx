@@ -62,7 +62,7 @@ function Strip() {
 
 function Services({ onBook }) {
   const D = window.DesignSystem_f8f42b;
-  const data = window.VARVARA_DATA;
+  const data = window.NOGOTOCHKI_DATA;
   const [cat, setCat] = React.useState('Все');
   const cats = ['Все', 'Маникюр', 'Педикюр', 'Наращивание', 'Дизайн'];
   const list = cat === 'Все' ? data.services : data.services.filter((s) => s.cat === cat);
@@ -82,7 +82,7 @@ function Services({ onBook }) {
 
 function Masters({ onBook }) {
   const D = window.DesignSystem_f8f42b;
-  const data = window.VARVARA_DATA;
+  const data = window.NOGOTOCHKI_DATA;
   return (
     <section className="sec sec--alt" id="masters"><div className="wrap">
       <D.SectionHeader eyebrow="Команда" title="Мастера" subtitle="У каждой — своя специализация и своё расписание. Можно записаться к конкретной." />
@@ -133,7 +133,7 @@ function Footer() {
           <p className="v-body-sm" style={{ marginTop: 16, maxWidth: '32ch' }}>Санкт-Петербург, ул. Рубинштейна, 24, второй этаж.</p>
         </div>
         <div><h4>Часы</h4><ul><li>Пн–Сб 10:00–21:00</li><li>Вс выходной</li></ul></div>
-        <div><h4>Связь</h4><ul><li>+7 921 000-00-00</li><li>@varvara_nails_bot</li><li>hello@varvara.studio</li></ul></div>
+        <div><h4>Связь</h4><ul><li>+7 921 000-00-00</li><li>@nogotochki_bot</li><li>hello@nogotochki.studio</li></ul></div>
         <div><h4>Услуги</h4><ul><li>Маникюр</li><li>Педикюр</li><li>Наращивание</li><li>Дизайн</li></ul></div>
       </div>
       <div className="ftr__legal">
@@ -147,7 +147,7 @@ function Footer() {
 /* Модалка записи: услуга и мастер → время → контакты → подтверждение. */
 function BookingModal({ open, onClose }) {
   const D = window.DesignSystem_f8f42b;
-  const data = window.VARVARA_DATA;
+  const data = window.NOGOTOCHKI_DATA;
   const [step, setStep] = React.useState(0);
   const [service, setService] = React.useState(data.services[0]);
   const [master, setMaster] = React.useState(data.masters[0]);

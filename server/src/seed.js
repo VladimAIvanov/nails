@@ -107,13 +107,9 @@ const APPOINTMENTS = [
   { client: 1, master: 'elena@nogotochki.studio',  service: 'brow-tint', weekday: 2, week: -2, time: '15:00', status: 'cancelled', source: 'site' }
 ];
 
-/* Демо-данные прошлой версии. На базе, заполненной старыми сидами, их нужно
-   убрать, иначе в каталоге останутся чужие услуги и мастера. Где удалить
-   нельзя — на них ссылаются данные, созданные уже вручную, — строка
-   отключается: при записи её не видно, а в истории она сохраняется. */
-const LEGACY_SERVICES = ['man-cover', 'man', 'ped', 'repair', 'removal', 'ped-clean', 'strength', 'paraffin'];
-const LEGACY_USERS = ['varvara@varvara.studio', 'lena@varvara.studio', 'aya@varvara.studio', 'admin@varvara.studio'];
-
+/* Учётные записи сотрудников, которые заводят сиды. Всё остальное из демо-данных
+   прежних версий — мастера и услуги не из этих списков — убирается. */
+const ADMIN = { email: 'admin@nogotochki.studio', phone: '+79210000000' };
 const HIGHLIGHTS = [
   { slug: 'hl-sterility', icon: 'shield-check', title: 'Стерильность',       body: 'Инструмент проходит полную обработку, одноразовое вскрываем при вас' },
   { slug: 'hl-time',      icon: 'clock',        title: 'Только по записи',   body: 'Никаких очередей: время визита закреплено за вами' },
@@ -193,33 +189,45 @@ transaction((conn) => {
   `);
   const findUser = conn.prepare('SELECT id FROM users WHERE email = ?');
 
-  // ── Прошлая версия демо-данных ────────────────────────────────────────────
+  // ── Демо-данные прежних версий ────────────────────────────────────────────
   /* Удаление по одной строке: неудача одной не должна мешать остальным.
-     Отказ внешнего ключа в SQLite отменяет только эту инструкцию. */
-  for (const slug of LEGACY_SERVICES) {
+     Отказ внешнего ключа в SQLite отменяет только эту инструкцию. Где удалить
+     нельзя — на строку ссылаются данные, созданные вручную, — она отключается:
+     при записи её не видно, а в истории она сохраняется. */
+  const retire = (table, where, value) => {
     try {
-      conn.prepare('DELETE FROM services WHERE slug = ?').run(slug);
+      conn.prepare(`DELETE FROM ${table} WHERE ${where} = ?`).run(value);
     } catch {
-      conn.prepare('UPDATE services SET is_active = 0 WHERE slug = ?').run(slug);
+      conn.prepare(`UPDATE ${table} SET is_active = 0 WHERE ${where} = ?`).run(value);
     }
-  }
-  for (const email of LEGACY_USERS) {
-    const row = findUser.get(email);
-    if (!row) continue;
-    /* Телефоны прошлых мастеров теперь у новых: освобождаем уникальный номер
-       до того, как он понадобится. */
-    conn.prepare('UPDATE users SET phone = NULL WHERE id = ?').run(row.id);
-    try {
-      conn.prepare('DELETE FROM users WHERE id = ?').run(row.id);
-    } catch {
-      conn.prepare('UPDATE users SET is_active = 0 WHERE id = ?').run(row.id);
-    }
+  };
+
+  const serviceSlugs = new Set(SERVICES.map((s) => s.slug));
+  for (const { slug } of conn.prepare('SELECT slug FROM services').all()) {
+    if (!serviceSlugs.has(slug)) retire('services', 'slug', slug);
   }
 
+  const staff = [ADMIN, ...MASTERS];
+  const staffEmails = new Set(staff.map((s) => s.email));
+  const stale = conn.prepare(`
+    SELECT u.id FROM master_profiles mp JOIN users u ON u.id = mp.user_id
+     WHERE u.email IS NULL OR u.email NOT IN (${staff.map(() => '?').join(', ')})
+  `).all(...staffEmails);
+  /* Телефоны сотрудников уникальны: если номер из сидов занят чужой служебной
+     учётной записью, это прежний демо-сотрудник, и он тоже уходит. */
+  const phoneTaken = conn.prepare(`
+    SELECT id FROM users WHERE phone = ? AND role IN ('admin', 'master') AND (email IS NULL OR email <> ?)
+  `);
+  for (const s of staff) stale.push(...phoneTaken.all(s.phone, s.email));
+
+  for (const { id } of stale) {
+    conn.prepare('UPDATE users SET phone = NULL WHERE id = ?').run(id);
+    retire('users', 'id', id);
+  }
   // Администратор студии: роль admin, профиль мастера ему не заводится.
-  upsertUser.run('admin', 'Администратор студии', 'admin@nogotochki.studio',
-    '+79210000000', newPassword('admin@nogotochki.studio'), nowIso());
-  const ownerId = findUser.get('admin@nogotochki.studio').id;
+  upsertUser.run('admin', 'Администратор студии', ADMIN.email,
+    ADMIN.phone, newPassword(ADMIN.email), nowIso());
+  const ownerId = findUser.get(ADMIN.email).id;
   conn.prepare('UPDATE studio_settings SET owner_user_id = ? WHERE id = 1').run(ownerId);
 
   /* Мастера работают по личному графику, а не по часам студии: у каждого

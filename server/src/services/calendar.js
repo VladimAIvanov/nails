@@ -49,7 +49,7 @@ function event(appt, settings) {
 
   const lines = [
     'BEGIN:VEVENT',
-    `UID:appointment-${appt.id}@varvara.studio`,
+    `UID:appointment-${appt.id}@nogotochki.studio`,
     `DTSTAMP:${stamp(nowIso())}`,
     `DTSTART:${stamp(appt.starts_at)}`,
     `DTEND:${stamp(appt.ends_at)}`,
@@ -89,7 +89,7 @@ export function appointmentIcs(appointmentId) {
   return [
     'BEGIN:VCALENDAR',
     'VERSION:2.0',
-    'PRODID:-//Varvara Studio//Booking//RU',
+    'PRODID:-//Nogotochki Studio//Booking//RU',
     'CALSCALE:GREGORIAN',
     'METHOD:PUBLISH',
     ...event(appt, settings),
@@ -116,7 +116,7 @@ export function feedIcs(token) {
   return [
     'BEGIN:VCALENDAR',
     'VERSION:2.0',
-    'PRODID:-//Varvara Studio//Booking//RU',
+    'PRODID:-//Nogotochki Studio//Booking//RU',
     'CALSCALE:GREGORIAN',
     'METHOD:PUBLISH',
     `X-WR-CALNAME:${esc(`Записи — ${settings.title}`)}`,
