@@ -29,12 +29,12 @@ const TYPES = {
   '.woff2': 'font/woff2'
 };
 
-/* Шрифты подключаются с Google Fonts — так сделано в дизайн-системе
-   прототипа. Больше внешних источников не разрешено. */
+/* Все ресурсы страницы — только с этого же сервера, шрифты тоже
+   (web/fonts). Внешних источников нет. */
 const PAGE_CSP = [
   "default-src 'self'",
-  "style-src 'self' https://fonts.googleapis.com",
-  "font-src 'self' https://fonts.gstatic.com",
+  "style-src 'self'",
+  "font-src 'self'",
   "script-src 'self'",
   "img-src 'self' data:",
   "connect-src 'self'",
