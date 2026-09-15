@@ -269,11 +269,13 @@ $env:PORT=3100; npm start
 | [docs/db-schema.md](docs/db-schema.md) | схема базы: таблицы, связи, ограничения, расчёт свободного времени, разбор спорных решений |
 | [docs/development-log.md](docs/development-log.md) | журнал разработки: решения, у которых были альтернативы, и проблемы, которые заняли время |
 | [docs/deployment.md](docs/deployment.md) | требования к окружению и риски переноса на сервер |
+| [docs/publication.md](docs/publication.md) | публикация: контейнер, Coolify, домен и HTTPS, вход через Яндекс, финальная проверка |
+| [docs/test-scenarios.md](docs/test-scenarios.md) | сценарное тестирование: чек-лист, результаты, найденные проблемы |
 | [docs/ui-map.md](docs/ui-map.md) | карта «экран — эндпоинт»: откуда каждый экран берёт данные |
 | [docs/frontend-rules.md](docs/frontend-rules.md) | правила вёрстки |
 | [docs/frontend-log.md](docs/frontend-log.md) | журнал подключения экранов: эндпоинты, поля, что чинили |
 | [web/README.md](web/README.md) | как устроены страницы |
-| [docs/Паспорт продукта.docx](docs/Паспорт%20продукта.docx) | цели, роли, функции, сценарии |
+| [CLAUDE.md](CLAUDE.md) | паспорт продукта: цель, роли, сценарии, функции, ограничения, риски |
 
 
 
