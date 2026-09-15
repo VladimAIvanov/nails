@@ -12,8 +12,8 @@ async function loadStudio() {
 
   document.getElementById('hero-place').textContent = `${s.city} · ${s.address_line}`;
   document.getElementById('footer-address').textContent = `${s.city}, ${s.address_line}${s.address_note ? `. ${s.address_note}` : ''}`;
-  document.getElementById('footer-copy').textContent = `© 2026 Студия «${s.title}»`;
-  document.title = `${s.title} — ногтевая студия, ${s.city}`;
+  document.getElementById('footer-copy').textContent = `© 2026 Бьюти-студия «${s.title}»`;
+  document.title = `${s.title} — бьюти-студия, ${s.city}`;
 
   /* Часы работы — из расписания студии, а не текстом в разметке: в настройках
      их меняют, и захардкоженная строка разошлась бы с правдой. */

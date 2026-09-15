@@ -1,11 +1,11 @@
-/* Сайт студии «Варвара»: секции лендинга + модалка онлайн-записи. Адаптировано из ui_kits/website (site.jsx + booking-modal.jsx) design-system проекта. */
+/* Сайт бьюти-студии «Ноготочки»: секции лендинга + модалка онлайн-записи. Адаптировано из ui_kits/website (site.jsx + booking-modal.jsx) design-system проекта. */
 
 function Header({ onBook }) {
   const D = window.DesignSystem_f8f42b;
   return (
     <header className="hdr">
       <div className="wrap hdr__in">
-        <div className="mark">Варвара<small>ногтевая студия</small></div>
+        <div className="mark">Ноготочки<small>бьюти-студия</small></div>
         <nav className="nav">
           <a href="#services">Услуги</a><a href="#masters">Мастера</a><a href="#works">Работы</a><a href="#contacts">Контакты</a>
         </nav>
@@ -129,7 +129,7 @@ function Footer() {
     <footer className="ftr" id="contacts"><div className="wrap">
       <div className="ftr__in">
         <div>
-          <div className="mark">Варвара<small>ногтевая студия</small></div>
+          <div className="mark">Ноготочки<small>бьюти-студия</small></div>
           <p className="v-body-sm" style={{ marginTop: 16, maxWidth: '32ch' }}>Санкт-Петербург, ул. Рубинштейна, 24, второй этаж.</p>
         </div>
         <div><h4>Часы</h4><ul><li>Пн–Сб 10:00–21:00</li><li>Вс выходной</li></ul></div>
@@ -137,7 +137,7 @@ function Footer() {
         <div><h4>Услуги</h4><ul><li>Маникюр</li><li>Педикюр</li><li>Наращивание</li><li>Дизайн</li></ul></div>
       </div>
       <div className="ftr__legal">
-        <span>© 2026 Студия «Варвара»</span>
+        <span>© 2026 Бьюти-студия «Ноготочки»</span>
         <a href="./Варианты.dc.html" style={{ color: 'inherit' }}>Другие экраны и варианты интерфейса →</a>
       </div>
     </div></footer>

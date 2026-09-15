@@ -75,11 +75,17 @@ function render() {
     return;
   }
 
-  const move = el('a', {
-    className: 'btn btn--secondary',
-    href: `/booking-time?mode=reschedule&appointment=${visit.id}`,
-    textContent: 'Перенести'
-  });
+  /* Перенос — только если до визита не меньше срока студии, иначе
+     сервер откажет. Отмена доступна всегда. */
+  const canMove = Date.parse(visit.starts_at) - Date.now() >= settings.free_cancellation_lead_min * 60_000;
+  const move = canMove
+    ? el('a', {
+      className: 'btn btn--secondary',
+      href: `/booking-time?mode=reschedule&appointment=${visit.id}`,
+      textContent: 'Перенести'
+    })
+    : el('p', { className: 'muted' },
+      `Перенести можно не позднее чем за ${Math.round(settings.free_cancellation_lead_min / 60)} ч до визита.`);
 
   const cancel = el('button', { type: 'button', className: 'btn btn--ghost', textContent: 'Отменить запись' });
   cancel.addEventListener('click', askCancel);

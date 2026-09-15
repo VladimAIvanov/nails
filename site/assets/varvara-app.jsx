@@ -1,4 +1,4 @@
-/* Telegram mini-app «Варвара»: флоу клиента — запись в три шага + мои записи + профиль.
+/* Telegram mini-app «Ноготочки»: флоу клиента — запись в три шага + мои записи + профиль.
    Адаптировано из ui_kits/telegram_mini_app (booking-flow.jsx + account.jsx + app.jsx) design-system проекта. */
 
 function ServicesScreen({ cat, setCat, service, onPick, onNext }) {
@@ -214,7 +214,7 @@ function MiniApp() {
     <div className="phone">
       <div className="tg-chrome">
         <span>10:24</span>
-        <span className="tg-chrome__title">Варвара · запись</span>
+        <span className="tg-chrome__title">Ноготочки · запись</span>
         <span className="tg-chrome__dots">···  ✕</span>
       </div>
       {tab === 'book' && step > 0 && step < 3 ? (

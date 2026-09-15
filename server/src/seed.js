@@ -1,10 +1,11 @@
-/* Демонстрационные данные из прототипа: три мастера, десять услуг, портфолио,
-   тексты лендинга. Скрипт идемпотентен — повторный запуск ничего не дублирует.
+/* Демонстрационные данные бьюти-студии «Ноготочки»: три мастера, шесть услуг,
+   личные графики, блокировки для проверки расчёта окон, тексты лендинга.
+   Скрипт идемпотентен — повторный запуск ничего не дублирует.
 
    Про пароли — см. комментарий ниже: у каждой учётной записи свой,
    случайный, и по умолчанию он нигде не показывается. */
 import { db, transaction } from './db.js';
-import { nowIso, toIso } from './time.js';
+import { nowIso, toIso, localToUtc, utcToLocal, isoWeekday } from './time.js';
 import { randomBytes } from 'node:crypto';
 import { hashPassword } from './auth.js';
 import * as env from './env.js';
@@ -42,87 +43,117 @@ function newPassword(login) {
 
 
 const CATEGORIES = [
-  { slug: 'manicure', title: 'Маникюр', sort: 10 },
-  { slug: 'pedicure', title: 'Педикюр', sort: 20 },
+  { slug: 'manicure',  title: 'Маникюр',     sort: 10 },
+  { slug: 'pedicure',  title: 'Педикюр',     sort: 20 },
   { slug: 'extension', title: 'Наращивание', sort: 30 },
-  { slug: 'design', title: 'Дизайн', sort: 40 }
+  { slug: 'design',    title: 'Дизайн',      sort: 40 },
+  { slug: 'brows',     title: 'Брови',       sort: 50 }
 ];
 
-/* Цены в копейках, длительности в минутах — как в разделе 4.4 схемы.
-   Значения взяты из site/assets/varvara-data.js. */
+/* Прайс студии. Цены в копейках, длительности в минутах — как в разделе 4.4
+   схемы. Технический перерыв между записями не нужен, поэтому buffer: 0.
+
+   Дизайн — дополнение к маникюру: 300 ₽ за два ногтя и 15–30 минут к визиту.
+   В записи стоит верхняя граница, 30 минут: окно, рассчитанное с запасом,
+   не наедет на следующую клиентку, а короткое — наехало бы. */
 const SERVICES = [
-  { slug: 'man-cover', cat: 'manicure',  title: 'Маникюр с покрытием',  desc: 'Аппаратный, гель-лак',          dur: 90,  price: 320000, buffer: 15 },
-  { slug: 'man',       cat: 'manicure',  title: 'Маникюр без покрытия', desc: 'Аппаратный, уход за кутикулой', dur: 50,  price: 190000, buffer: 15 },
-  { slug: 'ext',       cat: 'extension', title: 'Наращивание',          desc: 'Гель, форма и длина на выбор',  dur: 180, price: 550000, buffer: 20, priceFrom: 1, badge: 'хит' },
-  { slug: 'ped',       cat: 'pedicure',  title: 'Педикюр с покрытием',  desc: 'Медицинский аппаратный',        dur: 100, price: 380000, buffer: 20 },
-  { slug: 'design',    cat: 'design',    title: 'Дизайн ногтей',        desc: 'Френч, втирка, стемпинг',       dur: 20,  price: 60000,  buffer: 5,  priceFrom: 1, durFrom: 1 },
-  { slug: 'repair',    cat: 'manicure',  title: 'Ремонт ногтя',         desc: null,                            dur: 15,  price: 40000,  buffer: 5,  online: 0 },
-  { slug: 'removal',   cat: 'manicure',  title: 'Снятие покрытия',      desc: 'Аппаратное, без повреждения',   dur: 30,  price: 70000,  buffer: 10 },
-  { slug: 'ped-clean', cat: 'pedicure',  title: 'Педикюр без покрытия', desc: 'Медицинский аппаратный',        dur: 70,  price: 290000, buffer: 20 },
-  { slug: 'strength',  cat: 'manicure',  title: 'Укрепление гелем',     desc: 'Под гель-лак, для тонких ногтей', dur: 40, price: 120000, buffer: 10 },
-  { slug: 'paraffin',  cat: 'pedicure',  title: 'Парафинотерапия',      desc: 'Руки или стопы, уход',          dur: 35,  price: 150000, buffer: 10 }
+  { slug: 'man-gel',    cat: 'manicure',  title: 'Маникюр с покрытием гель-лаком', desc: 'Покрытие гель-лаком',                     dur: 90,  price: 180000 },
+  { slug: 'man-ped',    cat: 'pedicure',  title: 'Маникюр и педикюр',              desc: 'Маникюр и педикюр за один визит',         dur: 150, price: 320000 },
+  { slug: 'ext',        cat: 'extension', title: 'Наращивание ногтей',             desc: null,                                      dur: 150, price: 280000 },
+  { slug: 'design',     cat: 'design',    title: 'Дизайн ногтей',                  desc: '300 ₽ за два ногтя, добавляет к визиту 15–30 минут', dur: 30, price: 30000 },
+  { slug: 'brow-tint',  cat: 'brows',     title: 'Коррекция и окрашивание бровей', desc: null,                                      dur: 40,  price: 120000 },
+  { slug: 'brow-lam',   cat: 'brows',     title: 'Ламинирование бровей',           desc: null,                                      dur: 60,  price: 180000 }
 ];
 
-/* Клиентки из прототипа. Марина зарегистрирована и заходит в кабинет,
+/* Клиентки. Ксения зарегистрирована и заходит в кабинет,
    Ольга и Ирина записались как гости — у них пароля нет вовсе. */
 const CLIENTS = [
-  { name: 'Марина Ковалёва', phone: '+79210000010', registered: true },
-  { name: 'Ольга Петрова',   phone: '+79210000011', registered: false },
-  { name: 'Ирина Соколова',  phone: '+79210000012', registered: false }
+  { name: 'Ксения Белова',  phone: '+79210000010', registered: true },
+  { name: 'Ольга Петрова',  phone: '+79210000011', registered: false },
+  { name: 'Ирина Соколова', phone: '+79210000012', registered: false }
 ];
 
-/* Блокировки времени: перерыв на обед и отпуск. Вычитаются из графика
-   наравне с записями, но это не записи — клиента за ними нет. */
-const TIME_OFF = [
-  { master: 'varvara@varvara.studio', dayOffset: 2, time: '12:00', minutes: 45, kind: 'break',    reason: 'Обед' },
-  { master: 'lena@varvara.studio',    dayOffset: 3, time: '12:30', minutes: 45, kind: 'break',    reason: 'Обед' },
-  { master: 'aya@varvara.studio',     dayOffset: 5, time: '07:00', minutes: 720, kind: 'vacation', reason: 'Отпуск' }
-];
-
-/* Записи: ближайшие и история, разные мастера, статусы и источники.
-   Времена разведены так, чтобы не сработал запрет пересечения. */
-const APPOINTMENTS = [
-  { client: 0, master: 'varvara@varvara.studio', service: 'man-cover', dayOffset: 2,  time: '10:00', status: 'confirmed', source: 'site' },
-  { client: 1, master: 'varvara@varvara.studio', service: 'ext',       dayOffset: 2,  time: '13:00', status: 'pending',   source: 'telegram' },
-  { client: 2, master: 'lena@varvara.studio',    service: 'ped',       dayOffset: 3,  time: '11:00', status: 'confirmed', source: 'site' },
-  { client: 0, master: 'aya@varvara.studio',     service: 'design',    dayOffset: -7, time: '15:00', status: 'done',      source: 'telegram' },
-  { client: 1, master: 'lena@varvara.studio',    service: 'man',       dayOffset: -3, time: '14:00', status: 'cancelled', source: 'admin' }
-];
-
-/* Специализации мастеров хранятся не текстом, а списком услуг — см. раздел 10.
-
-   Каждая услуга прайса закреплена хотя бы за одним действующим мастером.
-   Иначе она видна в каталоге, но записаться на неё не к кому: человек
-   выбирает услугу и только на следующем шаге узнаёт, что её никто не делает.
-   Прайс без исполнителя — законная ситуация для настоящей студии (мастер
-   уволился, новый не нанят), но в демонстрационных данных это выглядит
-   поломкой сервиса, а не жизнью студии. */
+/* Мастера. Специализации хранятся не текстом, а списком услуг — см. раздел 10.
+   У каждого свой график: weekday по ISO, 1 — понедельник. */
 const MASTERS = [
-  { email: 'varvara@varvara.studio', name: 'Варвара', phone: '+79210000001', sort: 10,
-    alsoAdmin: true,
-    services: ['man-cover', 'man', 'ext', 'design', 'repair', 'removal', 'strength'] },
-  { email: 'lena@varvara.studio',    name: 'Лена',    phone: '+79210000002', sort: 20,
-    services: ['ped', 'man-cover', 'man', 'ped-clean', 'paraffin', 'removal'] },
-  { email: 'aya@varvara.studio',     name: 'Ая',      phone: '+79210000003', sort: 30,
-    services: ['design', 'ext', 'strength'] }
+  { email: 'anna@nogotochki.studio',   name: 'Анна Ковалева',  phone: '+79210000001', sort: 10,
+    services: ['man-gel', 'man-ped', 'ext', 'design'],
+    hours: { days: [2, 3, 4, 5], from: '10:00', to: '18:00' } },
+  { email: 'marina@nogotochki.studio', name: 'Марина Орлова',  phone: '+79210000002', sort: 20,
+    services: ['brow-tint', 'brow-lam'],
+    hours: { days: [3, 4, 5, 6], from: '11:00', to: '20:00' } },
+  { email: 'elena@nogotochki.studio',  name: 'Елена Смирнова', phone: '+79210000003', sort: 30,
+    services: ['man-gel', 'ext', 'brow-tint', 'brow-lam'],
+    hours: { days: [2, 4, 6], from: '10:00', to: '19:00' } }
 ];
+
+/* Блокировки для проверки расчёта окон. Кладутся на ближайший такой день
+   недели после сегодняшнего — повторный запуск сидов сдвигает их вперёд.
+   Время местное, по часам студии. */
+const TIME_OFF = [
+  { master: 'anna@nogotochki.studio',   weekday: 4, from: '13:00', to: '14:00', kind: 'break', reason: 'Обед' },
+  { master: 'marina@nogotochki.studio', weekday: 5, from: '15:00', to: '17:00', kind: 'other', reason: 'Личное время' },
+  { master: 'elena@nogotochki.studio',  weekday: 6, from: '00:00', to: '23:59', kind: 'other', reason: 'Выходной' }
+];
+
+/* Записи: ближайшие и история. week: 0 — ближайший такой день недели после
+   сегодняшнего, -2 — на две недели раньше. Время подобрано внутри графика
+   мастера и мимо блокировок. */
+const APPOINTMENTS = [
+  { client: 0, master: 'anna@nogotochki.studio',   service: 'man-gel',   weekday: 2, week: 0,  time: '10:00', status: 'confirmed', source: 'site' },
+  { client: 1, master: 'marina@nogotochki.studio', service: 'brow-lam',  weekday: 3, week: 0,  time: '12:00', status: 'confirmed', source: 'site' },
+  { client: 2, master: 'elena@nogotochki.studio',  service: 'ext',       weekday: 4, week: 0,  time: '10:00', status: 'confirmed', source: 'admin' },
+  { client: 0, master: 'anna@nogotochki.studio',   service: 'man-ped',   weekday: 5, week: -2, time: '11:00', status: 'done',      source: 'site' },
+  { client: 1, master: 'elena@nogotochki.studio',  service: 'brow-tint', weekday: 2, week: -2, time: '15:00', status: 'cancelled', source: 'site' }
+];
+
+/* Демо-данные прошлой версии. На базе, заполненной старыми сидами, их нужно
+   убрать, иначе в каталоге останутся чужие услуги и мастера. Где удалить
+   нельзя — на них ссылаются данные, созданные уже вручную, — строка
+   отключается: при записи её не видно, а в истории она сохраняется. */
+const LEGACY_SERVICES = ['man-cover', 'man', 'ped', 'repair', 'removal', 'ped-clean', 'strength', 'paraffin'];
+const LEGACY_USERS = ['varvara@varvara.studio', 'lena@varvara.studio', 'aya@varvara.studio', 'admin@varvara.studio'];
 
 const HIGHLIGHTS = [
-  { slug: 'hl-sterility', icon: 'shield-check', title: 'Стерильность',      body: 'Автоклав, одноразовые файлы, всё вскрываем при вас' },
-  { slug: 'hl-time',      icon: 'clock',        title: 'Честное время',     body: 'В записи стоит реальная длительность, без «подождите ещё час»' },
-  { slug: 'hl-telegram',  icon: 'send',         title: 'Запись в Telegram', body: 'Бот подтверждает окно и напоминает за два часа' },
-  { slug: 'hl-materials', icon: 'sparkles',     title: 'Свои материалы',    body: 'Гель-лаки и базы, с которыми носится 4 недели' }
+  { slug: 'hl-sterility', icon: 'shield-check', title: 'Стерильность',       body: 'Инструмент проходит полную обработку, одноразовое вскрываем при вас' },
+  { slug: 'hl-time',      icon: 'clock',        title: 'Только по записи',   body: 'Никаких очередей: время визита закреплено за вами' },
+  { slug: 'hl-telegram',  icon: 'send',         title: 'Запись онлайн',      body: 'Услуга, мастер и свободное время — выбираете сами' },
+  { slug: 'hl-materials', icon: 'sparkles',     title: 'Ногти и брови',      body: 'Маникюр, педикюр, наращивание и оформление бровей в одной студии' }
 ];
 
 const masterByEmailId = (conn, email) =>
   conn.prepare('SELECT id FROM users WHERE email = ?').get(email).id;
 
+/* Работы в портфолио — только мастеров ногтевого сервиса: фотографии в
+   /img/works — ногти, под мастером по бровям они выглядели бы ошибкой. */
 const WORKS = [
-  'Нюд с втиркой', 'Френч', 'Матовое покрытие',
-  'Наращивание, форма миндаль', 'Дизайн с фольгой', 'Педикюр'
+  { title: 'Нюд с втиркой',              master: 'anna@nogotochki.studio' },
+  { title: 'Френч',                      master: 'elena@nogotochki.studio' },
+  { title: 'Матовое покрытие',           master: 'anna@nogotochki.studio' },
+  { title: 'Наращивание, форма миндаль', master: 'elena@nogotochki.studio' },
+  { title: 'Дизайн с фольгой',           master: 'anna@nogotochki.studio' },
+  { title: 'Маникюр и педикюр',          master: 'anna@nogotochki.studio' }
 ];
 
+/* Дата ближайшего дня недели после сегодняшнего, по календарю студии.
+   week сдвигает результат на целые недели. */
+function nextWeekday(weekday, week, tz) {
+  const today = utcToLocal(new Date(), tz).date;
+  const day = new Date(`${today}T00:00:00Z`);
+  do day.setUTCDate(day.getUTCDate() + 1);
+  while (isoWeekday(day.toISOString().slice(0, 10)) !== weekday);
+  day.setUTCDate(day.getUTCDate() + 7 * week);
+  return day.toISOString().slice(0, 10);
+}
+
 transaction((conn) => {
+  const tz = conn.prepare('SELECT timezone FROM studio_settings WHERE id = 1').get().timezone;
+
+  /* Записи уходят первыми: на услуги и мастеров прошлой версии они ссылаются
+     с запретом удаления, и чистка ниже иначе упёрлась бы в них. */
+  conn.prepare('DELETE FROM appointment_status_log').run();
+  conn.prepare('DELETE FROM appointments').run();
+
   const upsertCategory = conn.prepare(`
     INSERT INTO service_categories (slug, title, sort_order) VALUES (?, ?, ?)
     ON CONFLICT (slug) DO UPDATE SET title = excluded.title, sort_order = excluded.sort_order
@@ -133,15 +164,17 @@ transaction((conn) => {
     INSERT INTO services (category_id, slug, title, description, duration_min, duration_is_from,
                           price_kopecks, price_is_from, buffer_after_min, badge,
                           is_online_bookable, sort_order)
-    VALUES ((SELECT id FROM service_categories WHERE slug = ?), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    VALUES ((SELECT id FROM service_categories WHERE slug = ?), ?, ?, ?, ?, ?, ?, ?, 0, NULL, 1, ?)
     ON CONFLICT (slug) DO UPDATE SET
-      title = excluded.title, description = excluded.description,
-      duration_min = excluded.duration_min, price_kopecks = excluded.price_kopecks,
-      buffer_after_min = excluded.buffer_after_min, updated_at = excluded.updated_at
+      category_id = excluded.category_id, title = excluded.title,
+      description = excluded.description, duration_min = excluded.duration_min,
+      duration_is_from = excluded.duration_is_from, price_kopecks = excluded.price_kopecks,
+      price_is_from = excluded.price_is_from, buffer_after_min = 0, badge = NULL,
+      is_active = 1, is_online_bookable = 1, sort_order = excluded.sort_order
   `);
   for (const [i, s] of SERVICES.entries()) {
     upsertService.run(s.cat, s.slug, s.title, s.desc, s.dur, s.durFrom ?? 0,
-      s.price, s.priceFrom ?? 0, s.buffer, s.badge ?? null, s.online ?? 1, (i + 1) * 10);
+      s.price, s.priceFrom ?? 0, (i + 1) * 10);
   }
   conn.prepare('UPDATE services SET updated_at = ?').run(nowIso());
 
@@ -150,6 +183,8 @@ transaction((conn) => {
     VALUES (?, ?, ?, ?, ?, ?)
     ON CONFLICT (email) DO UPDATE SET
       full_name = excluded.full_name,
+      phone = excluded.phone,
+      is_active = 1,
       /* Пароль перезаписывается и при повторном запуске — иначе список,
          который печатает SEED_SHOW_PASSWORDS, врал бы: пароли сгенерированы,
          показаны, но в базу не попали. Напечатанное должно работать. */
@@ -158,38 +193,61 @@ transaction((conn) => {
   `);
   const findUser = conn.prepare('SELECT id FROM users WHERE email = ?');
 
-  // Владелица: роль admin, отдельный профиль мастера ей не заводится.
-  upsertUser.run('admin', 'Варвара Администратор', 'admin@varvara.studio',
-    '+79210000000', newPassword('admin@varvara.studio'), nowIso());
-  const ownerId = findUser.get('admin@varvara.studio').id;
+  // ── Прошлая версия демо-данных ────────────────────────────────────────────
+  /* Удаление по одной строке: неудача одной не должна мешать остальным.
+     Отказ внешнего ключа в SQLite отменяет только эту инструкцию. */
+  for (const slug of LEGACY_SERVICES) {
+    try {
+      conn.prepare('DELETE FROM services WHERE slug = ?').run(slug);
+    } catch {
+      conn.prepare('UPDATE services SET is_active = 0 WHERE slug = ?').run(slug);
+    }
+  }
+  for (const email of LEGACY_USERS) {
+    const row = findUser.get(email);
+    if (!row) continue;
+    /* Телефоны прошлых мастеров теперь у новых: освобождаем уникальный номер
+       до того, как он понадобится. */
+    conn.prepare('UPDATE users SET phone = NULL WHERE id = ?').run(row.id);
+    try {
+      conn.prepare('DELETE FROM users WHERE id = ?').run(row.id);
+    } catch {
+      conn.prepare('UPDATE users SET is_active = 0 WHERE id = ?').run(row.id);
+    }
+  }
+
+  // Администратор студии: роль admin, профиль мастера ему не заводится.
+  upsertUser.run('admin', 'Администратор студии', 'admin@nogotochki.studio',
+    '+79210000000', newPassword('admin@nogotochki.studio'), nowIso());
+  const ownerId = findUser.get('admin@nogotochki.studio').id;
   conn.prepare('UPDATE studio_settings SET owner_user_id = ? WHERE id = 1').run(ownerId);
 
+  /* Мастера работают по личному графику, а не по часам студии: у каждого
+     свои дни и своё время внутри вторника–субботы 10:00–20:00. */
   const upsertProfile = conn.prepare(`
-    INSERT INTO master_profiles (user_id, sort_order, uses_studio_hours) VALUES (?, ?, 1)
-    ON CONFLICT (user_id) DO UPDATE SET sort_order = excluded.sort_order
+    INSERT INTO master_profiles (user_id, sort_order, uses_studio_hours) VALUES (?, ?, 0)
+    ON CONFLICT (user_id) DO UPDATE SET sort_order = excluded.sort_order, uses_studio_hours = 0,
+                                        accepts_online_booking = 1
   `);
   const clearServices = conn.prepare('DELETE FROM master_services WHERE master_id = ?');
   const linkService = conn.prepare(`
     INSERT INTO master_services (master_id, service_id)
     VALUES (?, (SELECT id FROM services WHERE slug = ?))
   `);
-
-  /* Ровно тот случай, ради которого заведена таблица user_roles: владелица
-     студии сама принимает клиенток. Основная роль остаётся master — на неё
-     опирается внешний ключ master_profiles, — а admin добавляется списком.
-     Без этой строки демо-данные показывали обратное тому, что написано
-     в миграции 007: двух разных людей вместо одного с двумя ролями. */
-  const grantRole = conn.prepare(`
-    INSERT INTO user_roles (user_id, role) VALUES (?, ?) ON CONFLICT DO NOTHING
+  const clearHours = conn.prepare('DELETE FROM working_hours WHERE master_id = ?');
+  const addHours = conn.prepare(`
+    INSERT INTO working_hours (master_id, weekday, starts_at_local, ends_at_local, valid_from)
+    VALUES (?, ?, ?, ?, '2026-01-01')
   `);
 
   for (const m of MASTERS) {
     upsertUser.run('master', m.name, m.email, m.phone, newPassword(m.email), nowIso());
     const id = findUser.get(m.email).id;
-    if (m.alsoAdmin) grantRole.run(id, 'admin');
     upsertProfile.run(id, m.sort);
     clearServices.run(id);
     for (const slug of m.services) linkService.run(id, slug);
+    clearHours.run(id);
+    for (const day of m.hours.days) addHours.run(id, day, m.hours.from, m.hours.to);
   }
 
   const upsertBlock = conn.prepare(`
@@ -201,21 +259,17 @@ transaction((conn) => {
   for (const [i, h] of HIGHLIGHTS.entries()) {
     upsertBlock.run(h.slug, 'highlights', h.icon, h.title, h.body, null, (i + 1) * 10);
   }
-  upsertBlock.run('hero-photo', 'hero', null, 'Аккуратные ногти без спешки',
-    'Маникюр, педикюр и наращивание в маленькой студии на четыре кресла.',
+  upsertBlock.run('hero-photo', 'hero', null, 'Маникюр и брови по записи',
+    'Небольшая студия маникюра и оформления бровей. Работаем со вторника по субботу, с 10:00 до 20:00.',
     '/img/hero.jpg', 10);
   conn.prepare('UPDATE content_blocks SET updated_at = ?').run(nowIso());
-
-  const masterIds = conn.prepare(
-    'SELECT user_id FROM master_profiles ORDER BY sort_order'
-  ).all().map((r) => r.user_id);
 
   conn.prepare('DELETE FROM portfolio_works').run();
   const addWork = conn.prepare(`
     INSERT INTO portfolio_works (master_id, image_url, title, sort_order) VALUES (?, ?, ?, ?)
   `);
-  for (const [i, title] of WORKS.entries()) {
-    addWork.run(masterIds[i % masterIds.length], `/img/works/${i + 1}.jpg`, title, (i + 1) * 10);
+  for (const [i, w] of WORKS.entries()) {
+    addWork.run(masterByEmailId(conn, w.master), `/img/works/${i + 1}.jpg`, w.title, (i + 1) * 10);
   }
 
   // ── Клиентки ──────────────────────────────────────────────────────────────
@@ -255,14 +309,10 @@ transaction((conn) => {
     VALUES (?, ?, ?, ?, ?, ?)
   `);
   for (const t of TIME_OFF) {
-    const day = new Date();
-    day.setUTCDate(day.getUTCDate() + t.dayOffset);
-    const [h, m] = t.time.split(':');
-    day.setUTCHours(Number(h), Number(m), 0, 0);
-    const startsAt = toIso(day);
+    const date = nextWeekday(t.weekday, 0, tz);
     addTimeOff.run(
-      masterByEmailId(conn, t.master), startsAt,
-      toIso(new Date(day.getTime() + t.minutes * 60_000)),
+      masterByEmailId(conn, t.master),
+      toIso(localToUtc(date, t.from, tz)), toIso(localToUtc(date, t.to, tz)),
       t.kind, t.reason, ownerId
     );
   }
@@ -275,10 +325,6 @@ transaction((conn) => {
 
      Защита при этом не обходится: триггеры в базе срабатывают и здесь,
      проверено прямой вставкой поверх занятого времени. */
-  conn.prepare('DELETE FROM appointment_status_log').run();
-  conn.prepare('DELETE FROM appointments').run();
-
-  const masterByEmail = conn.prepare('SELECT id FROM users WHERE email = ?');
   const serviceBySlug = conn.prepare(
     'SELECT id, duration_min, price_kopecks FROM services WHERE slug = ?'
   );
@@ -293,16 +339,11 @@ transaction((conn) => {
   `);
 
   for (const a of APPOINTMENTS) {
-    const day = new Date();
-    day.setUTCDate(day.getUTCDate() + a.dayOffset);
-    const [h, m] = a.time.split(':');
-    day.setUTCHours(Number(h), Number(m), 0, 0);
-
+    const startsAt = localToUtc(nextWeekday(a.weekday, a.week, tz), a.time, tz);
     const svc = serviceBySlug.get(a.service);
-    const masterId = masterByEmail.get(a.master).id;
 
-    addAppointment.run(clientIds[a.client], masterId, svc.id, toIso(day),
-      svc.duration_min, svc.price_kopecks, a.status, a.source);
+    addAppointment.run(clientIds[a.client], masterByEmailId(conn, a.master), svc.id,
+      toIso(startsAt), svc.duration_min, svc.price_kopecks, a.status, a.source);
     const id = conn.prepare('SELECT last_insert_rowid() AS id').get().id;
     addLog.run(id, a.status);
   }
@@ -321,7 +362,7 @@ const c = db.prepare(`
 `).get();
 
 console.log('Сиды загружены:');
-console.log(`  пользователей ${c.users} (клиентов ${c.clients}, мастеров ${c.masters}, владелица 1)`);
+console.log(`  пользователей ${c.users} (клиентов ${c.clients}, мастеров ${c.masters}, администратор 1)`);
 console.log(`  услуг ${c.services}, связей мастер-услуга ${c.links}, интервалов графика ${c.hours}`);
 console.log(`  записей ${c.appts}, блоков лендинга ${c.blocks}, работ в портфолио ${c.works}`);
 if (showPasswords) {

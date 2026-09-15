@@ -29,9 +29,12 @@ function card(a, { first = false } = {}) {
   /* Действия стоят прямо в карточке, как в прототипе: до переноса и отмены
      не нужно сначала открывать детали. Сами действия по-прежнему проходят
      через окно подтверждения на странице записи — они необратимы. */
+  const canMove = Date.parse(a.starts_at) - Date.now() >= settings.free_cancellation_lead_min * 60_000;
   const actions = active
     ? [
-      el('a', { className: 'btn btn--secondary btn--sm', href: `/booking-time?mode=reschedule&appointment=${a.id}`, textContent: 'Перенести' }),
+      canMove
+        ? el('a', { className: 'btn btn--secondary btn--sm', href: `/booking-time?mode=reschedule&appointment=${a.id}`, textContent: 'Перенести' })
+        : null,
       el('a', { className: 'btn btn--ghost btn--sm', href: `/appointment?id=${a.id}&cancel=1`, textContent: 'Отменить' }),
       el('a', { className: 'btn btn--ghost btn--sm', href: `/appointment?id=${a.id}`, textContent: 'Подробнее' })
     ]

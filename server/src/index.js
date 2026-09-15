@@ -195,7 +195,7 @@ server.on('error', (err) => {
 });
 
 server.listen(port, () => {
-  console.log(`Сервис записи «Варвара» слушает ${scheme}://127.0.0.1:${port}`);
+  console.log(`Сервис записи «Ноготочки» слушает ${scheme}://127.0.0.1:${port}`);
   console.log(`База: ${dbFile}`);
   if (ownTls) {
     console.log('TLS: собственный сертификат');

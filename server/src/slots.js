@@ -109,6 +109,31 @@ function workingIntervals(masterId, date, settings) {
   return rows.map((r) => [r.starts_at_local, r.ends_at_local]);
 }
 
+/* Проверка конкретного времени: визит целиком лежит внутри рабочего интервала
+   мастера и не задевает блокировку. Нужна там, где время приходит из запроса,
+   а не из списка окон: клиент мог отправить любое, в том числе 19:30 при
+   конце смены в 20:00 или обеденный перерыв. Пересечение с другими записями
+   сюда не входит — его ловит триггер базы. */
+export function fitsSchedule({ masterId, startsAt, totalMin }) {
+  const settings = getSettings();
+  const tz = settings.timezone;
+  const start = ms(startsAt);
+  const end = start + totalMin * 60_000;
+  const { date } = utcToLocal(new Date(start), tz);
+
+  const inside = workingIntervals(masterId, date, settings).some(([from, to]) =>
+    localToUtc(date, from, tz).getTime() <= start && end <= localToUtc(date, to, tz).getTime());
+  if (!inside) return false;
+
+  const block = get(
+    `SELECT 1 FROM time_off
+      WHERE (master_id IS NULL OR master_id = $master)
+        AND starts_at < $end AND ends_at > $start`,
+    { master: masterId, start: toIso(new Date(start)), end: toIso(new Date(end)) }
+  );
+  return !block;
+}
+
 /* Основной расчёт. date — календарная дата по часам студии. */
 export function freeSlots({ masterId, date, serviceIds }) {
   const settings = getSettings();

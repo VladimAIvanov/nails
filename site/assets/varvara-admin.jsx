@@ -1,4 +1,4 @@
-/* Админ-панель «Варвара»: флоу владелицы (полный доступ) и флоу мастера (только своё расписание и свои записи).
+/* Админ-панель «Ноготочки»: флоу владелицы (полный доступ) и флоу мастера (только своё расписание и свои записи).
    Адаптировано из ui_kits/admin (admin.jsx) design-system проекта; ролевой переключатель — новое для объединённого прототипа. */
 
 const ADM_START = 600; // 10:00 в минутах
@@ -28,7 +28,7 @@ function Sidebar({ view, setView, role }) {
   const master = A.masters.find((m) => m.id === role);
   return (
     <aside className="side">
-      <div className="side__mark">Варвара<small>{isOwner ? 'админ-панель' : 'кабинет мастера'}</small></div>
+      <div className="side__mark">Ноготочки<small>{isOwner ? 'админ-панель' : 'кабинет мастера'}</small></div>
       <nav className="side__nav">
         {items.map((i) => (
           <button key={i[0]} className={'side__i' + (view === i[0] ? ' side__i--on' : '')} onClick={() => setView(i[0])}>

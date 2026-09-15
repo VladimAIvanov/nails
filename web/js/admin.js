@@ -35,7 +35,7 @@ export async function renderAdmin() {
 
   if (side) {
     side.append(
-      el('div', { className: 'side__mark' }, 'Варвара', el('small', { textContent: 'админ-панель' })),
+      el('div', { className: 'side__mark' }, 'Ноготочки', el('small', { textContent: 'админ-панель' })),
       el('nav', { className: 'side__nav' },
         ...ITEMS.map((i) => el('a', {
           href: i.href,

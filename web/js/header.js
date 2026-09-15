@@ -126,8 +126,8 @@ function paint(mount, user, { loading }) {
           decoding: 'async'
         }),
         el('span', { className: 'logo__text' },
-          'Варвара',
-          el('small', { textContent: 'ногтевая студия' }))),
+          'Ноготочки',
+          el('small', { textContent: 'бьюти-студия' }))),
       nav,
       side)
   );

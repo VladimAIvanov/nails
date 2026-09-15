@@ -56,7 +56,7 @@ function event(appt, settings) {
     `SUMMARY:${esc(`${appt.service_title} — ${appt.master_name}`)}`,
     `LOCATION:${esc(address)}`,
     `DESCRIPTION:${esc(
-      `Студия «${settings.title}». Мастер: ${appt.master_name}. ` +
+      `Бьюти-студия «${settings.title}». Мастер: ${appt.master_name}. ` +
       `Стоимость: ${(appt.price_kopecks / 100).toLocaleString('ru-RU')} ₽. ` +
       `Отмена по ссылке: ${settings.public_base_url}/api/appointments/cancel/${appt.cancel_token}`
     )}`,

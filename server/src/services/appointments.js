@@ -8,7 +8,7 @@
 import { randomBytes } from 'node:crypto';
 import { all, get, run, transaction } from '../db.js';
 import { conflict, forbidden, notFound } from '../http.js';
-import { getSettings, requiredDuration, purgeExpiredHolds, nearestFreeSlots } from '../slots.js';
+import { getSettings, requiredDuration, purgeExpiredHolds, nearestFreeSlots, fitsSchedule } from '../slots.js';
 import { nowIso, addMinutes } from '../time.js';
 import {
   scheduleForAppointment, cancelScheduled, rescheduleNotifications, channelsFor
@@ -97,6 +97,17 @@ export function createAppointment({ actor, input }) {
   if (perms.enforceLeadTime
       && Date.parse(input.startsAt) - Date.now() < settings.min_lead_time_min * 60_000) {
     throw conflict(`Записаться можно не позднее чем за ${settings.min_lead_time_min} мин`);
+  }
+
+  /* Клиент записывается только в свободное окно: визит целиком в смене мастера
+     и мимо блокировок. Студия из панели записывает и вне графика — это её
+     осознанное решение, как и наложение. */
+  if (actsAsClient(actor)
+      && !fitsSchedule({ masterId: perms.masterId, startsAt: input.startsAt, totalMin: need.total })) {
+    throw conflict('Это время вне графика мастера или закрыто. Выберите свободное окно', {
+      starts_at: input.startsAt,
+      available: nearestFreeSlots({ masterId: perms.masterId, serviceIds: input.serviceIds, fromIso: input.startsAt })
+    });
   }
 
   const status = input.status
@@ -222,8 +233,25 @@ export function rescheduleAppointment({ actor, id, startsAt }) {
   if (!['pending', 'confirmed'].includes(row.status)) {
     throw conflict(`Запись в статусе «${row.status}» переносить нельзя`);
   }
-  if (!admin && Date.parse(startsAt) - Date.now() < settings.min_lead_time_min * 60_000) {
-    throw conflict(`Перенести можно не позднее чем за ${settings.min_lead_time_min} мин`);
+  if (!admin) {
+    /* Правило студии: перенос — для тех, кто предупредил заранее. Срок
+       отсчитывается от текущего времени визита, а не от нового. */
+    const leadMin = settings.free_cancellation_lead_min;
+    if (Date.parse(row.starts_at) - Date.now() < leadMin * 60_000) {
+      throw conflict(`Перенести запись можно не позднее чем за ${Math.round(leadMin / 60)} ч до визита. `
+        + 'Позже её можно только отменить');
+    }
+    if (Date.parse(startsAt) - Date.now() < settings.min_lead_time_min * 60_000) {
+      throw conflict(`Перенести можно не позднее чем за ${settings.min_lead_time_min} мин`);
+    }
+    /* Длительность — из самой записи: услугу могли с тех пор отключить или
+       поменять ей время, а переносится визит, который уже назначен. */
+    if (!fitsSchedule({ masterId: row.master_id, startsAt, totalMin: row.duration_min })) {
+      throw conflict('Это время вне графика мастера или закрыто. Выберите свободное окно', {
+        starts_at: startsAt,
+        available: nearestFreeSlots({ masterId: row.master_id, serviceIds: [row.service_id], fromIso: startsAt })
+      });
+    }
   }
 
   try {
