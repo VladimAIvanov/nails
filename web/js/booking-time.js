@@ -4,11 +4,12 @@
    визита с перерывом мастера и причину, по которой окон нет, — всё это
    присылает сервер в ответе /api/masters/:id/slots.
 
-   Единственное, что собирается здесь, — сетка занятого времени. Сервер
-   отдаёт только свободные окна; чтобы занятое было видно и неактивно, а не
-   исчезало без следа, сетка дня достраивается из рабочих часов студии и
-   шага, полученных от того же сервера. Это показ, а не расчёт: свободным
-   окно становится только если так сказал сервер.
+   Показываются только окна, которые вернул сервер. Время, занятое чужими
+   записями и блокировками, и время, когда мастер не успеет закончить
+   до конца смены, клиентке не показывается вовсе — так требует паспорт.
+   Раньше сетка дня достраивалась по часам студии и лишние точки рисовались
+   серыми кнопками «занято»: у мастера со сменой до 18:00 были видны окна
+   до 18:30, а у занятого — время чужих визитов.
 
    У экрана три состояния: загрузка, есть окна, окон нет. Пустая сетка и
    «нет свободного времени» — разные вещи, и клиентка должна их различать. */
@@ -199,28 +200,13 @@ function dayTitle(date) {
     'августа', 'сентября', 'октября', 'ноября', 'декабря'][d.getMonth()]}, ${WEEKDAYS[(d.getDay() + 6) % 7]}`;
 }
 
-/* Сетка дня: все точки рабочих часов студии с шагом, который прислал
-   сервер. Свободные — те, что он назвал; остальные показываем занятыми. */
-function fullGrid(date, answer) {
-  const hours = (settings.working_hours ?? []).filter((h) => {
-    const weekday = new Date(`${date}T12:00:00Z`).getDay();
-    return h.weekday === weekday;
+/* Окна дня в том виде, в каком их прислал сервер, с минутами от полуночи —
+   чтобы разложить по утру, дню и вечеру. */
+function freePoints(answer) {
+  return answer.slots.map((slot) => {
+    const [h, m] = slot.local_time.split(':').map(Number);
+    return { label: slot.local_time, minutes: h * 60 + m, slot };
   });
-  if (hours.length === 0) return null;
-
-  const step = answer.step_min;
-  const free = new Map(answer.slots.map((s) => [s.local_time, s]));
-  const points = [];
-
-  for (const h of hours) {
-    const [fromH, fromM] = h.starts_at_local.split(':').map(Number);
-    const [toH, toM] = h.ends_at_local.split(':').map(Number);
-    for (let minutes = fromH * 60 + fromM; minutes + answer.duration_min <= toH * 60 + toM; minutes += step) {
-      const label = `${String(Math.floor(minutes / 60)).padStart(2, '0')}:${String(minutes % 60).padStart(2, '0')}`;
-      points.push({ label, minutes, slot: free.get(label) ?? null });
-    }
-  }
-  return points;
 }
 
 const REASONS = {
@@ -245,18 +231,15 @@ async function openDay(date) {
     return;
   }
 
-  const points = fullGrid(date, answer);
-  const groups = [
-    ['Утро', points ? points.filter((p) => p.minutes < 12 * 60) : []],
-    ['День', points ? points.filter((p) => p.minutes >= 12 * 60 && p.minutes < 17 * 60) : []],
-    ['Вечер', points ? points.filter((p) => p.minutes >= 17 * 60) : []]
-  ].filter(([, list]) => list.length > 0);
-
-  const blocks = groups.length
-    ? groups.map(([title, list]) => el('div', { className: 'slots__group' },
+  const points = freePoints(answer);
+  const blocks = [
+    ['Утро', points.filter((p) => p.minutes < 12 * 60)],
+    ['День', points.filter((p) => p.minutes >= 12 * 60 && p.minutes < 17 * 60)],
+    ['Вечер', points.filter((p) => p.minutes >= 17 * 60)]
+  ].filter(([, list]) => list.length > 0)
+    .map(([title, list]) => el('div', { className: 'slots__group' },
       el('p', { className: 'eyebrow', textContent: title }),
-      el('div', { className: 'slots__grid' }, ...list.map((p) => slotButton(p)))))
-    : [el('div', { className: 'slots__grid' }, ...answer.slots.map((s) => slotButton({ label: s.local_time, slot: s })))];
+      el('div', { className: 'slots__grid' }, ...list.map((p) => slotButton(p)))));
 
   slotsBox().replaceChildren(
     el('p', { className: 'muted' },

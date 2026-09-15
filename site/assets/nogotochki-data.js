@@ -1,36 +1,38 @@
 window.NOGOTOCHKI_DATA = {
   services: [
-    { id: 'man-cover', title: 'Маникюр с покрытием', description: 'Аппаратный, гель-лак', duration: '1 ч 30 мин', price: 3200, cat: 'Маникюр' },
-    { id: 'man', title: 'Маникюр без покрытия', description: 'Аппаратный, уход за кутикулой', duration: '50 мин', price: 1900, cat: 'Маникюр' },
-    { id: 'ext', title: 'Наращивание', description: 'Гель, форма и длина на выбор', duration: '3 ч', price: 5500, from: true, badge: 'хит', cat: 'Наращивание' },
-    { id: 'ped', title: 'Педикюр с покрытием', description: 'Медицинский аппаратный', duration: '1 ч 40 мин', price: 3800, cat: 'Педикюр' },
-    { id: 'design', title: 'Дизайн ногтей', description: 'Френч, втирка, стемпинг', duration: 'от 20 мин', price: 600, from: true, cat: 'Дизайн' },
-    { id: 'repair', title: 'Ремонт ногтя', duration: '15 мин', price: 400, cat: 'Маникюр' }
+    { id: 'man-gel', title: 'Маникюр с покрытием гель-лаком', description: 'Покрытие гель-лаком', duration: '1 ч 30 мин', price: 1800, cat: 'Маникюр' },
+    { id: 'man-ped', title: 'Маникюр и педикюр', description: 'Маникюр и педикюр за один визит', duration: '2 ч 30 мин', price: 3200, cat: 'Педикюр' },
+    { id: 'ext', title: 'Наращивание ногтей', description: 'Форма и длина на выбор', duration: '2 ч 30 мин', price: 2800, cat: 'Наращивание' },
+    { id: 'design', title: 'Дизайн ногтей', description: '300 ₽ за два ногтя, добавляет к визиту 15–30 минут', duration: '30 мин', price: 300, cat: 'Дизайн' },
+    { id: 'brow-tint', title: 'Коррекция и окрашивание бровей', duration: '40 мин', price: 1200, cat: 'Брови' },
+    { id: 'brow-lam', title: 'Ламинирование бровей', duration: '1 ч', price: 1800, cat: 'Брови' }
   ],
   masters: [
-    { id: 'anna', name: 'Анна', role: 'Маникюр, наращивание, дизайн', rating: 4.9, reviews: 128 },
-    { id: 'lena', name: 'Лена', role: 'Педикюр, маникюр', rating: 4.8, reviews: 96 },
-    { id: 'aya', name: 'Ая', role: 'Дизайн, наращивание', rating: 5.0, reviews: 41 }
+    { id: 'anna', name: 'Анна Ковалева', role: 'Маникюр, педикюр, наращивание, дизайн', rating: 4.9, reviews: 128 },
+    { id: 'marina', name: 'Марина Орлова', role: 'Брови', rating: 4.8, reviews: 96 },
+    { id: 'elena', name: 'Елена Смирнова', role: 'Маникюр, наращивание, брови', rating: 5.0, reviews: 41 }
   ],
+  /* Студия работает со вторника по субботу; воскресенье и понедельник закрыты. */
   days: [
-    { id: '15', dow: 'сб', day: 15, free: 4 },
-    { id: '16', dow: 'вс', day: 16, disabled: true },
-    { id: '17', dow: 'пн', day: 17, free: 7 },
-    { id: '18', dow: 'вт', day: 18, free: 2 },
-    { id: '19', dow: 'ср', day: 19, free: 6 },
-    { id: '20', dow: 'чт', day: 20, free: 5 },
-    { id: '21', dow: 'пт', day: 21, free: 3 }
+    { id: '15', dow: 'вт', day: 15, free: 4 },
+    { id: '16', dow: 'ср', day: 16, free: 7 },
+    { id: '17', dow: 'чт', day: 17, free: 2 },
+    { id: '18', dow: 'пт', day: 18, free: 6 },
+    { id: '19', dow: 'сб', day: 19, free: 5 },
+    { id: '20', dow: 'вс', day: 20, disabled: true },
+    { id: '21', dow: 'пн', day: 21, disabled: true }
   ],
+  /* Только свободные окна: занятое время и время, когда мастер не успеет
+     закончить до конца смены, клиентке не показывается. */
   slotGroups: [
-    { label: 'Утро', icon: 'sunrise', slots: [{ time: '10:00', state: 'busy' }, { time: '10:30' }, { time: '11:00' }, { time: '11:30', state: 'busy' }] },
-    { label: 'День', icon: 'sun', slots: [{ time: '12:30' }, { time: '13:00', state: 'busy' }, { time: '14:30' }, { time: '15:00', state: 'busy' }, { time: '15:30' }, { time: '16:00', state: 'busy' }] },
-    { label: 'Вечер', icon: 'moon', slots: [{ time: '17:30' }, { time: '18:00' }, { time: '18:30', state: 'busy' }, { time: '19:00' }] }
+    { label: 'Утро', icon: 'sunrise', slots: [{ time: '11:30' }] },
+    { label: 'День', icon: 'sun', slots: [{ time: '12:00' }, { time: '12:30' }, { time: '14:00' }, { time: '14:30' }, { time: '15:00' }, { time: '16:30' }] }
   ],
   monthNames: ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'],
   bookings: [
-    { id: 1, when: 'Сегодня, 15 августа · 18:00', service: 'Маникюр с покрытием', master: 'Анна', price: '3 200 ₽', status: 'confirmed', address: 'ул. Рубинштейна, 24' },
-    { id: 2, when: '17 августа · 12:30', service: 'Педикюр с покрытием', master: 'Лена', price: '3 800 ₽', status: 'pending', address: 'ул. Рубинштейна, 24' },
-    { id: 3, when: '2 августа · 15:00', service: 'Наращивание', master: 'Ая', price: '5 500 ₽', status: 'done' },
-    { id: 4, when: '26 июля · 11:00', service: 'Маникюр с покрытием', master: 'Анна', price: '3 200 ₽', status: 'cancelled' }
+    { id: 1, when: 'Среда, 16 сентября · 10:00', service: 'Маникюр с покрытием гель-лаком', master: 'Анна Ковалева', price: '1 800 ₽', status: 'confirmed', address: 'ул. Рубинштейна, 24' },
+    { id: 2, when: 'Четверг, 17 сентября · 12:00', service: 'Ламинирование бровей', master: 'Марина Орлова', price: '1 800 ₽', status: 'confirmed', address: 'ул. Рубинштейна, 24' },
+    { id: 3, when: '2 сентября · 15:00', service: 'Наращивание ногтей', master: 'Елена Смирнова', price: '2 800 ₽', status: 'done' },
+    { id: 4, when: '26 августа · 11:00', service: 'Коррекция и окрашивание бровей', master: 'Елена Смирнова', price: '1 200 ₽', status: 'cancelled' }
   ]
 };

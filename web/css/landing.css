@@ -70,9 +70,16 @@
 
 /* ── Галерея ───────────────────────────────────────────────────────────── */
 
-.gallery { display: grid; gap: var(--gap-cards); grid-template-columns: repeat(2, 1fr); }
+/* minmax(0, 1fr), а не 1fr: у 1fr нижняя граница — ширина содержимого,
+   и на телефоне карточка с внутренними отступами и длинной подписью
+   распирала колонку шире экрана. */
+.gallery { display: grid; gap: var(--gap-cards); grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .gallery .skeleton { aspect-ratio: 1 / 1; }
-@media (min-width: 700px) { .gallery { grid-template-columns: repeat(3, 1fr); } }
+.gallery .frame--work { min-width: 0; padding: var(--space-3); overflow-wrap: anywhere; }
+@media (min-width: 700px) {
+  .gallery { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .gallery .frame--work { padding: var(--space-6); }
+}
 
 /* ── Полоса записи ─────────────────────────────────────────────────────── */
 

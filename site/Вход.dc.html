@@ -49,8 +49,8 @@
 <div style="font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:#7D6D62;margin-bottom:10px">Какая вы мастер</div>
 <div style="display:flex;gap:8px">
 <x-import component-from-global-scope="DesignSystem_f8f42b.Chip" selected="{{ isAnna }}" onClick="{{ pickAnna }}" hint-size="auto,36px">Анна</x-import>
-<x-import component-from-global-scope="DesignSystem_f8f42b.Chip" selected="{{ isLena }}" onClick="{{ pickLena }}" hint-size="auto,36px">Лена</x-import>
-<x-import component-from-global-scope="DesignSystem_f8f42b.Chip" selected="{{ isAya }}" onClick="{{ pickAya }}" hint-size="auto,36px">Ая</x-import>
+<x-import component-from-global-scope="DesignSystem_f8f42b.Chip" selected="{{ isMarina }}" onClick="{{ pickMarina }}" hint-size="auto,36px">Марина</x-import>
+<x-import component-from-global-scope="DesignSystem_f8f42b.Chip" selected="{{ isElena }}" onClick="{{ pickElena }}" hint-size="auto,36px">Елена</x-import>
 </div>
 </div>
 </sc-if>
@@ -75,7 +75,7 @@ class Component extends DCLogic {
 
   renderVals() {
     const roleLabels = { client: 'клиент', master: 'мастер', admin: 'администратор' };
-    const masterNames = { anna: 'Анна', lena: 'Лена', aya: 'Ая' };
+    const masterNames = { anna: 'Анна', marina: 'Марина', elena: 'Елена' };
     const dest = () => {
       if (this.state.role === 'client') return './Кабинет.dc.html';
       if (this.state.role === 'master') return './Админ-панель.dc.html?role=' + this.state.master;
@@ -86,14 +86,14 @@ class Component extends DCLogic {
       isMaster: this.state.role === 'master',
       isAdmin: this.state.role === 'admin',
       isAnna: this.state.master === 'anna',
-      isLena: this.state.master === 'lena',
-      isAya: this.state.master === 'aya',
+      isMarina: this.state.master === 'marina',
+      isElena: this.state.master === 'elena',
       pickClient: () => this.setState({ role: 'client' }),
       pickMaster: () => this.setState({ role: 'master' }),
       pickAdmin: () => this.setState({ role: 'admin' }),
       pickAnna: () => this.setState({ master: 'anna' }),
-      pickLena: () => this.setState({ master: 'lena' }),
-      pickAya: () => this.setState({ master: 'aya' }),
+      pickMarina: () => this.setState({ master: 'marina' }),
+      pickElena: () => this.setState({ master: 'elena' }),
       login: this.state.login,
       setLogin: (v) => this.setState({ login: v }),
       password: this.state.password,

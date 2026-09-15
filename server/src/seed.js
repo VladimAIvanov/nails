@@ -65,12 +65,12 @@ const SERVICES = [
   { slug: 'brow-lam',   cat: 'brows',     title: 'Ламинирование бровей',           desc: null,                                      dur: 60,  price: 180000 }
 ];
 
-/* Клиентки. Ксения зарегистрирована и заходит в кабинет,
-   Ольга и Ирина записались как гости — у них пароля нет вовсе. */
+/* Клиентки из тестовых данных проектной работы. Все три зарегистрированы:
+   под двумя разными можно проверить конфликт за один слот. */
 const CLIENTS = [
-  { name: 'Ксения Белова',  phone: '+79210000010', registered: true },
-  { name: 'Ольга Петрова',  phone: '+79210000011', registered: false },
-  { name: 'Ирина Соколова', phone: '+79210000012', registered: false }
+  { name: 'Ирина Петрова',  phone: '+79210000010', registered: true },
+  { name: 'Ольга Соколова', phone: '+79210000011', registered: true },
+  { name: 'Дарья Волкова',  phone: '+79210000012', registered: true }
 ];
 
 /* Мастера. Специализации хранятся не текстом, а списком услуг — см. раздел 10.
@@ -96,15 +96,14 @@ const TIME_OFF = [
   { master: 'elena@nogotochki.studio',  weekday: 6, from: '00:00', to: '23:59', kind: 'other', reason: 'Выходной' }
 ];
 
-/* Записи: ближайшие и история. week: 0 — ближайший такой день недели после
-   сегодняшнего, -2 — на две недели раньше. Время подобрано внутри графика
-   мастера и мимо блокировок. */
+/* Записи из тестовых данных проектной работы. week: 0 — ближайший такой день
+   недели после сегодняшнего. Все подтверждены.
+   Запись Ирины к Анне в 10:00 нужна для первого контрольного сценария:
+   в этот день у Анны не должно быть окон, пересекающихся с 10:00–11:30. */
 const APPOINTMENTS = [
-  { client: 0, master: 'anna@nogotochki.studio',   service: 'man-gel',   weekday: 2, week: 0,  time: '10:00', status: 'confirmed', source: 'site' },
-  { client: 1, master: 'marina@nogotochki.studio', service: 'brow-lam',  weekday: 3, week: 0,  time: '12:00', status: 'confirmed', source: 'site' },
-  { client: 2, master: 'elena@nogotochki.studio',  service: 'ext',       weekday: 4, week: 0,  time: '10:00', status: 'confirmed', source: 'admin' },
-  { client: 0, master: 'anna@nogotochki.studio',   service: 'man-ped',   weekday: 5, week: -2, time: '11:00', status: 'done',      source: 'site' },
-  { client: 1, master: 'elena@nogotochki.studio',  service: 'brow-tint', weekday: 2, week: -2, time: '15:00', status: 'cancelled', source: 'site' }
+  { client: 0, master: 'anna@nogotochki.studio',   service: 'man-gel',  weekday: 3, week: 0, time: '10:00', status: 'confirmed', source: 'site' },
+  { client: 1, master: 'marina@nogotochki.studio', service: 'brow-lam', weekday: 4, week: 0, time: '12:00', status: 'confirmed', source: 'site' },
+  { client: 2, master: 'elena@nogotochki.studio',  service: 'ext',      weekday: 2, week: 0, time: '14:00', status: 'confirmed', source: 'site' }
 ];
 
 /* Учётные записи сотрудников, которые заводят сиды. Всё остальное из демо-данных

@@ -66,17 +66,25 @@ function card(m) {
   return node;
 }
 
+/* Есть ли вообще кому выполнить весь набор. Если нет, «любой свободный»
+   ведёт в тупик: на шаге времени выбирать было бы не у кого. */
+const nobodyFits = () => ![...able].some((id) => all.find((m) => m.id === id)?.accepts_online_booking);
+
 function anyCard() {
   const on = anyMaster;
+  const available = !nobodyFits();
   const node = el('article', {
-    className: `card master master--pick master--any${on ? ' master--on' : ''}`,
-    tabIndex: 0, role: 'button', 'aria-pressed': String(on)
+    className: `card master master--pick master--any${on ? ' master--on' : ''}${available ? '' : ' master--off'}`,
+    ...(available ? { tabIndex: 0, role: 'button', 'aria-pressed': String(on) } : { 'aria-disabled': 'true' })
   },
   el('div', { className: 'avatar avatar--lg', textContent: '∗' }),
   el('h3', { className: 'master__name', textContent: 'Любой свободный' }),
   el('p', { className: 'muted', textContent: 'Покажем окна всех мастеров, кто делает выбранные услуги' }),
-  el('span', { className: 'service__mark', textContent: on ? 'выбран' : 'выбрать' }));
+  available
+    ? el('span', { className: 'service__mark', textContent: on ? 'выбран' : 'выбрать' })
+    : el('p', { className: 'master__why', textContent: 'Выбранные услуги вместе не делает ни один мастер' }));
 
+  if (!available) return node;
   const pick = () => choose(null, true);
   node.addEventListener('click', pick);
   node.addEventListener('keydown', (e) => {
@@ -95,7 +103,10 @@ function render() {
       ? `Мастер: ${chosenMaster.name}`
       : 'Мастер не выбран';
 
-  const problem = missing('master');
+  const problem = nobodyFits()
+    ? 'Эти услуги вместе не делает ни один мастер. Вернитесь на шаг назад и уберите одну из них — '
+      + 'на вторую можно записаться отдельно.'
+    : missing('master');
   hint.textContent = problem;
   next.disabled = Boolean(problem);
 }
@@ -128,6 +139,7 @@ await guard(async () => {
   /* Если ранее выбранный мастер больше не подходит — снимаем выбор,
      чтобы человек не ушёл дальше с невозможной парой. */
   if (picked && !able.has(picked)) choose(null, anyMaster);
+  if (anyMaster && nobodyFits()) choose(null, false);
 
   render();
 })();
