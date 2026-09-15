@@ -258,7 +258,10 @@ export function rescheduleAppointment({ actor, id, startsAt }) {
     transaction(() => {
       run('UPDATE appointments SET starts_at = $starts, updated_at = $now WHERE id = $id',
         { starts: startsAt, now: nowIso(), id });
-      writeLog(id, row.status, row.status, actor.id, `перенос с ${row.starts_at} на ${startsAt}`);
+      /* Комментарий читает человек в панели — время по часам студии,
+         а не в формате хранения. */
+      writeLog(id, row.status, row.status, actor.id,
+        `перенос с ${whenText(row.starts_at, settings.timezone)} на ${whenText(startsAt, settings.timezone)}`);
     });
   } catch (err) {
     throw mapOverlapError(err, {

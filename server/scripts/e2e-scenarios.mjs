@@ -270,6 +270,30 @@ let irinaElena;
     'отказ 409', `${r.status} «${r.json?.message}»`, r.status === 409);
 }
 
+// ── Окна для переноса не занимает сама переносимая запись ────────────────────
+{
+  const q = `/api/masters/${ANNA}/slots?date=${TUE}&service_id=${MANICURE}&exclude_appointment_id=${mariaAppt.id}`;
+  const plain = await slots(ANNA, TUE, [MANICURE]);
+  const own = await call('GET', q, { token: MARIA });
+  const ownTimes = (own.json?.slots ?? []).map((s) => s.local_time);
+  const foreign = await call('GET', q, { token: OLGA });
+  const anon = await call('GET', q);
+  record('U4', 'Перенос: запись Марии 14:00–15:30 в окнах для переноса не мешает сама себе',
+    'без исключения 14:30 занято; с исключением своей записи 14:30 и 14:00 доступны; чужую запись исключить нельзя — 403',
+    `без исключения 14:30 ${plain.times.includes('14:30') ? 'свободно' : 'занято'}; своя: ${own.status}, 14:00 ${ownTimes.includes('14:00') ? 'есть' : 'нет'}, 14:30 ${ownTimes.includes('14:30') ? 'есть' : 'нет'}; `
+    + `Ольга ${foreign.status}; гость ${anon.status}`,
+    !plain.times.includes('14:30') && own.status === 200 && ownTimes.includes('14:30') && ownTimes.includes('14:00')
+    && foreign.status === 403 && anon.status === 403);
+
+  const moved = await call('PATCH', `/api/appointments/${mariaAppt.id}`, { token: MARIA, body: { starts_at: msk(TUE, '14:30') } });
+  const list = await call('GET', `/api/admin/appointments?date=${TUE}&master_id=${ANNA}`, { token: ADMIN });
+  const note = list.json.appointments.find((a) => a.id === mariaAppt.id)?.last_note ?? '';
+  record('U5', 'Комментарий к переносу в панели — по часам студии',
+    'перенос на пересекающееся со старым время проходит; в комментарии «14:00» и «14:30», без формата базы …T…Z',
+    `перенос ${moved.status}; комментарий «${note}»`,
+    moved.status === 200 && note.includes('14:00') && note.includes('14:30') && !/\dT\d/.test(note));
+}
+
 // ── Отмена клиентом ─────────────────────────────────────────────────────────
 {
   const r = await call('POST', `/api/appointments/${mariaAppt.id}/cancel`, { token: MARIA, body: {} });

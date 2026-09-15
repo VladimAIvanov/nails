@@ -135,7 +135,7 @@ export function fitsSchedule({ masterId, startsAt, totalMin }) {
 }
 
 /* Основной расчёт. date — календарная дата по часам студии. */
-export function freeSlots({ masterId, date, serviceIds }) {
+export function freeSlots({ masterId, date, serviceIds, excludeAppointmentId = null }) {
   const settings = getSettings();
   const tz = settings.timezone;
 
@@ -192,13 +192,15 @@ export function freeSlots({ masterId, date, serviceIds }) {
     { master: masterId, dayStart, dayEnd }
   );
 
-  // Шаг 4: существующие записи. Отменённые время не занимают
+  /* Шаг 4: существующие записи. Отменённые время не занимают, переносимая —
+     тоже: её время освободится в момент переноса. */
   const busy = all(
     `SELECT starts_at, ends_at FROM appointments
       WHERE master_id = $master
         AND status IN ('pending', 'confirmed')
+        AND ($exclude IS NULL OR id <> $exclude)
         AND starts_at < $dayEnd AND ends_at > $dayStart`,
-    { master: masterId, dayStart, dayEnd }
+    { master: masterId, dayStart, dayEnd, exclude: excludeAppointmentId }
   );
 
   // Живые удержания — как занятое время, пока не истекли

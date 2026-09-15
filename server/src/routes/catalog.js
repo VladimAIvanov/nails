@@ -1,6 +1,7 @@
 /* Открытая часть: услуги, мастера и свободное время. Вход не требуется. */
 import { all, get } from '../db.js';
-import { badRequest, notFound } from '../http.js';
+import { badRequest, forbidden, notFound } from '../http.js';
+import { currentUser, isAdmin } from '../auth.js';
 import * as v from '../validate.js';
 import { freeSlots, getSettings } from '../slots.js';
 import { yandexConfigured } from '../services/external-login.js';
@@ -80,7 +81,7 @@ export default function register(router) {
 
   /* Свободное время. Услуги передаются списком: длительности складываются,
      потому что визит может состоять из нескольких услуг подряд. */
-  router.get('/api/masters/:id/slots', async ({ params, query }) => {
+  router.get('/api/masters/:id/slots', async ({ params, query, req }) => {
     const masterId = v.idParam(params.id, 'master_id');
     const date = v.date(query.get('date'), 'date');
 
@@ -91,7 +92,22 @@ export default function register(router) {
     }
     const serviceIds = raw.map((x) => v.idParam(x, 'service_id'));
 
-    return { body: freeSlots({ masterId, date, serviceIds }) };
+    /* Окна для переноса. Переносимый визит сам не должен занимать время:
+       иначе запись 14:00–16:30 нельзя сдвинуть на 16:00, хотя после переноса
+       это время свободно. Исключить чужую запись нельзя — по разнице в окнах
+       можно было бы узнать, когда записан другой человек. */
+    let excludeAppointmentId = null;
+    if (query.get('exclude_appointment_id')) {
+      excludeAppointmentId = v.idParam(query.get('exclude_appointment_id'), 'exclude_appointment_id');
+      const appt = get('SELECT client_id, master_id FROM appointments WHERE id = $id', { id: excludeAppointmentId });
+      if (!appt) throw notFound('Запись не найдена');
+      const user = currentUser(req);
+      const allowed = user && (isAdmin(user) || appt.client_id === user.id || appt.master_id === user.id);
+      if (!allowed) throw forbidden('Исключить из расчёта можно только свою запись');
+      if (appt.master_id !== masterId) throw badRequest('Запись относится к другому мастеру');
+    }
+
+    return { body: freeSlots({ masterId, date, serviceIds, excludeAppointmentId }) };
   });
 
   /* Публичные сведения о студии: адрес, часы, правила отмены. */

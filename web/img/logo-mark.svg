@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Ноготочки">
+  <!-- Знак студии «Ноготочки»: кончик пальца с ноготком под лаком и искра
+       в мягком круге. Цвета из дизайн-токенов: фон #FCF3EE, нюдовый #E3AC93,
+       терракота #A0553C. -->
+  <defs>
+    <clipPath id="badge"><circle cx="32" cy="32" r="30"/></clipPath>
+    <linearGradient id="polish" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#BC6A4D"/>
+      <stop offset="1" stop-color="#83432F"/>
+    </linearGradient>
+    <linearGradient id="skin" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#F3D2C1"/>
+      <stop offset="1" stop-color="#E3AC93"/>
+    </linearGradient>
+  </defs>
+  <circle cx="32" cy="32" r="30" fill="#FCF3EE"/>
+  <g clip-path="url(#badge)">
+    <!-- палец -->
+    <path d="M16 66 V31 A16 16 0 0 1 48 31 V66 Z" fill="url(#skin)"/>
+    <!-- ноготок -->
+    <path d="M22 41 V27 A10 10 0 0 1 42 27 V41 Q32 45.5 22 41 Z" fill="url(#polish)"/>
+    <!-- блик -->
+    <path d="M27.2 21.5 Q26.4 27 27.2 35" fill="none" stroke="#FCF3EE" stroke-width="2" stroke-linecap="round" opacity="0.9"/>
+  </g>
+  <circle cx="32" cy="32" r="30" fill="none" stroke="#E3AC93" stroke-width="1.5"/>
+  <!-- искра -->
+  <path d="M50 9 L51.2 12.8 L55 14 L51.2 15.2 L50 19 L48.8 15.2 L45 14 L48.8 12.8 Z" fill="#A0553C"/>
+</svg>

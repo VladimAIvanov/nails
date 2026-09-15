@@ -112,16 +112,15 @@ function paint(mount, user, { loading }) {
   mount.replaceChildren(
     el('div', { className: 'wrap header__in' },
       /* Логотип студии: знак картинкой, название — нашей типографикой.
-         Знак вырезан из присланного файла; надпись из него не берётся
-         намеренно — набранная шрифтом дизайн-системы, она остаётся резкой
-         на любом экране и в любом размере, а растровая замылилась бы. */
+         Знак — векторный (кончик пальца с ноготком под лаком), поэтому
+         резкий в любом размере; надпись набрана шрифтом дизайн-системы. */
       el('a', { href: '/', className: 'logo' },
         el('img', {
           className: 'logo__mark',
-          src: '/img/logo-mark.png',
+          src: '/img/logo-mark.svg',
           alt: '',
-          width: 214,
-          height: 236,
+          width: 64,
+          height: 64,
           loading: 'eager',
           decoding: 'async'
         }),

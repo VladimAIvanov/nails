@@ -89,6 +89,8 @@ async function prepare() {
 const slotsUrl = (date) => {
   const qs = new URLSearchParams({ date });
   for (const id of serviceIds) qs.append('service_id', String(id));
+  // при переносе своя же запись не занимает время
+  if (appointment) qs.set('exclude_appointment_id', String(appointment.id));
   return `/api/masters/${masterId}/slots?${qs}`;
 };
 

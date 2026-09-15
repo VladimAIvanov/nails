@@ -48,6 +48,13 @@ const KIND_TITLES = {
 const today = () => localParts(new Date().toISOString(), settings.timezone).date;
 const hhmm = (iso) => localParts(iso, settings.timezone).time;
 
+/* Старые записи журнала хранят время переноса в формате базы
+   («2026-09-22T11:00:00Z»). Показываем его по часам студии. */
+const noteText = (note) => note.replace(/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z/g, (iso) => {
+  const { date, time } = localParts(iso, settings.timezone);
+  return `${date.slice(8, 10)}.${date.slice(5, 7)} ${time}`;
+});
+
 function shiftDay(days) {
   const d = new Date(`${dateInput.value}T12:00:00Z`);
   d.setUTCDate(d.getUTCDate() + days);
@@ -122,7 +129,7 @@ function movePanel(row) {
     confirm.disabled = true;
     try {
       const free = await api('GET',
-        `/api/masters/${row.master.id}/slots?date=${date.value}&service_id=${row.service_id}`);
+        `/api/masters/${row.master.id}/slots?date=${date.value}&service_id=${row.service_id}&exclude_appointment_id=${row.id}`);
       const items = (free.slots ?? []).filter((s) => s.is_free !== false);
       if (items.length === 0) {
         slots.replaceChildren(el('span', { className: 'muted', textContent: 'Свободных окон в этот день нет' }));
@@ -220,7 +227,7 @@ function card(row) {
       /* Кто и почему тронул запись — прямо в строке. Иначе «почему её
          отменили» приходится выяснять, открывая карточку. */
       row.last_note
-        ? el('div', { className: 'rec__sub caption', textContent: `${row.last_note}${row.last_by ? ` — ${row.last_by}` : ''}` })
+        ? el('div', { className: 'rec__sub caption', textContent: `${noteText(row.last_note)}${row.last_by ? ` — ${row.last_by}` : ''}` })
         : null,
       el('div', { className: 'tags' }, ...tags),
       slot),
