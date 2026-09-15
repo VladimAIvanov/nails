@@ -53,6 +53,15 @@ async function loadContent() {
   if (hero) {
     document.getElementById('hero-title').textContent = hero.title;
     document.getElementById('hero-body').textContent = hero.body;
+
+    /* Фото студии. Без адреса остаётся рамка-заглушка из разметки. */
+    if (hero.image_url) {
+      const frame = document.querySelector('.hero__art .frame');
+      frame.classList.add('frame--photo');
+      frame.replaceChildren(el('img', {
+        src: hero.image_url, alt: 'Интерьер студии', loading: 'eager', decoding: 'async', width: 960, height: 1200
+      }));
+    }
   }
 
   const highlights = blocks.filter((b) => b.section === 'highlights');
@@ -170,9 +179,15 @@ async function loadWorks() {
 
   document.getElementById('works-list').replaceChildren(
     ...(works.length
-      ? works.map((w) => el('figure', { className: 'frame frame--work' },
-        el('span', {}, w.title),
-        el('figcaption', { className: 'caption', textContent: w.master_name ?? '' })))
+      ? works.map((w) => (w.image_url
+        ? el('figure', { className: 'work' },
+          el('img', { className: 'work__photo', src: w.image_url, alt: w.title, loading: 'lazy', decoding: 'async', width: 800, height: 800 }),
+          el('figcaption', { className: 'work__caption' },
+            el('span', { className: 'work__title', textContent: w.title }),
+            el('span', { className: 'caption', textContent: w.master_name ?? '' })))
+        : el('figure', { className: 'frame frame--work' },
+          el('span', {}, w.title),
+          el('figcaption', { className: 'caption', textContent: w.master_name ?? '' }))))
       : [el('p', { className: 'muted' }, 'Работы скоро появятся')])
   );
 }

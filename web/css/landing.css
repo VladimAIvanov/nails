@@ -35,8 +35,8 @@
   .hero { grid-template-columns: 1.1fr 0.9fr; padding-block: var(--space-16) var(--space-14); }
 }
 
-/* Рамка вместо фотографии: файлов изображений в проекте нет,
-   API отдаёт только адреса. См. docs/ui-map.md, расхождение №9. */
+/* Рамка под фотографию. Пока адреса нет или снимок грузится — мягкая
+   заливка с подписью; с адресом внутрь ставится само фото (.frame--photo). */
 .frame {
   display: grid;
   place-items: center;
@@ -48,6 +48,24 @@
   text-align: center;
   padding: var(--space-6);
 }
+/* Рамка с настоящим фото: без отступов, снимок заполняет её целиком. */
+.frame--photo { padding: 0; overflow: hidden; }
+.frame--photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+/* Работа в галерее: квадратное фото и подпись под ним. */
+.work { margin: 0; min-width: 0; display: grid; gap: var(--space-2); }
+.work__photo {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1 / 1;
+  object-fit: cover;
+  border-radius: var(--radius-xl);
+  background: var(--gradient-cream);
+  display: block;
+}
+.work__caption { display: grid; gap: 2px; min-width: 0; }
+.work__title { font-weight: var(--weight-semibold); font-size: var(--text-sm); color: var(--color-text); overflow-wrap: anywhere; }
+
 .frame--work { aspect-ratio: 1 / 1; border-radius: var(--radius-xl); background: var(--gradient-cream); gap: var(--space-2); }
 .frame--work figcaption { color: var(--color-text-muted); }
 

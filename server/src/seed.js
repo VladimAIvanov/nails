@@ -119,15 +119,19 @@ const HIGHLIGHTS = [
 const masterByEmailId = (conn, email) =>
   conn.prepare('SELECT id FROM users WHERE email = ?').get(email).id;
 
-/* Работы в портфолио — только мастеров ногтевого сервиса: фотографии в
-   /img/works — ногти, под мастером по бровям они выглядели бы ошибкой. */
+/* Работы в портфолио. Фото — стоковые снимки с Unsplash под лицензией
+   Unsplash, файлы в web/img/works по порядку списка; источники и авторы —
+   web/img/CREDITS.md. Работа закреплена за мастером, который делает услугу. */
 const WORKS = [
-  { title: 'Нюд с втиркой',              master: 'anna@nogotochki.studio' },
-  { title: 'Френч',                      master: 'elena@nogotochki.studio' },
-  { title: 'Матовое покрытие',           master: 'anna@nogotochki.studio' },
-  { title: 'Наращивание, форма миндаль', master: 'elena@nogotochki.studio' },
-  { title: 'Дизайн с фольгой',           master: 'anna@nogotochki.studio' },
-  { title: 'Маникюр и педикюр',          master: 'anna@nogotochki.studio' }
+  { title: 'Нюд с втиркой',                  master: 'anna@nogotochki.studio' },
+  { title: 'Френч',                          master: 'elena@nogotochki.studio' },
+  { title: 'Матовое покрытие',               master: 'anna@nogotochki.studio' },
+  { title: 'Наращивание, форма миндаль',     master: 'elena@nogotochki.studio' },
+  { title: 'Дизайн с фольгой',               master: 'anna@nogotochki.studio' },
+  { title: 'Маникюр с покрытием гель-лаком', master: 'anna@nogotochki.studio' },
+  { title: 'Ламинирование бровей',           master: 'marina@nogotochki.studio' },
+  { title: 'Коррекция и окрашивание бровей', master: 'elena@nogotochki.studio' },
+  { title: 'Нюдовый маникюр',                master: 'elena@nogotochki.studio' }
 ];
 
 /* Дата ближайшего дня недели после сегодняшнего, по календарю студии.
@@ -261,7 +265,8 @@ transaction((conn) => {
     INSERT INTO content_blocks (slug, section, icon, title, body, image_url, sort_order)
     VALUES (?, ?, ?, ?, ?, ?, ?)
     ON CONFLICT (slug) DO UPDATE SET
-      title = excluded.title, body = excluded.body, updated_at = excluded.updated_at
+      title = excluded.title, body = excluded.body, image_url = excluded.image_url,
+      updated_at = excluded.updated_at
   `);
   for (const [i, h] of HIGHLIGHTS.entries()) {
     upsertBlock.run(h.slug, 'highlights', h.icon, h.title, h.body, null, (i + 1) * 10);
