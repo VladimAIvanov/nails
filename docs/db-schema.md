@@ -298,8 +298,8 @@ erDiagram
 | `id` | `INTEGER` | да | PK | `CHECK (id = 1)` — вторую строку создать нельзя |
 | `title` | `TEXT` | да | | «Ноготочки» |
 | `city` | `TEXT` | да | | «Санкт-Петербург» |
-| `address_line` | `TEXT` | да | | «ул. Рубинштейна, 24» |
-| `address_note` | `TEXT` | нет | | «Второй этаж, домофон 24» |
+| `address_line` | `TEXT` | да | | «Цветочная ул., 16» |
+| `address_note` | `TEXT` | нет | | «Третий этаж, студия 4» |
 | `timezone` | `TEXT` | да | | `Europe/Moscow` — см. раздел 6 |
 | `phone` | `TEXT` | да | | |
 | `email` | `TEXT` | нет | | |

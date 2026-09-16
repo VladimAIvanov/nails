@@ -19,8 +19,8 @@ INSERT INTO studio_settings (
   booking_horizon_days, min_lead_time_min, pending_ttl_min,
   default_buffer_min, slot_step_min, guest_booking_mode
 ) VALUES (
-  1, 'Анна', 'Санкт-Петербург', 'ул. Рубинштейна, 24',
-  'Второй этаж, домофон 24', 'Europe/Moscow', '+79210000000', 'hello@nogotochkee.ru',
+  1, 'Ноготочки', 'Санкт-Петербург', 'Цветочная ул., 16',
+  'Третий этаж, студия 4', 'Europe/Moscow', '+78120000000', 'hello@nogotochkee.ru',
   'nogotochki_bot', 'disconnected',
   1, 0,
   120, 1, 240,

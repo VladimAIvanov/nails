@@ -21,7 +21,7 @@ function Hero({ onBook }) {
   return (
     <div className="wrap hero">
       <div>
-        <div className="hero__eyebrow">Санкт-Петербург · Рубинштейна, 24</div>
+        <div className="hero__eyebrow">Санкт-Петербург · Цветочная, 16</div>
         <h1>Аккуратные ногти<br />без спешки</h1>
         <p>Маникюр, педикюр и наращивание в маленькой студии на четыре кресла. Одна мастер — одна клиентка, стерильные инструменты, честное время в записи.</p>
         <div className="hero__cta">
@@ -130,10 +130,10 @@ function Footer() {
       <div className="ftr__in">
         <div>
           <div className="mark">Ноготочки<small>бьюти-студия</small></div>
-          <p className="v-body-sm" style={{ marginTop: 16, maxWidth: '32ch' }}>Санкт-Петербург, ул. Рубинштейна, 24, второй этаж.</p>
+          <p className="v-body-sm" style={{ marginTop: 16, maxWidth: '32ch' }}>Санкт-Петербург, Цветочная ул., 16, третий этаж.</p>
         </div>
         <div><h4>Часы</h4><ul><li>Пн–Сб 10:00–21:00</li><li>Вс выходной</li></ul></div>
-        <div><h4>Связь</h4><ul><li>+7 921 000-00-00</li><li>@nogotochki_bot</li><li>hello@nogotochkee.ru</li></ul></div>
+        <div><h4>Связь</h4><ul><li>+7 812 000-00-00</li><li>@nogotochki_bot</li><li>hello@nogotochkee.ru</li></ul></div>
         <div><h4>Услуги</h4><ul><li>Маникюр</li><li>Педикюр</li><li>Наращивание</li><li>Дизайн</li></ul></div>
       </div>
       <div className="ftr__legal">
@@ -208,7 +208,7 @@ function BookingModal({ open, onClose }) {
         {step === 3 ? (
           <div className="stack">
             <D.Notice tone="success" title="Ждём вас">Подтверждение отправили в Telegram и на телефон.</D.Notice>
-            <D.BookingCard when={`${day} августа · ${time || '18:00'}`} service={service.title} master={master.name} price={service.price.toLocaleString('ru-RU') + ' ₽'} address="ул. Рубинштейна, 24" status="confirmed" />
+            <D.BookingCard when={`${day} августа · ${time || '18:00'}`} service={service.title} master={master.name} price={service.price.toLocaleString('ru-RU') + ' ₽'} address="Цветочная ул., 16" status="confirmed" />
           </div>
         ) : null}
 

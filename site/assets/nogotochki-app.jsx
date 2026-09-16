@@ -114,7 +114,7 @@ function DoneScreen({ service, master, day, time, onMy }) {
           <p className="v-body" style={{ marginTop: 6 }}>{day} августа в {time}. Подтверждение придёт в Telegram, напомним за два часа.</p>
         </div>
         <div style={{ width: '100%', textAlign: 'left' }}>
-          <D.BookingCard when={`${day} августа · ${time}`} service={service ? service.title : ''} master={master ? master.name : 'Любой свободный'} price={service ? service.price.toLocaleString('ru-RU') + ' ₽' : ''} status="confirmed" address="ул. Рубинштейна, 24" />
+          <D.BookingCard when={`${day} августа · ${time}`} service={service ? service.title : ''} master={master ? master.name : 'Любой свободный'} price={service ? service.price.toLocaleString('ru-RU') + ' ₽' : ''} status="confirmed" address="Цветочная ул., 16" />
         </div>
       </div>
       <div className="scr__cta">
@@ -161,7 +161,7 @@ function ProfileScreen() {
           <D.Avatar name="Марина" size={64} ring />
           <div>
             <div className="prof__name">Марина</div>
-            <div className="v-body-sm">+7 921 000-00-00</div>
+            <div className="v-body-sm">+7 812 000-00-00</div>
           </div>
         </div>
         <D.Card>
@@ -173,8 +173,8 @@ function ProfileScreen() {
           <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
             <D.Icon name="map-pin" size={18} color="var(--clay-600)" />
             <div>
-              <div className="v-h4">Санкт-Петербург, ул. Рубинштейна, 24</div>
-              <p className="v-body-sm" style={{ marginTop: 4 }}>Второй этаж, домофон 24. Ежедневно 10:00–21:00, воскресенье выходной.</p>
+              <div className="v-h4">Санкт-Петербург, Цветочная ул., 16</div>
+              <p className="v-body-sm" style={{ marginTop: 4 }}>Третий этаж, студия 4. Вторник–суббота 10:00–20:00.</p>
               <div style={{ marginTop: 12 }}><D.Button variant="secondary" size="sm" iconLeft={<D.Icon name="phone" size={16} />}>Позвонить</D.Button></div>
             </div>
           </div>
