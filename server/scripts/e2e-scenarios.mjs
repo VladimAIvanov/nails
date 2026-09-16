@@ -127,7 +127,7 @@ const MARIA = await login('+79219990001');
 const IRINA = await login('+79210000010');
 const OLGA = await login('+79210000011');
 const DARIA = await login('+79210000012');
-const ADMIN = await login('admin@nogotochki.studio');
+const ADMIN = await login('admin@nogotochkee.ru');
 record('R2', 'Вход зарегистрированных пользователей', 'токены у трёх клиенток из тестовых данных и администратора',
   [IRINA, OLGA, DARIA, ADMIN].map((t) => (t ? 'есть' : 'нет')).join(', '), IRINA && OLGA && DARIA && ADMIN);
 {
@@ -364,7 +364,7 @@ let irinaElena;
 }
 {
   const add = await call('POST', '/api/admin/masters', {
-    token: ADMIN, body: { full_name: 'Светлана Тестова', email: 'svetlana@nogotochki.studio', phone: '+79219990002', password: 'Test-password-2026', service_ids: [MANICURE] }
+    token: ADMIN, body: { full_name: 'Светлана Тестова', email: 'svetlana@nogotochkee.ru', phone: '+79219990002', password: 'Test-password-2026', service_ids: [MANICURE] }
   });
   const id = add.json?.master?.id ?? add.json?.id;
   const edit = await call('PATCH', `/api/admin/masters/${id}`, { token: ADMIN, body: { full_name: 'Светлана Тестова-Иванова' } });

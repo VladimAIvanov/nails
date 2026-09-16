@@ -49,7 +49,7 @@ function event(appt, settings) {
 
   const lines = [
     'BEGIN:VEVENT',
-    `UID:appointment-${appt.id}@nogotochki.studio`,
+    `UID:appointment-${appt.id}@nogotochkee.ru`,
     `DTSTAMP:${stamp(nowIso())}`,
     `DTSTART:${stamp(appt.starts_at)}`,
     `DTEND:${stamp(appt.ends_at)}`,

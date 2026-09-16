@@ -5,6 +5,6 @@
 -- контакты обновляются отдельным шагом. Бот к сервису по-прежнему
 -- не подключён: bot_status не трогаем.
 UPDATE studio_settings
-   SET email = 'hello@nogotochki.studio',
+   SET email = 'hello@nogotochkee.ru',
        telegram_bot_username = 'nogotochki_bot'
  WHERE id = 1;

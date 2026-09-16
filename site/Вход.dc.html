@@ -99,7 +99,7 @@ class Component extends DCLogic {
       password: this.state.password,
       setPassword: (v) => this.setState({ password: v }),
       loginLabel: this.state.role === 'client' ? 'Телефон' : 'Логин',
-      loginPlaceholder: this.state.role === 'client' ? '+7 ___ ___-__-__' : (this.state.role === 'master' ? masterNames[this.state.master].toLowerCase() : 'admin') + '@nogotochki.studio',
+      loginPlaceholder: this.state.role === 'client' ? '+7 ___ ___-__-__' : (this.state.role === 'master' ? masterNames[this.state.master].toLowerCase() : 'admin') + '@nogotochkee.ru',
       roleLabel: this.state.role === 'master' ? masterNames[this.state.master] : roleLabels[this.state.role],
       enter: () => { window.location.href = dest(); }
     };

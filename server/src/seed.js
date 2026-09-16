@@ -76,13 +76,13 @@ const CLIENTS = [
 /* Мастера. Специализации хранятся не текстом, а списком услуг — см. раздел 10.
    У каждого свой график: weekday по ISO, 1 — понедельник. */
 const MASTERS = [
-  { email: 'anna@nogotochki.studio',   name: 'Анна Ковалева',  phone: '+79210000001', sort: 10,
+  { email: 'anna@nogotochkee.ru',   name: 'Анна Ковалева',  phone: '+79210000001', sort: 10,
     services: ['man-gel', 'man-ped', 'ext', 'design'],
     hours: { days: [2, 3, 4, 5], from: '10:00', to: '18:00' } },
-  { email: 'marina@nogotochki.studio', name: 'Марина Орлова',  phone: '+79210000002', sort: 20,
+  { email: 'marina@nogotochkee.ru', name: 'Марина Орлова',  phone: '+79210000002', sort: 20,
     services: ['brow-tint', 'brow-lam'],
     hours: { days: [3, 4, 5, 6], from: '11:00', to: '20:00' } },
-  { email: 'elena@nogotochki.studio',  name: 'Елена Смирнова', phone: '+79210000003', sort: 30,
+  { email: 'elena@nogotochkee.ru',  name: 'Елена Смирнова', phone: '+79210000003', sort: 30,
     services: ['man-gel', 'ext', 'brow-tint', 'brow-lam'],
     hours: { days: [2, 4, 6], from: '10:00', to: '19:00' } }
 ];
@@ -91,9 +91,9 @@ const MASTERS = [
    недели после сегодняшнего — повторный запуск сидов сдвигает их вперёд.
    Время местное, по часам студии. */
 const TIME_OFF = [
-  { master: 'anna@nogotochki.studio',   weekday: 4, from: '13:00', to: '14:00', kind: 'break', reason: 'Обед' },
-  { master: 'marina@nogotochki.studio', weekday: 5, from: '15:00', to: '17:00', kind: 'other', reason: 'Личное время' },
-  { master: 'elena@nogotochki.studio',  weekday: 6, from: '00:00', to: '23:59', kind: 'other', reason: 'Выходной' }
+  { master: 'anna@nogotochkee.ru',   weekday: 4, from: '13:00', to: '14:00', kind: 'break', reason: 'Обед' },
+  { master: 'marina@nogotochkee.ru', weekday: 5, from: '15:00', to: '17:00', kind: 'other', reason: 'Личное время' },
+  { master: 'elena@nogotochkee.ru',  weekday: 6, from: '00:00', to: '23:59', kind: 'other', reason: 'Выходной' }
 ];
 
 /* Записи из тестовых данных проектной работы. week: 0 — ближайший такой день
@@ -101,14 +101,14 @@ const TIME_OFF = [
    Запись Ирины к Анне в 10:00 нужна для первого контрольного сценария:
    в этот день у Анны не должно быть окон, пересекающихся с 10:00–11:30. */
 const APPOINTMENTS = [
-  { client: 0, master: 'anna@nogotochki.studio',   service: 'man-gel',  weekday: 3, week: 0, time: '10:00', status: 'confirmed', source: 'site' },
-  { client: 1, master: 'marina@nogotochki.studio', service: 'brow-lam', weekday: 4, week: 0, time: '12:00', status: 'confirmed', source: 'site' },
-  { client: 2, master: 'elena@nogotochki.studio',  service: 'ext',      weekday: 2, week: 0, time: '14:00', status: 'confirmed', source: 'site' }
+  { client: 0, master: 'anna@nogotochkee.ru',   service: 'man-gel',  weekday: 3, week: 0, time: '10:00', status: 'confirmed', source: 'site' },
+  { client: 1, master: 'marina@nogotochkee.ru', service: 'brow-lam', weekday: 4, week: 0, time: '12:00', status: 'confirmed', source: 'site' },
+  { client: 2, master: 'elena@nogotochkee.ru',  service: 'ext',      weekday: 2, week: 0, time: '14:00', status: 'confirmed', source: 'site' }
 ];
 
 /* Учётные записи сотрудников, которые заводят сиды. Всё остальное из демо-данных
    прежних версий — мастера и услуги не из этих списков — убирается. */
-const ADMIN = { email: 'admin@nogotochki.studio', phone: '+79210000000' };
+const ADMIN = { email: 'admin@nogotochkee.ru', phone: '+79210000000' };
 const HIGHLIGHTS = [
   { slug: 'hl-sterility', icon: 'shield-check', title: 'Стерильность',       body: 'Инструмент проходит полную обработку, одноразовое вскрываем при вас' },
   { slug: 'hl-time',      icon: 'clock',        title: 'Только по записи',   body: 'Никаких очередей: время визита закреплено за вами' },
@@ -123,15 +123,15 @@ const masterByEmailId = (conn, email) =>
    Unsplash, файлы в web/img/works по порядку списка; источники и авторы —
    web/img/CREDITS.md. Работа закреплена за мастером, который делает услугу. */
 const WORKS = [
-  { title: 'Нюд с втиркой',                  master: 'anna@nogotochki.studio' },
-  { title: 'Френч',                          master: 'elena@nogotochki.studio' },
-  { title: 'Матовое покрытие',               master: 'anna@nogotochki.studio' },
-  { title: 'Наращивание, форма миндаль',     master: 'elena@nogotochki.studio' },
-  { title: 'Дизайн с фольгой',               master: 'anna@nogotochki.studio' },
-  { title: 'Маникюр с покрытием гель-лаком', master: 'anna@nogotochki.studio' },
-  { title: 'Ламинирование бровей',           master: 'marina@nogotochki.studio' },
-  { title: 'Коррекция и окрашивание бровей', master: 'elena@nogotochki.studio' },
-  { title: 'Нюдовый маникюр',                master: 'elena@nogotochki.studio' }
+  { title: 'Нюд с втиркой',                  master: 'anna@nogotochkee.ru' },
+  { title: 'Френч',                          master: 'elena@nogotochkee.ru' },
+  { title: 'Матовое покрытие',               master: 'anna@nogotochkee.ru' },
+  { title: 'Наращивание, форма миндаль',     master: 'elena@nogotochkee.ru' },
+  { title: 'Дизайн с фольгой',               master: 'anna@nogotochkee.ru' },
+  { title: 'Маникюр с покрытием гель-лаком', master: 'anna@nogotochkee.ru' },
+  { title: 'Ламинирование бровей',           master: 'marina@nogotochkee.ru' },
+  { title: 'Коррекция и окрашивание бровей', master: 'elena@nogotochkee.ru' },
+  { title: 'Нюдовый маникюр',                master: 'elena@nogotochkee.ru' }
 ];
 
 /* Дата ближайшего дня недели после сегодняшнего, по календарю студии.
