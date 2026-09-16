@@ -271,6 +271,8 @@ $env:PORT=3100; npm start
 | [docs/deployment.md](docs/deployment.md) | требования к окружению и риски переноса на сервер |
 | [docs/publication.md](docs/publication.md) | публикация: контейнер, Coolify, домен и HTTPS, вход через Яндекс, финальная проверка |
 | [docs/test-scenarios.md](docs/test-scenarios.md) | сценарное тестирование: чек-лист, результаты, найденные проблемы |
+| [docs/report-testing.md](docs/report-testing.md) | отчёт о тестировании по шаблону курса |
+| [docs/report-publication-nogotochkee.md](docs/report-publication-nogotochkee.md) | отчёт о публикации по шаблону курса |
 | [docs/ui-map.md](docs/ui-map.md) | карта «экран — эндпоинт»: откуда каждый экран берёт данные |
 | [docs/frontend-rules.md](docs/frontend-rules.md) | правила вёрстки |
 | [docs/frontend-log.md](docs/frontend-log.md) | журнал подключения экранов: эндпоинты, поля, что чинили |
